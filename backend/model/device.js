@@ -33,7 +33,8 @@ export class Device {
 
   static async update(id, deviceData) {
     try {
-      return await db("device").where({ id }).update(deviceData);
+      const updatedDevice = await db ("device").where({id}).update(deviceData);
+      return updatedDevice;
     } catch (err) {
       console.error("DB Error [update]:", err);
       throw new Error("Error al actualizar dispositivo");
@@ -42,7 +43,8 @@ export class Device {
 
   static async delete(id) {
     try {
-      return await db("device").where({ id }).del();
+      const deletedDevice = await db("device").where({ id }).del();
+      return deletedDevice;
     } catch (err) {
       console.error("DB Error [delete]:", err);
       throw new Error("Error al eliminar dispositivo");
