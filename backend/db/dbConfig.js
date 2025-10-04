@@ -1,9 +1,14 @@
 import knexLib from "knex";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const db = knexLib({
   client: "sqlite3",
   connection: {
-    filename: "./db/db.sqlite",
+    filename: path.join(__dirname, "db.sqlite"),
   },
   useNullAsDefault: true,
 });
@@ -64,14 +69,14 @@ async function createTables() {
       const exists = await db.schema.hasTable(name);
       if (!exists) {
         await db.schema.createTable(name, build);
-        console.log(`✅ Tabla "${name}" creada`);
+        console.log(`Tabla "${name}" creada`);
       } else {
-        console.log(`ℹ️ Tabla "${name}" ya existe`);
+        console.log(` Tabla "${name}" ya existe`);
       }
     }
-    console.log("🚀 Todas las tablas iniciales listas");
+    console.log(" Todas las tablas iniciales listas");
   } catch (err) {
-    console.error("❌ Error al crear tablas:", err);
+    console.error(" Error al crear tablas:", err);
   }
 }
 

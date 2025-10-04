@@ -2,7 +2,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
-    //device
   listDevices: () => ipcRenderer.invoke("list-devices"),
   getDevice: (id) => ipcRenderer.invoke("get-device", id),
   createDevice: (data) => ipcRenderer.invoke("create-device", data),
