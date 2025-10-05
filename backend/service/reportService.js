@@ -1,4 +1,4 @@
-import { Reports } from "../model/reports";
+import { Reports } from "../model/reports.js";
 
 export class ReportService {
   static async listReports() {

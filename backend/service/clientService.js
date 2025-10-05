@@ -1,4 +1,4 @@
-import { Client } from "../model/client";
+import { Client } from "../model/client.js";
 
 export class ClientService {
   static async listClients() {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, ipcRenderer } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { DeviceService } from "../backend/service/deviceService.js";

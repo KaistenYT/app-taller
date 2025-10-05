@@ -41,11 +41,11 @@ const tables = [
       table.string("estado").notNullable();
       table.string("falla_reportada").notNullable();
       table.string("observaciones");
-      table.string("reparacion_realizada").notNullable();
+      table.string("reparacion_realizada");
       table.float("costo_reparacion");
       table.date("fecha_ingreso").notNullable();
       table.date("fecha_entrega").notNullable();
-
+      table.boolean("archivada").defaultTo(false);
       table.foreign("device_id").references("id").inTable("device");
       table.foreign("client_id").references("id").inTable("client");
     },

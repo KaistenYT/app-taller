@@ -1,5 +1,5 @@
-import { Reception } from "../model/reception";
-import { ReceptionHistory } from "../model/receptionHistory";
+import { Reception } from "../model/reception.js";
+import { ReceptionHistory } from "../model/receptionHistory.js";
 
 export class ReceptionService {
   static async listReceptions() {
