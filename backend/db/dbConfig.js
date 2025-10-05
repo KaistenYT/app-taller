@@ -44,7 +44,7 @@ const tables = [
       table.string("reparacion_realizada");
       table.float("costo_reparacion");
       table.date("fecha_ingreso").notNullable();
-      table.date("fecha_entrega").notNullable();
+      table.date("fecha_entrega");
       table.boolean("archivada").defaultTo(false);
       table.foreign("device_id").references("id").inTable("device");
       table.foreign("client_id").references("id").inTable("client");
