@@ -3,10 +3,30 @@ import db from "../db/dbConfig.js";
 export class Reception {
   static async getAll() {
     try {
-      return await db("reception").select("*");
+      return await db("reception").where({archivada: false})
+      .select("*")
     } catch (error) {
       console.error("DB Error [getAll]: ", error);
       throw new Error("Error al obtener recepciones");
+    }
+  }
+
+  static async getAllArchived(){
+    try{
+      return await db("reception").where({archivada: true})
+      .select("*")
+    }catch (error) {
+      console.error("DB Error [getAllArchived]: ", error);
+      throw new Error("Error al obtener recepciones archivadas");
+    }
+  }
+
+  static archive(id){
+    try {
+      return db ("reception")
+      .where({id}).update({archivada:true})
+    } catch (error) {
+      
     }
   }
 

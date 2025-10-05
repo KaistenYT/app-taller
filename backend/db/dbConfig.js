@@ -1,3 +1,4 @@
+import { table } from "console";
 import knexLib from "knex";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,7 +14,7 @@ const db = knexLib({
   useNullAsDefault: true,
 });
 
-//  Definición de tablas en un solo lugar
+
 const tables = [
   {
     name: "device",

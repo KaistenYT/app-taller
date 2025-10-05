@@ -1,4 +1,5 @@
 import { Reception } from "../model/reception";
+import { ReceptionHistory } from "../model/receptionHistory";
 
 export class ReceptionService {
   static async listReceptions() {
@@ -7,6 +8,39 @@ export class ReceptionService {
       .catch((err) => {
         throw err;
       });
+  }
+
+  static async listArchivedReceptions() {
+    return await Reception.getAllArchived()
+      .then((reception) => reception)
+      .catch((err) => {
+        throw err;
+      });
+  }
+
+  static async restoreReception(id) {
+    const reception = await Reception.getById(id);
+    if (!reception) throw new Error("Recepción no encontrada");
+
+    return await Reception.update(id, { archivada: false });
+  }
+
+  static async archiveReception(id) {
+    const reception = await Reception.getById(id);
+    if (!reception) {
+      throw new Error("Recepcion no encontrada");
+    }
+    await ReceptionHistory.log({
+      original_id: reception.id,
+      cliente_id: reception.cliente_id,
+      equipo_id: reception.equipo_id,
+      fecha: reception.fecha,
+      estado: reception.estado,
+      accion: "archivada",
+    });
+
+    await Reception.archive(id);
+    return true;
   }
 
   static async getReception(id) {
