@@ -61,6 +61,17 @@ const tables = [
       table.foreign("reception_id").references("id").inTable("reception");
     },
   },
+  {
+    name: "user",
+    build: (table) => {
+      table.increments("id").primary();
+      table.string("username").unique().notNullable();
+      table.string("password").notNullable();
+      table.string("nombre").notNullable();
+      table.string("rol").defaultTo("usuario");
+      table.timestamp("created_at").defaultTo(db.fn.now());
+    },
+  },
 ];
 
 // 🔹 Función genérica para crear todas las tablas
