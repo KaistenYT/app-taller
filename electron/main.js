@@ -99,4 +99,8 @@ ipcMain.handle("update-reception", async (event, id, receptionData) => {
 ipcMain.handle("delete-reception", async (event, id) => {
   return await ReceptionService.deleteReception(id);
 });
+
+ipcMain.handle("reception-details", async (event, id) => {
+  return await ReceptionService.getReceptionDetails(id);
+});
 //Reports

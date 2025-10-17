@@ -19,10 +19,12 @@ contextBridge.exposeInMainWorld("api", {
   //Reception
   listReceptions: () => ipcRenderer.invoke("list-receptions"),
   listArchivedReceptions: () => ipcRenderer.invoke("list-archived-receptions"),
-  restoreReception: (id)=> ipcRenderer.invoke("restore-reception", id),
-  archiveReception : (id)=> ipcRenderer.invoke("archive-reception", id),
-  getReception: (id)=> ipcRenderer.invoke("get-reception", id),
-  createReception: (data)=> ipcRenderer.invoke("create-reception", data),
-  updateReception: (id, data)=> ipcRenderer.invoke("update-reception", id, data),
-  deleteReception: (id)=> ipcRenderer.invoke("delete-reception", id)
+  restoreReception: (id) => ipcRenderer.invoke("restore-reception", id),
+  archiveReception: (id) => ipcRenderer.invoke("archive-reception", id),
+  getReception: (id) => ipcRenderer.invoke("get-reception", id),
+  createReception: (data) => ipcRenderer.invoke("create-reception", data),
+  updateReception: (id, data) =>
+    ipcRenderer.invoke("update-reception", id, data),
+  deleteReception: (id) => ipcRenderer.invoke("delete-reception", id),
+  receptionDetails: (id) => ipcRenderer.invoke("reception-details", id),
 });

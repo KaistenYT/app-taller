@@ -1,4 +1,4 @@
-import { table } from "console";
+
 import knexLib from "knex";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -14,40 +14,38 @@ const db = knexLib({
   useNullAsDefault: true,
 });
 
-
 const tables = [
   {
     name: "device",
     build: (table) => {
       table.increments("id").primary();
-      table.string("descripcion").notNullable();
-      table.string("caracteristicas");
+      table.string("description").notNullable();
+      table.string("features");
     },
   },
   {
     name: "client",
     build: (table) => {
-      table.increments("id").primary();
-      table.string("nombre").notNullable();
-      table.string("telefono").notNullable();
+      table.string("idNumber").primary().notNullable;
+      table.string("name").notNullable();
+      table.string("phone").notNullable();
     },
   },
   {
     name: "reception",
     build: (table) => {
       table.increments("id").primary();
-      table.string("device_id").notNullable();
-      table.integer("client_id").notNullable();
-      table.string("estado").notNullable();
-      table.string("falla_reportada").notNullable();
-      table.string("observaciones");
-      table.string("reparacion_realizada");
-      table.float("costo_reparacion");
-      table.date("fecha_ingreso").notNullable();
-      table.date("fecha_entrega");
-      table.boolean("archivada").defaultTo(false);
+      table.string("client_idNumber").notNullable();
+      table.integer("device_id").notNullable();
+      table.string("defect").notNullable();
+      table.string("status")
+      table.string("repair")
+      table.timestamp("created_at").defaultTo(db.fn.now());
+      table.timestamp("updated_at").defaultTo(db.fn.now());
+      table.boolean("archived").defaultTo(false);
+      table.foreign("client_idNumber").references("idNumber").inTable("client");
       table.foreign("device_id").references("id").inTable("device");
-      table.foreign("client_id").references("id").inTable("client");
+     
     },
   },
   {
@@ -55,26 +53,13 @@ const tables = [
     build: (table) => {
       table.increments("id").primary();
       table.integer("reception_id").notNullable();
-      table.string("descripcion").notNullable();
-      table.date("fecha").notNullable();
-
+      table.string("description").notNullable();
+      table.date("created_at").defaultTo(db.fn.now());
       table.foreign("reception_id").references("id").inTable("reception");
-    },
-  },
-  {
-    name: "user",
-    build: (table) => {
-      table.increments("id").primary();
-      table.string("username").unique().notNullable();
-      table.string("password").notNullable();
-      table.string("nombre").notNullable();
-      table.string("rol").defaultTo("usuario");
-      table.timestamp("created_at").defaultTo(db.fn.now());
     },
   },
 ];
 
-// 🔹 Función genérica para crear todas las tablas
 async function createTables() {
   try {
     for (const { name, build } of tables) {

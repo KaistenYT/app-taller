@@ -18,6 +18,12 @@ export class ReceptionService {
       });
   }
 
+  static async getReceptionDetails(id){
+    const receptionDetails = await Reception.getDetailedById(id);
+    if(!receptionDetails)throw new Error("Recepcion no encontrada")
+    
+  }
+
   static async restoreReception(id) {
     const reception = await Reception.getById(id);
     if (!reception) throw new Error("Recepción no encontrada");
