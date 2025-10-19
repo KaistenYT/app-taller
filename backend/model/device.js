@@ -19,17 +19,17 @@ export class Device {
     }
   }
 
-  static async create(deviceData) {
-    try {
-      const [newDevice] = await db("device")
-        .insert(deviceData)
-        .returning("*");
-      return newDevice;
-    } catch (err) {
-      console.error("DB Error [create]:", err);
-      throw new Error("Error al crear dispositivo");
-    }
+ static async create(deviceData) {
+  try {
+    const [id] = await db("device").insert(deviceData);
+    const newDevice = await db("device").where({ id }).first();
+    return newDevice;
+  } catch (err) {
+    console.error("DB Error [create]:", err);
+    throw new Error("Error al crear dispositivo");
   }
+}
+
 
   static async update(id, deviceData) {
     try {

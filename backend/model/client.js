@@ -10,9 +10,9 @@ export class Client {
     }
   }
 
-  static async getById(id) {
+  static async getById(idNumber) {
     try {
-      return await db("client").where({ id }).first();
+      return await db("client").where({ idNumber }).first();
     } catch (error) {
       console.error("DB Error [getById]: ", error);
       throw new Error("Error al obtener Cliente");

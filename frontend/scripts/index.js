@@ -1,6 +1,10 @@
 // index.js
 let receptions = [];
 
+document.getElementById("filtroGeneral").addEventListener("input", aplicarFiltros);
+document.getElementById("filtroFecha").addEventListener("input", aplicarFiltros);
+document.getElementById("ordenFecha").addEventListener("change", aplicarFiltros);
+
 document.addEventListener("DOMContentLoaded", async () => {
   await cargarRecepciones();
 });
@@ -19,94 +23,68 @@ async function cargarRecepciones() {
   }
 }
 
-function mostrarRecepciones() {
+
+
+function mostrarRecepciones(lista = receptions) {
   const tbody = document.getElementById("recepciones-body");
   tbody.innerHTML = "";
 
-  receptions.forEach((r) => {
+  lista.forEach((r) => {
     const fila = document.createElement("tr");
     fila.innerHTML = `
-      <td>${r.id}</td>
       <td>${r.cliente}</td>
       <td>${r.equipo}</td>
       <td>${r.status}</td>
       <td>${r.defect}</td>
       <td>${new Date(r.created_at).toLocaleDateString()}</td>
-      <td><button class="btn btn-sm btn-primary" onclick="verDetalle(${
-        r.id
-      })">Ver</button></td>
+      <td><button class="btn btn-sm btn-primary" onclick="verDetalle(${r.id})">Ver</button></td>
     `;
     tbody.appendChild(fila);
   });
 }
+
+
+
+
+function aplicarFiltros() {
+  console.log("Aplicando filtros...");
+ const texto = document.getElementById("filtroGeneral").value.toLowerCase();
+  const fecha = document.getElementById("filtroFecha").value;
+  const orden = document.getElementById("ordenFecha").value;
+
+  let filtradas = receptions.filter((r) => {
+    const coincideTexto =
+      r.cliente.toLowerCase().includes(texto) ||
+      r.equipo.toLowerCase().includes(texto);
+
+    const coincideFecha = fecha
+      ? new Date(r.created_at).toISOString().slice(0, 10) === fecha
+      : true;
+
+    return coincideTexto && coincideFecha;
+  });
+
+  filtradas.sort((a, b) => {
+    const fechaA = new Date(a.created_at);
+    const fechaB = new Date(b.created_at);
+    return orden === "asc" ? fechaA - fechaB : fechaB - fechaA;
+  });
+
+  mostrarRecepciones(filtradas);
+}
+
+
+
 
 window.verDetalle = function (id) {
   window.location.href = `detalle.html?id=${id}`;
 };
 
 function crearRecepcion() {
-  window.location.href = "";
+  window.location.href = "addReceptionForm.html";
 }
 
-async function crearDatosPrueba() {
-  try {
-    await window.api.createClient({
-      idNumber: "V123456789",
-      name: "Carlos Perez",
-      phone: "04123456789",
-    });
-    await window.api.createClient({
-      idNumber: "V24687592",
-      name: "Luis Rodriguez",
-      phone: "0417852369875",
-    });
-    await window.api.createClient({
-      idNumber: "V9876543210",
-      name: "Ana Perez",
-      phone: "04123454785",
-    });
-    await window.api.createDevice({
-      description: "Laptop HP",
-      features: "Core i5, 8GB RAM",
-    });
-     await window.api.createDevice({
-      description: "Laptop Dell",
-      features: "Core i5 8va Gen, 16GB RAM",
-    });
-     await window.api.createDevice({
-      description: "Laptop Lenovo",
-      features: "Core i9 10ma, 32GB RAM",
-    });
 
-     await window.api.createReception({
-      client_idNumber: "V123456789",
-      device_id: 1,
-      defect: "No enciende",
-      status: "PENDIENTE"
-      
-    });
-     await window.api.createReception({
-      client_idNumber: "V9876543210",
-      device_id: 2,
-      defect: "No enciende",
-      status: "DEVUELTO"
-      
-    });
+// <td>${r.id}</td>
 
-     await window.api.createReception({
-      client_idNumber:"V24687592" ,
-      device_id: 2,
-      defect: "No enciende",
-      status: "GARANTIA"
-      
-    });
-
-
-
-    console.log("DATOS CREADOS CORRECTAMENTE");
-  } catch (error) {
-    console.error("Error al crear datos de prueba:", error);
-  }
-}
-
-document.addEventListener("DOMContentLoaded", crearDatosPrueba())
+ 

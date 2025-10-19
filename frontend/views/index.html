@@ -11,15 +11,35 @@
 </head>
 
 <body class="bg-light">
-  <div class="d-flex justify-content-end mb-3">
+  <div class="d-flex justify-content-end mb-3 me-3 mt-3">
   <button class="btn btn-success" onclick="crearRecepcion()">Agregar recepción</button>
+  </div>
+  <h1 class="text-center">SISTEMA DE GESTION Y MONITOREO DE RECEPCIONES</h1>
+  <div class="container">
+    <div class="justify-content-center">
+ <div class="row mb-4 ">
+  <div class="col-md-4">
+    <input type="text" id="filtroGeneral" class="form-control" placeholder="Buscar por cliente o equipo" />
+  </div>
+  <div class="col-md-4">
+    <input type="date" id="filtroFecha" class="form-control" />
+  </div>
+  <div class="col-md-4">
+    <select id="ordenFecha" class="form-select">
+      <option value="desc">Más reciente</option>
+      <option value="asc">Más antigua</option>
+    </select>
+  </div>
+</div>
+</div>
 </div>
   <div class="container mt-5">
   <div class="d-flex justify-content-center">
+    
 <table class="table table-bordered table-hover">
   <thead class="table-dark">
     <tr>
-      <th scope="col">ID</th>
+     <!-- <th scope="col">ID</th>!-->
       <th scope="col">Cliente</th>
       <th scope="col">Equipo</th>
       <th scope="col">Estado</th>
