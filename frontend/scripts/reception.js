@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await window.api.createReception(finalReception);
       console.log("Recepción creada:", result);
 
-      mensaje.innerHTML = `<div class="alert alert-success">Recepción creada con éxito (ID: ${result.id || result[0]?.id})</div>`;
+      mensaje.innerHTML = `<div class="alert alert-success">Recepción creada con éxito</div>`;
       form.reset();
       document.getElementById("client_name").disabled = false;
       document.getElementById("client_phone").disabled = false;
