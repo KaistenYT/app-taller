@@ -1,97 +1,175 @@
+
 function regresar() {
-  console.log("Regresando al index...");
   window.location.href = "index.html";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("reception-form");
-  const mensaje = document.getElementById("mensaje");
+  const q = {
+    form: document.getElementById("reception-form"),
+    mensaje: document.getElementById("mensaje"),
+    submitBtn: document.getElementById("submit-btn"),
+    clientId: document.getElementById("client_idNumber"),
+    clientName: document.getElementById("client_name"),
+    clientPhone: document.getElementById("client_phone"),
+    deviceSerial: document.getElementById("device_serial_number"),
+    deviceDescription: document.getElementById("device_description"),
+    deviceFeatures: document.getElementById("device_features"),
+    defect: document.getElementById("defect"),
+    status: document.getElementById("status"),
+    repair: document.getElementById("repair"),
+  };
 
-  // Autocompletar cliente si existe
-  document.getElementById("client_idNumber").addEventListener("input", async (e) => {
-    const idNumber = e.target.value.trim();
-    if (idNumber.length >= 7) {
+  const state = { loading: false };
+
+  const ui = {
+    setMessage(html, type = "info") {
+      q.mensaje.innerHTML = `<div class="alert alert-${type}">${html}</div>`;
+    },
+    clearMessage() {
+      q.mensaje.innerHTML = "";
+    },
+    setLoading(on, text = "Procesando...") {
+      state.loading = on;
+      q.submitBtn.disabled = on;
+      q.submitBtn.textContent = on ? text : "Guardar recepción";
+    },
+    disableClientFields(disabled) {
+      q.clientName.disabled = disabled;
+      q.clientPhone.disabled = disabled;
+    },
+    resetForm() {
+      q.form.reset();
+      this.disableClientFields(false);
+    }
+  };
+
+  // utilidades
+  const $ = (el) => el;
+  const debounce = (fn, wait = 300) => {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
+  };
+  const safeGetVal = (el) => (el?.value ?? "").trim();
+
+  // Autocompletar cliente por cédula (debounced)
+  q.clientId.addEventListener(
+    "input",
+    debounce(async (e) => {
+      const idNumber = safeGetVal(q.clientId);
+      if (idNumber.length < 7) {
+        ui.disableClientFields(false);
+        q.clientName.value = "";
+        q.clientPhone.value = "";
+        return;
+      }
+
       try {
-        console.log("Buscando cliente con cédula:", idNumber);
         const cliente = await window.api.getClient(idNumber);
         if (cliente) {
-          console.log("Cliente encontrado:", cliente);
-          document.getElementById("client_name").value = cliente.name;
-          document.getElementById("client_phone").value = cliente.phone;
-          document.getElementById("client_name").disabled = true;
-          document.getElementById("client_phone").disabled = true;
+          q.clientName.value = cliente.name || "";
+          q.clientPhone.value = cliente.phone || "";
+          ui.disableClientFields(true);
         } else {
-          console.log("Cliente no encontrado. Campos habilitados.");
-          document.getElementById("client_name").value = "";
-          document.getElementById("client_phone").value = "";
-          document.getElementById("client_name").disabled = false;
-          document.getElementById("client_phone").disabled = false;
+          q.clientName.value = "";
+          q.clientPhone.value = "";
+          ui.disableClientFields(false);
         }
-      } catch (error) {
-        console.error("Error al buscar cliente:", error);
+      } catch (err) {
+        console.error("Error autocompletar cliente:", err);
+        ui.setMessage("Error buscando cliente", "danger");
       }
-    }
-  });
+    }, 300)
+  );
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    console.log("Formulario enviado. Preparando datos...");
+  // Validaciones mínimas
+  function validateInputs(clientData, receptionData) {
+    if (!clientData.idNumber) throw new Error("El número de identificación del cliente es requerido");
+    if (!receptionData.defect) throw new Error("La falla/defecto es requerida");
+  }
+
+  // Normaliza respuesta del device (acepta id o objeto devuelto por API)
+  function extractDeviceId(deviceResp) {
+    if (!deviceResp) return null;
+    return deviceResp.id ?? (Array.isArray(deviceResp) ? deviceResp[0]?.id : null);
+  }
+
+  // Manejo submit
+  q.form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    ui.clearMessage();
+    ui.setLoading(true);
 
     const clientData = {
-      idNumber: document.getElementById("client_idNumber").value.trim(),
-      name: document.getElementById("client_name").value.trim(),
-      phone: document.getElementById("client_phone").value.trim(),
+      idNumber: safeGetVal(q.clientId),
+      name: safeGetVal(q.clientName),
+      phone: safeGetVal(q.clientPhone),
     };
-    console.log("Datos del cliente:", clientData);
 
     const deviceData = {
-      description: document.getElementById("device_description").value.trim(),
-      features: document.getElementById("device_features").value.trim(),
+      serial_number: safeGetVal(q.deviceSerial) || null,
+      description: safeGetVal(q.deviceDescription),
+      features: safeGetVal(q.deviceFeatures) || null,
     };
-    console.log("Datos del equipo:", deviceData);
 
     const receptionData = {
-      defect: document.getElementById("defect").value.trim(),
-      status: document.getElementById("status").value.trim(),
-      repair: document.getElementById("repair").value.trim(),
+      defect: safeGetVal(q.defect),
+      status: safeGetVal(q.status) || "PENDIENTE",
+      repair: safeGetVal(q.repair) || null,
     };
-    console.log("Datos de la recepción:", receptionData);
 
     try {
-      // Verificar o crear cliente
+      validateInputs(clientData, receptionData);
+
+      // cliente: obtener o crear
       let cliente = await window.api.getClient(clientData.idNumber);
-      if (!cliente) {
-        console.log("Cliente no existe. Creando...");
-        cliente = await window.api.createClient(clientData);
+      if (!cliente) cliente = await window.api.createClient(clientData);
+
+      // equipo: upsert por serial si existe, sino crear
+      let equipo;
+      if (deviceData.serial_number) {
+        if (window.api.upsertDeviceBySerial) equipo = await window.api.upsertDeviceBySerial(deviceData);
+        else {
+          const found = window.api.getDeviceBySerial ? await window.api.getDeviceBySerial(deviceData.serial_number) : null;
+          equipo = found || await window.api.createDevice(deviceData);
+        }
+      } else {
+        equipo = await window.api.createDevice(deviceData);
       }
-      console.log("Cliente confirmado:", cliente);
 
-      // Crear equipo
-      const equipo = await window.api.createDevice(deviceData);
-      console.log("Equipo creado:", equipo);
-
-      // Validar que equipo tenga ID
-      const device_id = equipo?.id || equipo?.[0]?.id;
+      const device_id = extractDeviceId(equipo);
       if (!device_id) throw new Error("No se pudo obtener el ID del equipo");
 
-      // Crear recepción
-      const finalReception = {
-        client_idNumber: cliente.idNumber,
-        device_id,
-        ...receptionData,
+      // snapshot garantizado
+      const snapshot = {
+        id: device_id,
+        serial_number: equipo?.serial_number || deviceData.serial_number || null,
+        description: equipo?.description || deviceData.description || null,
+        features: equipo?.features || deviceData.features || null,
+        captured_at: new Date().toISOString(),
       };
-      console.log("Datos finales para recepción:", finalReception);
+
+     const finalReception = {
+  client_idNumber: cliente.idNumber,
+  client_name: clientData.name,
+  client_phone: clientData.phone,
+  device_id,
+  defect: receptionData.defect,
+  status: receptionData.status,
+  repair: receptionData.repair,
+  device_snapshot: snapshot
+};
+
 
       const result = await window.api.createReception(finalReception);
-      console.log("Recepción creada:", result);
 
-      mensaje.innerHTML = `<div class="alert alert-success">Recepción creada con éxito</div>`;
-      form.reset();
-      document.getElementById("client_name").disabled = false;
-      document.getElementById("client_phone").disabled = false;
+      ui.setMessage(`Recepción creada con éxito (ID: ${result?.id ?? "n/a"})`, "success");
+      ui.resetForm();
+      q.clientId.focus();
     } catch (error) {
-      console.error("❌ Error al crear recepción:", error);
-      mensaje.innerHTML = `<div class="alert alert-danger">Error al crear recepción</div>`;
+      console.error("Error crear recepción:", error);
+      ui.setMessage(error.message || "Error al crear recepción", "danger");
+    } finally {
+      ui.setLoading(false);
     }
   });
 });

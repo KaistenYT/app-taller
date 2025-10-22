@@ -2,42 +2,57 @@ import { Client } from "../model/client.js";
 
 export class ClientService {
   static async listClients() {
-    return await Client.getAll()
-      .then((clients) => clients)
-      .catch((err) => {
-        throw err;
-      });
+    try {
+      return await Client.getAll();
+    } catch (err) {
+      console.error("ClientService.listClients error:", err);
+      throw new Error("Error al listar clientes");
+    }
   }
 
-  static async getClient(id) {
-    return await Client.getById(id)
-      .then((client) => client)
-      .catch((err) => {
-        throw err;
-      });
+  static async getClient(idNumber) {
+    if (!idNumber) throw new Error("getClient: idNumber es requerido");
+    try {
+      return await Client.getById(idNumber);
+    } catch (err) {
+      console.error("ClientService.getClient error:", err);
+      throw new Error("Error al obtener cliente");
+    }
   }
 
-  static async createClient(clienData) {
-    return await Client.create(clienData)
-      .then((newClient) => newClient)
-      .catch((err) => {
-        throw err;
-      });
+  static async createClient(clientData, trx = null) {
+    if (!clientData || typeof clientData !== "object") {
+      throw new Error("createClient: datos inválidos");
+    }
+    try {
+      return await Client.create(clientData, trx);
+    } catch (err) {
+      console.error("ClientService.createClient error:", err);
+      throw new Error("Error al crear cliente");
+    }
   }
 
-  static async updateClient(id, clienData) {
-    return await Client.update(id, clienData)
-      .then(() => true)
-      .catch((err) => {
-        throw err;
-      });
+  static async updateClient(idNumber, clientData) {
+    if (!idNumber || !clientData) {
+      throw new Error("updateClient: idNumber y datos son requeridos");
+    }
+    try {
+      await Client.update(idNumber, clientData);
+      return true;
+    } catch (err) {
+      console.error("ClientService.updateClient error:", err);
+      throw new Error("Error al actualizar cliente");
+    }
   }
 
-  static async deleteClient(id) {
-    return await Client.delete(id)
-      .then(() => true)
-      .catch((err) => {
-        throw err;
-      });
+  static async deleteClient(idNumber) {
+    if (!idNumber) throw new Error("deleteClient: idNumber es requerido");
+    try {
+      await Client.delete(idNumber);
+      return true;
+    } catch (err) {
+      console.error("ClientService.deleteClient error:", err);
+      throw new Error("Error al eliminar cliente");
+    }
   }
 }
