@@ -19,6 +19,9 @@ yarn-error.log*
 # Electron build output
 /dist/
 /build/
+/release/
+/out/
+
 *.exe
 *.AppImage
 *.dmg
