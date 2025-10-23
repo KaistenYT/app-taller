@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from "electron";
+require('update-electron-app')();
 import path from "path";
 import { fileURLToPath } from "url";
 import { DeviceService } from "../backend/service/deviceService.js";
