@@ -159,31 +159,68 @@ export class ReceptionService {
 }
 
 
-  static async updateReception(id, receptionData) {
-    const trx = await db.transaction();
-    try {
-      if (receptionData.device_snapshot && typeof receptionData.device_snapshot === "object") {
-        receptionData.device_snapshot = JSON.stringify(receptionData.device_snapshot);
-      }
-      receptionData.updated_at = db.fn.now();
-
-      await trx("reception").where({ id }).update(receptionData);
-      const updated = await trx("reception").where({ id }).first();
-
-      await trx.commit();
-
-      try {
-        updated.device_snapshot = updated.device_snapshot ? JSON.parse(updated.device_snapshot) : null;
-      } catch (e) {
-        updated.device_snapshot = null;
-      }
-
-      return updated;
-    } catch (err) {
-      await trx.rollback();
-      throw err;
+  static async updateReception(id, data) {
+  const trx = await db.transaction();
+  try {
+    const receptionId = Number(id);
+    if (!receptionId || isNaN(receptionId)) {
+      throw new Error("update-reception: id inválido");
     }
+    if (!data || typeof data !== "object") {
+      throw new Error("update-reception: datos inválidos");
+    }
+
+    
+    if (data.client_idNumber && (data.client_name || data.client_phone)) {
+      const clientUpdate = {};
+      if (data.client_name) clientUpdate.name = data.client_name;
+      if (data.client_phone) clientUpdate.phone = data.client_phone;
+
+      await trx("client")
+        .where({ idNumber: data.client_idNumber })
+        .update(clientUpdate);
+    }
+
+    
+    const snapshot = data.device_snapshot
+      ? typeof data.device_snapshot === "object"
+        ? JSON.stringify(data.device_snapshot)
+        : data.device_snapshot
+      : null;
+
+   
+    const receptionUpdate = {
+      client_idNumber: data.client_idNumber,
+      device_id: data.device_id,
+      defect: data.defect,
+      status: data.status,
+      repair: data.repair,
+      device_snapshot: snapshot,
+      updated_at: db.fn.now(),
+    };
+
+    await trx("reception").where({ id: receptionId }).update(receptionUpdate);
+
+    const updated = await trx("reception").where({ id: receptionId }).first();
+    await trx.commit();
+
+    try {
+      updated.device_snapshot = updated.device_snapshot
+        ? JSON.parse(updated.device_snapshot)
+        : null;
+    } catch {
+      updated.device_snapshot = null;
+    }
+
+    return updated;
+  } catch (err) {
+    await trx.rollback();
+    console.error("ReceptionService.updateReception error:", err);
+    throw err;
   }
+}
+
+
 
   static async deleteReception(id) {
     try {

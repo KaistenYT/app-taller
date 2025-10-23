@@ -5,7 +5,7 @@ import { DeviceService } from "../backend/service/deviceService.js";
 import { ReceptionService } from "../backend/service/receptionService.js";
 import { ClientService } from "../backend/service/clientService.js";
 import { ReportService } from "../backend/service/reportService.js";
-
+import { ReceptionHistory } from "../backend/model/receptionHistory.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -36,10 +36,7 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-/*
-  Helper to standardize handlers: valida entrada, ejecuta la acción y captura errores.
-  Devuelve el resultado directo (objeto o valores) o relanza el error para que el frontend lo maneje.
-*/
+
 const safeHandler = (fn) => async (event, ...args) => {
   try {
     return await fn(event, ...args);
@@ -49,6 +46,10 @@ const safeHandler = (fn) => async (event, ...args) => {
     throw err;
   }
 };
+
+await ReceptionHistory.init();
+
+
 
 /* Devices */
 ipcMain.handle(
@@ -189,15 +190,17 @@ ipcMain.handle("create-reception", async (event, data) => {
 });
 
 
-ipcMain.handle(
-  "update-reception",
-  safeHandler(async (event, id, receptionData) => {
-    if (!id) throw new Error("update-reception: id is required");
-    if (!receptionData || typeof receptionData !== "object")
-      throw new Error("update-reception: receptionData is required");
-    return await ReceptionService.updateReception(id, receptionData);
-  })
-);
+ipcMain.handle("update-reception", async (event, { id, data }) => {
+  try {
+    console.log("📥 update-reception:", { id, data });
+    const updatedReception = await ReceptionService.updateReception(id, data);
+    console.log("✅ recepción actualizada:", updatedReception);
+    return updatedReception;
+  } catch (err) {
+    console.error("❌ IPC Error [update-reception]:", err);
+    throw err;
+  }
+});
 
 ipcMain.handle(
   "delete-reception",
@@ -273,3 +276,12 @@ ipcMain.handle(
     return await ReportService.deleteReport(id);
   })
 );
+
+ipcMain.handle("get-report-by-reception", async (event, receptionId) => {
+  try {
+    return await ReportService.getReportsByReception(receptionId);
+  } catch (err) {
+    console.error("IPC Error [get-report-by-reception]:", err);
+    throw err;
+  }
+  });

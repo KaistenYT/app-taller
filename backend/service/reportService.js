@@ -2,42 +2,58 @@ import { Reports } from "../model/reports.js";
 
 export class ReportService {
   static async listReports() {
-    return await Reports.getAll()
-      .then((reports) => reports)
-      .catch((err) => {
-        throw err;
-      });
+    try {
+      return await Reports.getAll();
+    } catch (err) {
+      console.error("Service Error [listReports]:", err);
+      throw err;
+    }
   }
 
   static async getReport(id) {
-    return await Reports.getById(id)
-      .then((report) => report)
-      .catch((err) => {
-        throw err;
-      });
+    try {
+      return await Reports.getById(id);
+    } catch (err) {
+      console.error(`Service Error [getReport:${id}]:`, err);
+      throw err;
+    }
   }
 
   static async createReport(reportData) {
-    return await Reports.create(reportData)
-      .then((newReport) => newReport)
-      .catch((err) => {
-        throw err;
-      });
+    try {
+      return await Reports.create(reportData);
+    } catch (err) {
+      console.error("Service Error [createReport]:", err);
+      throw err;
+    }
   }
 
   static async updateReport(id, reportData) {
-    return await Reports.update(id, reportData)
-      .then(() => true)
-      .catch((err) => {
-        throw err;
-      });
+    try {
+      await Reports.update(id, reportData);
+      return true;
+    } catch (err) {
+      console.error(`Service Error [updateReport:${id}]:`, err);
+      throw err;
+    }
   }
 
   static async deleteReport(id) {
-    return await Reports.delete(id)
-      .then(() => true)
-      .catch((err) => {
-        throw err;
-      });
+    try {
+      await Reports.delete(id);
+      return true;
+    } catch (err) {
+      console.error(`Service Error [deleteReport:${id}]:`, err);
+      throw err;
+    }
   }
+
+  static async getReportsByReception(receptionId) {
+  try {
+    return await Reports.getByReceptionId(receptionId);
+  } catch (err) {
+    console.error(`Service Error [getReportsByReception:${receptionId}]:`, err);
+    throw err;
+  }
+}
 }

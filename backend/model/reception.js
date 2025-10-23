@@ -6,7 +6,6 @@ export class Reception {
       return await db("reception as r")
         .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
         .leftJoin("device as d", "r.device_id", "d.id")
-        .where({ "r.archived": false })
         .select(
           "r.id",
           "c.name as client_name",

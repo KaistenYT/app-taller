@@ -25,17 +25,24 @@ contextBridge.exposeInMainWorld("api", {
   archiveReception: (id) => ipcRenderer.invoke("archive-reception", id),
   getReception: (id) => ipcRenderer.invoke("get-reception", id),
   createReception: (data) => ipcRenderer.invoke("create-reception", data),
-  updateReception: (id, data) => ipcRenderer.invoke("update-reception", id, data),
+  updateReception: (id, data) => ipcRenderer.invoke("update-reception", { id, data }),
+
+
   deleteReception: (id) => ipcRenderer.invoke("delete-reception", id),
   receptionDetails: (id) => ipcRenderer.invoke("reception-details", id),
 
   // Reports
-  listReports: () => ipcRenderer.invoke("list-reports"),
-  getReport: (id) => ipcRenderer.invoke("get-report", id),
-  createReport: (data) => ipcRenderer.invoke("create-report", data),
-  updateReport: (id, data) => ipcRenderer.invoke("update-report", id, data),
-  deleteReport: (id) => ipcRenderer.invoke("delete-report", id),
+ // Reports
+listReports: () => ipcRenderer.invoke("list-reports"),
+ getReport: (id) => ipcRenderer.invoke("get-report", id),
+getReportByReception: (receptionId) => ipcRenderer.invoke("get-report-by-reception", receptionId),
+createReport: (data) => ipcRenderer.invoke("create-report", data),
+updateReport: (id, data) => ipcRenderer.invoke("update-report", id, data),
+deleteReport: (id) => ipcRenderer.invoke("delete-report", id),
 
-  
-  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args)
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+
+
 });
+
+

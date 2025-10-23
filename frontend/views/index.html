@@ -16,6 +16,7 @@
         <button class="btn btn-success" id="btn-create">+ Nueva recepción</button>
         <button class="btn btn-outline-secondary me-2" id="btn-seed">Cargar datos de prueba</button>
 
+
       </div>
     </div>
   </nav>
@@ -35,6 +36,14 @@
         <select id="ordenFecha" class="form-select">
           <option value="desc">Más reciente</option>
           <option value="asc">Más antigua</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">Mostrar</label>
+        <select id="filtroArchivadas" class="form-select">
+          <option value="activas">Activas</option>
+          <option value="archivadas">Archivadas</option>
+          <option value="todas">Todas</option>
         </select>
       </div>
       <div class="col-md-2 d-flex align-items-end">
@@ -57,6 +66,7 @@
               </tr>
             </thead>
             <tbody id="recepciones-body"></tbody>
+            
           </table>
         </div>
       </div>

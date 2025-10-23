@@ -90,6 +90,21 @@ const tables = [
       table.index(["reception_id"]);
     },
   },
+  {
+  name: "reception_history",
+  build: (table) => {
+   table.increments("id").primary();
+        table.integer("reception_id").notNullable().unsigned();
+        table.string("client_id").notNullable();
+        table.integer("device_id").notNullable().unsigned();
+        table.timestamp("reception_date").notNullable();
+        table.string("status").notNullable();
+        table.string("action").notNullable();
+        table.timestamp("event_timestamp").defaultTo(db.fn.now());
+        table.index(["reception_id"]);
+  },
+}
+
 ];
 
 async function createTables() {

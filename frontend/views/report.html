@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="../styles/report.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">📄 Report</h4>
+      <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">🖨️ Print</button>
+    </div>
+
+    <div id="report-content" class="border rounded p-3 bg-white shadow-sm">
+      <!-- Report content will be injected here -->
+    </div>
+  </div>
+
+<script type="module" src="../scripts/report.js"></script>
+
+</body>
+</html>

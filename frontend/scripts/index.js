@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const filtroGeneral = document.getElementById("filtroGeneral");
   const filtroFecha = document.getElementById("filtroFecha");
   const ordenFecha = document.getElementById("ordenFecha");
+  const filtroArchivadas = document.getElementById("filtroArchivadas");
   const btnClear = document.getElementById("btn-clear-filters");
   const btnCreate = document.getElementById("btn-create");
   const btnRefresh = document.getElementById("btn-refresh");
@@ -23,7 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
   filtroGeneral.addEventListener("input", debounce(() => { page = 1; render(); }, 250));
   filtroFecha.addEventListener("change", () => { page = 1; render(); });
   ordenFecha.addEventListener("change", () => { page = 1; render(); });
-  btnClear.addEventListener("click", () => { filtroGeneral.value = ""; filtroFecha.value = ""; ordenFecha.value = "desc"; page = 1; render(); });
+  filtroArchivadas.addEventListener("change", () => { page = 1; render(); });
+  btnClear.addEventListener("click", () => { filtroGeneral.value = ""; filtroFecha.value = ""; ordenFecha.value = "desc"; filtroArchivadas.value = "activas"; page = 1; render(); });
 
   function debounce(fn, wait = 300) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); }; }
 
@@ -71,7 +73,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const q = filtroGeneral.value.trim().toLowerCase();
     const dateFilter = filtroFecha.value;
     const order = ordenFecha.value === "asc" ? 1 : -1;
+    const archivoFilter = filtroArchivadas.value;
     let list = cache.slice();
+    
+    // Filtrar por estado de archivo
+    if (archivoFilter === "activas") {
+      list = list.filter(r => !r.archived);
+    } else if (archivoFilter === "archivadas") {
+      list = list.filter(r => r.archived);
+    }
+    // Si es "todas", no filtramos
+    
     if (q) {
       list = list.filter(r => {
         const cliente = (r.client_name || r.client?.name || r.client_idNumber || "").toString().toLowerCase();
@@ -139,6 +151,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <button class="btn btn-sm btn-outline-warning btn-edit" data-id="${r.id}">Editar</button>
             <button class="btn btn-sm btn-outline-secondary btn-archive" data-id="${r.id}">${r.archived ? 'Restaurar' : 'Archivar'}</button>
             <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${r.id}">Eliminar</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="openReportWindow(${r.id})"> Print Report</button>
+
           </td>
         </tr>
       `;
@@ -332,3 +346,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadReceptions();
 });
+
+
+
+async function openReportWindow(receptionId) {
+  let reports = await window.api.getReportByReception(receptionId);
+
+  if (!reports || reports.length === 0) {
+    const reception = await window.api.getReception(receptionId);
+    console.log("📦 Reception:", reception);
+
+    const description = `
+      <p><strong>ID Recepción:</strong> ${reception.id}</p>
+      <p><strong>Fecha de ingreso:</strong> ${reception.created_at}</p>
+      <p><strong>Cliente:</strong> ${reception.client_idNumber}</p>
+      <p><strong>Equipo:</strong> ${reception.device_snapshot?.description || "No especificado"}</p>
+      <p><strong>Estado inicial:</strong> ${reception.defect}</p>
+      <hr />
+      <p><strong>Diagnóstico técnico:</strong></p>
+      <p>${reception.repair || "Pendiente de evaluación"}</p>
+    `;
+
+    const newReport = await window.api.createReport({
+      reception_id: receptionId,
+      description,
+    });
+
+    if (!newReport || !newReport.id) {
+      alert("No se pudo crear el reporte.");
+      return;
+    }
+
+    reports = [newReport];
+  }
+
+  const reportId = reports[0].id;
+  window.open(`report.html?id=${reportId}`, "_blank", "width=800,height=900");
+}
+
+
+
