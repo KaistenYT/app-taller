@@ -1,0 +1,21 @@
+.report {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  background-color: white;
+  padding: 20px;
+}
+
+.report h4 {
+  margin-bottom: 1rem;
+}
+
+.report p {
+  margin: 0.5rem 0;
+}
+
+@media print {
+  button {
+    display: none;
+  }
+}

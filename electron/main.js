@@ -97,21 +97,22 @@ const registerHandlers = () => {
 
     // Receptions
     "list-receptions": () => ReceptionService.listReceptions(),
+      
     "list-archived-receptions": () => ReceptionService.listArchivedReceptions(),
     "get-reception": (event, id) => {
       if (!id) throw new Error("get-reception: id is required");
       return ReceptionService.getReception(id);
     },
     "create-reception": async (event, data) => {
-      console.log("📥 create-reception:", data);
+      console.log("create-reception:", data);
       const result = await ReceptionService.createReception(data);
-      console.log("✅ recepción creada:", result);
+      console.log("reception created:", result);
       return result;
     },
     "update-reception": async (event, { id, data }) => {
-      console.log("📥 update-reception:", { id, data });
+      console.log("update-reception:", { id, data });
       const result = await ReceptionService.updateReception(id, data);
-      console.log("✅ recepción actualizada:", result);
+      console.log("reception updated:", result);
       return result;
     },
     "delete-reception": (event, id) => {

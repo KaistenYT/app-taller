@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>APP-TALLER — Recepciones</title>
+  <link href="../styles/style.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+  <nav class="navbar navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+      <span class="navbar-brand mb-0 h1">APP-TALLER</span>
+      <div>
+        <button class="btn btn-outline-primary me-2" id="btn-refresh" title="Actualizar lista">⟳</button>
+        <button class="btn btn-success" id="btn-create">+ Nueva recepción</button>
+        <button class="btn btn-outline-secondary me-2" id="btn-seed">Cargar datos de prueba</button>
+
+
+      </div>
+    </div>
+  </nav>
+
+  <main class="container mb-5">
+    <div class="row mb-3" id="filters">
+      <div class="col-md-5">
+        <label class="form-label small">Buscar</label>
+        <input id="filtroGeneral" class="form-control" placeholder="Buscar por cliente, equipo, serial o falla" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">Fecha</label>
+        <input id="filtroFecha" class="form-control" type="date" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">Orden</label>
+        <select id="ordenFecha" class="form-select">
+          <option value="desc">Más reciente</option>
+          <option value="asc">Más antigua</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">Mostrar</label>
+        <select id="filtroArchivadas" class="form-select">
+          <option value="activas">Activas</option>
+          <option value="archivadas">Archivadas</option>
+          <option value="todas">Todas</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button id="btn-clear-filters" class="btn btn-outline-secondary w-100">Limpiar filtros</button>
+      </div>
+    </div>
+
+    <section class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>Cliente</th>
+                <th>Equipo / Serial</th>
+                <th>Estado</th>
+                <th>Falla</th>
+                <th>Ingreso</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="recepciones-body"></tbody>
+            
+          </table>
+        </div>
+      </div>
+
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <small id="list-summary" class="text-muted">Cargando...</small>
+        <nav><ul class="pagination mb-0" id="pagination"></ul></nav>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal detalle -->
+  <div class="modal fade" id="receptionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalle de recepción</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="modal-body-content"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button id="modal-edit-btn" type="button" class="btn btn-warning">Editar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../scripts/index.js"></script>
+</body>
+</html>

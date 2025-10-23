@@ -6,7 +6,7 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure the db directory exists
+
 if (!fs.existsSync(__dirname)) {
   fs.mkdirSync(__dirname, { recursive: true });
 }
@@ -34,7 +34,7 @@ const tables = [
     table.string("description").notNullable();
     table.string("features");
     table.string("serial_number").unique().notNullable();
-    table.text("device_snapshot");
+    
     table.timestamp("created_at").defaultTo(db.fn.now());
     table.timestamp("updated_at").defaultTo(db.fn.now());
     table.index(["serial_number"]);

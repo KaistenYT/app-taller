@@ -58,6 +58,6 @@ export class ReceptionHistory {
       END;
     `);
 
-    console.log("✅ Reception history triggers created");
+    console.log("Reception history triggers created");
   }
 }

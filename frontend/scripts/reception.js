@@ -45,6 +45,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // utilidades
   const $ = (el) => el;
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str).replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  }
   const debounce = (fn, wait = 300) => {
     let t;
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
@@ -216,11 +220,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (state.editMode && state.receptionId) {
         // Modo edición
         result = await window.api.updateReception(state.receptionId, finalReception);
-        ui.setMessage(`Recepción actualizada con éxito (ID: ${result?.id ?? state.receptionId})`, "success");
+        ui.setMessage(`Recepción actualizada con éxito (ID: ${result?.id ?? state.receptionId})<pre class="small">${escapeHtml(JSON.stringify(result || {}, null, 2))}</pre>`, "success");
       } else {
         // Modo creación
         result = await window.api.createReception(finalReception);
-        ui.setMessage(`Recepción creada con éxito (ID: ${result?.id ?? "n/a"})`, "success");
+        ui.setMessage(`Recepción creada con éxito (ID: ${result?.id ?? "n/a"})<pre class="small">${escapeHtml(JSON.stringify(result || {}, null, 2))}</pre>`, "success");
       }
 
       setTimeout(() => regresar(), 1500);

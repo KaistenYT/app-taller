@@ -1,0 +1,33 @@
+# Node modules
+node_modules/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# SQLite database
+*.sqlite
+*.sqlite3
+*.db
+
+# Environment variables
+.env
+
+# Electron build output
+/dist/
+/build/
+*.exe
+*.AppImage
+*.dmg
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDE/editor configs
+.vscode/
+.idea/
+*.swp
