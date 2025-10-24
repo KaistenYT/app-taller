@@ -34,8 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
       q.submitBtn.textContent = on ? text : (state.editMode ? "Actualizar recepción" : "Guardar recepción");
     },
     disableClientFields(disabled) {
-      q.clientName.disabled = disabled;
-      q.clientPhone.disabled = disabled;
+      q.clientId.disabled = disabled;
+      q.deviceSerial.disabled = disabled;
+      
     },
     resetForm() {
       q.form.reset();
@@ -172,7 +173,12 @@ document.addEventListener("DOMContentLoaded", () => {
       defect: safeGetVal(q.defect),
       status: safeGetVal(q.status) || "PENDIENTE",
       repair: safeGetVal(q.repair) || null,
-    };
+      device_snapshot: (q.deviceSerial.value || q.deviceDescription.value || q.deviceFeatures.value) ? {
+        serial_number: safeGetVal(q.deviceSerial) || null,
+        description: safeGetVal(q.deviceDescription),
+        features: safeGetVal(q.deviceFeatures) || null,
+      } : null,
+  }
 
     try {
       validateInputs(clientData, receptionData);

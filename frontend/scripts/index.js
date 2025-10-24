@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
   const modalBody = document.getElementById("modal-body-content");
   const modalEditBtn = document.getElementById("modal-edit-btn");
+  const modalGenReportBtn = document.getElementById("modal-gen-report");
 
   let cache = [];
   let page = 1;
@@ -181,11 +182,28 @@ document.addEventListener("DOMContentLoaded", () => {
           <td class="table-fixed-row">${falla}</td>
           <td>${created}</td>
           <td class="text-end">
-            <button type="button" class="btn btn-sm btn-outline-primary action-small" data-action="view" data-id="${r.id}" title="Ver">Ver</button>
-            <button type="button" class="btn btn-sm btn-outline-warning action-small" data-action="edit" data-id="${r.id}" title="Editar">Editar</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary action-small" data-action="archive" data-id="${r.id}" title="Archivar/Restaurar">${r.archived ? 'Restaurar' : 'Archivar'}</button>
-            <button type="button" class="btn btn-sm btn-outline-danger action-small" data-action="delete" data-id="${r.id}" title="Eliminar">Eliminar</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary action-small" data-action="print" data-id="${r.id}" title="Imprimir">Imprimir</button>
+            <div class="btn-group" role="group" aria-label="Acciones">
+              <button type="button" class="btn btn-sm btn-outline-primary action-small" data-action="view" data-id="${r.id}" title="Ver" aria-label="Ver">
+                <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/><circle cx="8" cy="8" r="2.5"/></svg>
+                <span class="visually-hidden">Ver</span>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-warning action-small" data-action="edit" data-id="${r.id}" title="Editar" aria-label="Editar">
+                <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12.146 0.146a.5.5 0 01.708 0l3 3a.5.5 0 010 .708l-9.793 9.793a.5.5 0 01-.233.131l-5 1a.5.5 0 01-.61-.61l1-5a.5.5 0 01.131-.232L12.146.146zM11.207 2L3 10.207V12h1.793L14 3.793 11.207 2z"/></svg>
+                <span class="visually-hidden">Editar</span>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary action-small" data-action="archive" data-id="${r.id}" title="Archivar/Restaurar" aria-label="Archivar/Restaurar">
+                <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 3a.5.5 0 00-.5.5V4h10v-.5a.5.5 0 00-.5-.5h-9zM1 5v8.5A1.5 1.5 0 002.5 15h11a1.5 1.5 0 001.5-1.5V5H1zm4 3.5a.5.5 0 01.5-.5h5a.5.5 0 010 1h-5a.5.5 0 01-.5-.5z"/></svg>
+                <span class="visually-hidden">${r.archived ? 'Restaurar' : 'Archivar'}</span>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger action-small" data-action="delete" data-id="${r.id}" title="Eliminar" aria-label="Eliminar">
+                <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M5.5 5.5a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5zm3 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9.5A2.5 2.5 0 0110.5 16h-5A2.5 2.5 0 013 13.5V4h-.5a1 1 0 010-2H5l1-1h4l1 1h2.5a1 1 0 011 1zM4.118 4L4 4.059V13.5c0 .827.673 1.5 1.5 1.5h5c.827 0 1.5-.673 1.5-1.5V4.059L11.882 4H4.118z"/></svg>
+                <span class="visually-hidden">Eliminar</span>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary action-small" data-action="print" data-id="${r.id}" title="Imprimir" aria-label="Imprimir">
+                <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M2 7a1 1 0 011-1h10a1 1 0 011 1v2h-1v4H3V9H2V7zM5 12h6v-3H5v3z"/><path d="M5 1h6v3H5z"/></svg>
+                <span class="visually-hidden">Imprimir</span>
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -203,7 +221,15 @@ document.addEventListener("DOMContentLoaded", () => {
       else if (action === 'edit') window.location.href = `addReceptionForm.html?id=${id}`;
       else if (action === 'archive') toggleArchive(id);
       else if (action === 'delete') deleteReception(id);
-      else if (action === 'print') window.open(`report.html?id=${id}`, "_blank", "width=800,height=900");
+      else if (action === 'print') {
+        // Open via main so preload is applied (ensures window.api is available)
+        if (window.api && typeof window.api.invoke === 'function') {
+          window.api.invoke('open-report-window', Number(id));
+        } else {
+          // fallback for environments without preload
+          window.open(`report.html?id=${id}`, "_blank", "width=800,height=900");
+        }
+      }
     };
     tbody.addEventListener('click', handler);
     // keep reference so we can remove later if re-rendering
@@ -234,13 +260,29 @@ document.addEventListener("DOMContentLoaded", () => {
         const snap = snapshot || {};
         const snapSerial = escapeHtml(snap.serial_number || "—");
         const snapDesc = escapeHtml(snap.description || "—");
-  // Prefer features; if missing, fall back to description for a more useful display
-  const snapFeatures = escapeHtml(snap.features || snap.description || "—");
+        // Prefer features; if missing, fall back to description for a more useful display
+        const snapFeatures = escapeHtml(snap.device_snapshot || "—");
         const snapCaptured = escapeHtml(snap.captured_at || "—");
+
+        
+        let clientePhoneRaw = rec.client_phone || rec.client?.phone || "";
+        if (!clientePhoneRaw && rec.client_idNumber) {
+          try {
+            const clientObj = await window.api.getClient(rec.client_idNumber);
+            clientePhoneRaw = clientObj?.phone || "";
+          } catch (e) {
+            // ignore fetch errors and keep phone empty
+          }
+        }
+        const clientePhone = escapeHtml(clientePhoneRaw || "—");
 
         modalBody.innerHTML = `
           <dl class="row">
-            <dt class="col-sm-3">Cliente</dt><dd class="col-sm-9">${cliente} <br/><small class="text-muted">${escapeHtml(rec.client_idNumber || "")}</small></dd>
+            <dt class="col-sm-3">Cliente</dt>
+            <dd class="col-sm-9">${cliente} <br/><small class="text-muted">${escapeHtml(rec.client_idNumber || "")}</small>
+              <br/><small class="text-muted">Tel: ${clientePhone}</small>
+            </dd>
+
             <dt class="col-sm-3">Equipo</dt><dd class="col-sm-9">${equipo} ${serial ? `<br/><small class="text-muted">S/N: ${serial}</small>` : ""}</dd>
             <dt class="col-sm-3">Estado</dt><dd class="col-sm-9">${formatStatusBadge(rec.status)}</dd>
             <dt class="col-sm-3">Falla</dt><dd class="col-sm-9">${escapeHtml(rec.defect || "")}</dd>
@@ -258,6 +300,36 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
       }
       if (modalEditBtn) modalEditBtn.onclick = () => window.location.href = `addReceptionForm.html?id=${id}`;
+      // store current id on modal element for later actions
+      if (modalEl) modalEl.dataset.currentId = String(id);
+
+      // Attach generate-report handler (uses new IPC channel)
+      if (modalGenReportBtn) {
+        modalGenReportBtn.onclick = async () => {
+          try {
+            modalGenReportBtn.disabled = true;
+            modalGenReportBtn.textContent = 'Generando...';
+            const res = await window.api.invoke('create-report-from-reception', Number(id));
+            if (res && res.id) {
+              // ask main to open the report in a new BrowserWindow (preload ensured)
+              if (window.api && typeof window.api.invoke === 'function') {
+                await window.api.invoke('open-report-window', Number(res.id));
+              } else {
+                window.open(`report.html?id=${res.id}`, '_blank', 'width=900,height=800');
+              }
+            } else {
+              // fallback: use older flow which ensures a report exists and opens it
+              await openReportWindow(id);
+            }
+          } catch (err) {
+            console.error('Error generando reporte:', err);
+            alert('Error al generar el reporte: ' + (err.message || err));
+          } finally {
+            modalGenReportBtn.disabled = false;
+            modalGenReportBtn.textContent = 'Generar reporte';
+          }
+        };
+      }
       console.log("detail rec: ", rec);
       // Log snapshot as JSON to avoid console showing expanded objects later
       console.log("device_snapshot:", JSON.stringify(snapshot || {}, null, 2));
@@ -383,7 +455,7 @@ document.addEventListener("DOMContentLoaded", () => {
               defect: r.defect,
               status: r.status || "PENDIENTE",
               repair: r.repair || "",
-              device_snapshot
+              device_snapshot: device_snapshot
             };
 
             await window.api.createReception(finalReception);
@@ -446,7 +518,12 @@ async function openReportWindow(receptionId) {
   }
 
   const reportId = reports[0].id;
-  window.open(`report.html?id=${reportId}`, "_blank", "width=800,height=900");
+  // Open the report via main to ensure preload is used
+  if (window.api && typeof window.api.invoke === 'function') {
+    await window.api.invoke('open-report-window', Number(reportId));
+  } else {
+    window.open(`report.html?id=${reportId}`, "_blank", "width=800,height=900");
+  }
 }
 
 

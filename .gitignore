@@ -21,6 +21,7 @@ yarn-error.log*
 /build/
 /release/
 /out/
+/.zip/
 
 *.exe
 *.AppImage

@@ -2,6 +2,7 @@ import knexLib from "knex";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import { ReceptionHistory } from "../model/receptionHistory.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -124,6 +125,10 @@ async function createTables() {
   }
 }
 
-createTables();
+console.log("[dbConfig] starting createTables()");
+await createTables();
+console.log("[dbConfig] createTables() finished, initializing ReceptionHistory triggers");
+await ReceptionHistory.init(db);
+console.log("[dbConfig] ReceptionHistory.init completed");
 
 export default db;

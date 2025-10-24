@@ -46,7 +46,7 @@ const safeHandler = (fn) => async (event, ...args) => {
   }
 };
 
-await ReceptionHistory.init();
+
 
 const registerHandlers = () => {
   const handlers = {
@@ -153,6 +153,34 @@ const registerHandlers = () => {
     },
     "get-report-by-reception": async (event, receptionId) => {
       return await ReportService.getReportsByReception(receptionId);
+    },
+    // Open a report view in a new BrowserWindow (ensures preload is applied)
+    "open-report-window": async (event, reportId) => {
+      if (!reportId) throw new Error('open-report-window: reportId is required');
+      try {
+        const win = new BrowserWindow({
+          width: 900,
+          height: 800,
+          webPreferences: {
+            preload: path.join(__dirname, "preload.cjs"),
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: false,
+          },
+        });
+        const filePath = path.join(__dirname, "../frontend/views/report.html");
+        // append query param with id
+        await win.loadFile(filePath, { query: { id: String(reportId) } });
+        win.show();
+        return { ok: true };
+      } catch (err) {
+        console.error('Failed to open report window:', err);
+        throw err;
+      }
+    },
+    "create-report-from-reception": async (event, receptionId) => {
+      if (!receptionId) throw new Error('create-report-from-reception: receptionId is required');
+      return await ReportService.createReportFromReception(receptionId);
     },
   };
 

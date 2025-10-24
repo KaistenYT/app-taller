@@ -7,6 +7,7 @@ import { ReceptionHistory } from "../model/receptionHistory.js";
 export class ReceptionService {
   static async listReceptions() {
     return await Reception.getAll();
+    
   }
 
   static async listArchivedReceptions() {
@@ -44,15 +45,21 @@ export class ReceptionService {
   static async archiveReception(id) {
     const reception = await Reception.getById(id);
     if (!reception) throw new Error("Recepción no encontrada");
-
-    await ReceptionHistory.log({
-      original_id: reception.id,
-      cliente_id: reception.client_idNumber,
-      equipo_id: reception.device_id,
-      fecha: reception.created_at,
-      estado: reception.status,
-      accion: "archivada",
-    });
+    // Insert a history row directly to avoid potential circular import timing issues
+    try {
+      await db("reception_history").insert({
+        reception_id: reception.id,
+        client_id: reception.client_idNumber,
+        device_id: reception.device_id,
+        reception_date: reception.created_at,
+        status: reception.status,
+        action: "ARCHIVED",
+        event_timestamp: db.fn.now(),
+      });
+    } catch (err) {
+      // Log but continue to archive the reception
+      console.error("Failed to insert reception_history row:", err);
+    }
 
     await Reception.archive(id);
     return true;

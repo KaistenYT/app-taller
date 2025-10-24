@@ -1,8 +1,8 @@
-import db from "../db/dbConfig.js";
-
 export class ReceptionHistory {
-  static async init() {
-   
+  // Accept a db instance to avoid circular import during initialization
+  static async init(db) {
+    // keep reference to db for runtime logging
+    ReceptionHistory.db = db;
 
     // Trigger for UPDATE
     await db.raw(`
@@ -59,5 +59,36 @@ export class ReceptionHistory {
     `);
 
     console.log("Reception history triggers created");
+  }
+
+  // Log a manual entry into reception_history table. Expected payload keys:
+  // { original_id, cliente_id, equipo_id, fecha, estado, accion }
+  static async log(entry = {}) {
+    const db = ReceptionHistory.db;
+    if (!db) throw new Error("ReceptionHistory not initialized with db");
+
+    const {
+      original_id = null,
+      cliente_id = null,
+      equipo_id = null,
+      fecha = null,
+      estado = null,
+      accion = null,
+    } = entry || {};
+
+    try {
+      await db("reception_history").insert({
+        reception_id: original_id,
+        client_id: cliente_id,
+        device_id: equipo_id,
+        reception_date: fecha,
+        status: estado,
+        action: accion,
+        event_timestamp: db.fn.now(),
+      });
+    } catch (err) {
+      console.error("ReceptionHistory.log error:", err);
+      throw err;
+    }
   }
 }
