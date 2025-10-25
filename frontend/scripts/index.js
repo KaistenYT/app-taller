@@ -2,18 +2,18 @@
 document.addEventListener("DOMContentLoaded", () => {
   // Session guard: if no app_user in localStorage, redirect to login
   try {
-    const sessionRaw = localStorage.getItem('app_user');
+    const sessionRaw = localStorage.getItem("app_user");
     if (!sessionRaw) {
-      window.location.href = 'login.html';
+      window.location.href = "login.html";
       return;
     }
     // expose username in navbar
     const session = JSON.parse(sessionRaw);
-    const navUserEl = document.getElementById('navbar-user');
-    if (navUserEl) navUserEl.textContent = session.username || '';
+    const navUserEl = document.getElementById("navbar-user");
+    if (navUserEl) navUserEl.textContent = session.username || "";
   } catch (e) {
     // on error, redirect to login
-    window.location.href = 'login.html';
+    window.location.href = "login.html";
     return;
   }
   // Cache DOM elements with guards (page may not include all elements)
@@ -38,28 +38,62 @@ document.addEventListener("DOMContentLoaded", () => {
   let page = 1;
   const perPage = 8;
 
-  if (btnCreate) btnCreate.addEventListener("click", () => window.location.href = "addReceptionForm.html");
+  if (btnCreate)
+    btnCreate.addEventListener(
+      "click",
+      () => (window.location.href = "addReceptionForm.html")
+    );
   if (btnRefresh) btnRefresh.addEventListener("click", () => loadReceptions());
-  if (btnLogout) btnLogout.addEventListener('click', () => {
-    try {
-      localStorage.removeItem('app_user');
-    } catch (e) { /* ignore */ }
-    // redirect to login
-    window.location.href = 'login.html';
-  });
-  if (filtroGeneral) filtroGeneral.addEventListener("input", debounce(() => { page = 1; render(); }, 250));
-  if (filtroFecha) filtroFecha.addEventListener("change", () => { page = 1; render(); });
-  if (ordenFecha) ordenFecha.addEventListener("change", () => { page = 1; render(); });
-  if (filtroArchivadas) filtroArchivadas.addEventListener("change", () => { page = 1; render(); });
-  if (btnClear) btnClear.addEventListener("click", () => {
-    if (filtroGeneral) filtroGeneral.value = "";
-    if (filtroFecha) filtroFecha.value = "";
-    if (ordenFecha) ordenFecha.value = "desc";
-    if (filtroArchivadas) filtroArchivadas.value = "activas";
-    page = 1; render();
-  });
+  if (btnLogout)
+    btnLogout.addEventListener("click", () => {
+      try {
+        localStorage.removeItem("app_user");
+      } catch (e) {
+        /* ignore */
+      }
+      // redirect to login
+      window.location.href = "login.html";
+    });
+  if (filtroGeneral)
+    filtroGeneral.addEventListener(
+      "input",
+      debounce(() => {
+        page = 1;
+        render();
+      }, 250)
+    );
+  if (filtroFecha)
+    filtroFecha.addEventListener("change", () => {
+      page = 1;
+      render();
+    });
+  if (ordenFecha)
+    ordenFecha.addEventListener("change", () => {
+      page = 1;
+      render();
+    });
+  if (filtroArchivadas)
+    filtroArchivadas.addEventListener("change", () => {
+      page = 1;
+      render();
+    });
+  if (btnClear)
+    btnClear.addEventListener("click", () => {
+      if (filtroGeneral) filtroGeneral.value = "";
+      if (filtroFecha) filtroFecha.value = "";
+      if (ordenFecha) ordenFecha.value = "desc";
+      if (filtroArchivadas) filtroArchivadas.value = "activas";
+      page = 1;
+      render();
+    });
 
-  function debounce(fn, wait = 300) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); }; }
+  function debounce(fn, wait = 300) {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), wait);
+    };
+  }
 
   async function loadReceptions() {
     if (tbody) showLoadingRows();
@@ -67,32 +101,49 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await window.api.listReceptions();
       const raw = Array.isArray(res) ? res : [];
       // Normalize each reception so `device_snapshot` is always present when possible
-      cache = raw.map(r => {
+      cache = raw.map((r) => {
         // If device_snapshot exists, keep it; otherwise build minimal snapshot from known fallbacks
         const ds = r.device_snapshot || {
           id: r.device_id || r.device?.id || null,
-          serial_number: r.device_snapshot?.serial_number || r.device_serial || r.device?.serial_number || null,
-          description: r.device_snapshot?.description || r.device_description || r.device?.description || null,
+          serial_number:
+            r.device_snapshot?.serial_number ||
+            r.device_serial ||
+            r.device?.serial_number ||
+            null,
+          description:
+            r.device_snapshot?.description ||
+            r.device_description ||
+            r.device?.description ||
+            null,
           // Prefer explicit features, else fall back to device.features, then description
-          features: r.device_snapshot?.features || r.device?.features || r.device_snapshot?.description || r.device?.description || null,
+          features:
+            r.device_snapshot?.features ||
+            r.device?.features ||
+            r.device_snapshot?.description ||
+            r.device?.description ||
+            null,
           // Use created_at as sensible fallback for captured_at when snapshot lacks it
-          captured_at: r.device_snapshot?.captured_at || r.created_at || null
+          captured_at: r.device_snapshot?.captured_at || r.created_at || null,
         };
         return Object.assign({}, r, { device_snapshot: ds });
       });
-      if (listSummary) listSummary.textContent = `Total: ${cache.length} recepciones`;
+      if (listSummary)
+        listSummary.textContent = `Total: ${cache.length} recepciones`;
       page = 1;
       render();
     } catch (err) {
       console.error(err);
-      if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-danger p-3">Error al cargar recepciones</td></tr>`;
+      if (tbody)
+        tbody.innerHTML = `<tr><td colspan="7" class="text-danger p-3">Error al cargar recepciones</td></tr>`;
       if (listSummary) listSummary.textContent = "Error al cargar";
     }
   }
 
   function showLoadingRows() {
     if (!tbody) return;
-    tbody.innerHTML = Array.from({ length: 4 }).map(() => `
+    tbody.innerHTML = Array.from({ length: 4 })
+      .map(
+        () => `
       <tr>
         <td><div class="skeleton" style="width:120px"></div></td>
         <td><div class="skeleton" style="width:160px"></div></td>
@@ -102,19 +153,29 @@ document.addEventListener("DOMContentLoaded", () => {
         <td><div class="skeleton" style="width:100px"></div></td>
         <td><div class="skeleton" style="width:120px"></div></td>
       </tr>
-    `).join("");
+    `
+      )
+      .join("");
     if (listSummary) listSummary.textContent = "Cargando...";
   }
 
   // Fast HTML escaper (small set of chars) using regex
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
-    return String(str).replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+    return String(str).replace(
+      /[&<>\"]/g,
+      (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]
+    );
   }
 
   function formatStatusBadge(status) {
     const s = (status || "").toString().toUpperCase();
-    const map = { PENDIENTE: "secondary", EN_PROGRESO: "warning", TERMINADO: "success", ENTREGADO: "info" };
+    const map = {
+      PENDIENTE: "secondary",
+      EN_PROGRESO: "warning",
+      TERMINADO: "success",
+      ENTREGADO: "info",
+    };
     const cls = map[s] || "dark";
     return `<span class="badge bg-${cls} badge-status">${escapeHtml(status || "")}</span>`;
   }
@@ -133,29 +194,56 @@ document.addEventListener("DOMContentLoaded", () => {
     const archivoFilter = filtroArchivadas ? filtroArchivadas.value : "todas";
     let list = cache.slice();
 
-    if (archivoFilter === "activas") list = list.filter(r => !r.archived);
-    else if (archivoFilter === "archivadas") list = list.filter(r => r.archived);
+    if (archivoFilter === "activas") list = list.filter((r) => !r.archived);
+    else if (archivoFilter === "archivadas")
+      list = list.filter((r) => r.archived);
 
     if (q) {
-      list = list.filter(r => {
-        const cliente = (r.client_name || r.client?.name || r.client_idNumber || "").toString().toLowerCase();
-        const equipo = (r.device_snapshot?.description || r.device?.description || r.device_description || "").toString().toLowerCase();
-        const serial = (r.device_snapshot?.serial_number || r.device?.serial_number || r.device_serial || "").toString().toLowerCase();
+      list = list.filter((r) => {
+        const cliente = (
+          r.client_name ||
+          r.client?.name ||
+          r.client_idNumber ||
+          ""
+        )
+          .toString()
+          .toLowerCase();
+        const equipo = (
+          r.device_snapshot?.description ||
+          r.device?.description ||
+          r.device_description ||
+          ""
+        )
+          .toString()
+          .toLowerCase();
+        const serial = (
+          r.device_snapshot?.serial_number ||
+          r.device?.serial_number ||
+          r.device_serial ||
+          ""
+        )
+          .toString()
+          .toLowerCase();
         const falla = (r.defect || "").toString().toLowerCase();
-        return cliente.includes(q) || equipo.includes(q) || serial.includes(q) || falla.includes(q);
+        return (
+          cliente.includes(q) ||
+          equipo.includes(q) ||
+          serial.includes(q) ||
+          falla.includes(q)
+        );
       });
     }
 
     if (dateFilter) {
-      list = list.filter(r => {
+      list = list.filter((r) => {
         const created = r.created_at || r.createdAt || r.created || "";
         if (!created) return false;
         // compare YYYY-MM-DD
-        return new Date(created).toISOString().slice(0,10) === dateFilter;
+        return new Date(created).toISOString().slice(0, 10) === dateFilter;
       });
     }
 
-    list.sort((a,b) => (getCreatedTs(a) - getCreatedTs(b)) * order);
+    list.sort((a, b) => (getCreatedTs(a) - getCreatedTs(b)) * order);
     return list;
   }
 
@@ -170,7 +258,10 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.className = "page-link";
       btn.type = "button";
       btn.textContent = String(i);
-      btn.addEventListener("click", () => { page = i; render(); });
+      btn.addEventListener("click", () => {
+        page = i;
+        render();
+      });
       li.appendChild(btn);
       pagination.appendChild(li);
     }
@@ -189,15 +280,37 @@ document.addEventListener("DOMContentLoaded", () => {
     renderPagination(total);
     const start = (page - 1) * perPage;
     const slice = list.slice(start, start + perPage);
-    tbody.innerHTML = slice.map(r => {
-      const cliente = escapeHtml(r.client_name || r.client?.name || r.client_idNumber || "");
-  const equipo = escapeHtml(r.device_snapshot?.description || r.device?.description || r.device_description || "");
-  const serial = escapeHtml(r.device_snapshot?.serial_number || r.device?.serial_number || r.device_serial || "");
-  const snapShort = escapeHtml(r.device_snapshot?.features || r.device_snapshot?.description || r.device?.description || "");
-      const estado = formatStatusBadge(r.status || "");
-      const falla = escapeHtml(r.defect || "");
-      const created = escapeHtml(new Date(r.created_at || r.createdAt || r.created || "").toLocaleString());
-      return `
+    tbody.innerHTML = slice
+      .map((r) => {
+        const cliente = escapeHtml(
+          r.client_name || r.client?.name || r.client_idNumber || ""
+        );
+        const equipo = escapeHtml(
+          r.device_snapshot?.description ||
+            r.device?.description ||
+            r.device_description ||
+            ""
+        );
+        const serial = escapeHtml(
+          r.device_snapshot?.serial_number ||
+            r.device?.serial_number ||
+            r.device_serial ||
+            ""
+        );
+        const snapShort = escapeHtml(
+          r.device_snapshot?.features ||
+            r.device_snapshot?.description ||
+            r.device?.description ||
+            ""
+        );
+        const estado = formatStatusBadge(r.status || "");
+        const falla = escapeHtml(r.defect || "");
+        const created = escapeHtml(
+          new Date(
+            r.created_at || r.createdAt || r.created || ""
+          ).toLocaleString()
+        );
+        return `
         <tr data-id="${r.id}">
           <td class="table-fixed-row">${cliente} <br/><small class="text-muted">${escapeHtml(r.client_idNumber || "")}</small></td>
           <td class="table-fixed-row">${equipo} ${serial ? `<br/><small class="text-muted">S/N: ${serial}</small>` : ""}</td>
@@ -217,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </button>
               <button type="button" class="btn btn-sm btn-outline-secondary action-small" data-action="archive" data-id="${r.id}" title="Archivar/Restaurar" aria-label="Archivar/Restaurar">
                 <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 3a.5.5 0 00-.5.5V4h10v-.5a.5.5 0 00-.5-.5h-9zM1 5v8.5A1.5 1.5 0 002.5 15h11a1.5 1.5 0 001.5-1.5V5H1zm4 3.5a.5.5 0 01.5-.5h5a.5.5 0 010 1h-5a.5.5 0 01-.5-.5z"/></svg>
-                <span class="visually-hidden">${r.archived ? 'Restaurar' : 'Archivar'}</span>
+                <span class="visually-hidden">${r.archived ? "Restaurar" : "Archivar"}</span>
               </button>
               <button type="button" class="btn btn-sm btn-outline-danger action-small" data-action="delete" data-id="${r.id}" title="Eliminar" aria-label="Eliminar">
                 <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M5.5 5.5a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5zm3 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9.5A2.5 2.5 0 0110.5 16h-5A2.5 2.5 0 013 13.5V4h-.5a1 1 0 010-2H5l1-1h4l1 1h2.5a1 1 0 011 1zM4.118 4L4 4.059V13.5c0 .827.673 1.5 1.5 1.5h5c.827 0 1.5-.673 1.5-1.5V4.059L11.882 4H4.118z"/></svg>
@@ -231,132 +344,203 @@ document.addEventListener("DOMContentLoaded", () => {
           </td>
         </tr>
       `;
-    }).join("");
+      })
+      .join("");
 
     // Single delegated handler for action buttons (better perf than multiple listeners)
-    tbody.removeEventListener && tbody.removeEventListener('click', tbody._delegatedHandler);
-    const handler = (e) => {
-      const btn = e.target.closest('button');
+    try {
+      if (tbody._delegatedHandler)
+        tbody.removeEventListener("click", tbody._delegatedHandler);
+    } catch (e) {
+      // ignore removal errors
+    }
+
+    const handler = async (e) => {
+      const btn = e.target.closest("button");
       if (!btn) return;
       const action = btn.dataset.action;
       const id = btn.dataset.id;
+      console.debug("[recepciones] action click", { action, id });
       if (!action || !id) return;
-      if (action === 'view') openDetailModal(id);
-      else if (action === 'edit') window.location.href = `addReceptionForm.html?id=${id}`;
-      else if (action === 'archive') toggleArchive(id);
-      else if (action === 'delete') deleteReception(id);
-      else if (action === 'print') {
-        // Open via main so preload is applied (ensures window.api is available)
-        if (window.api && typeof window.api.invoke === 'function') {
-          window.api.invoke('open-report-window', Number(id));
-        } else {
-          // fallback for environments without preload
-          window.open(`report.html?id=${id}`, "_blank", "width=800,height=900");
+
+      try {
+        if (action === "view") {
+          openDetailModal(id);
+          return;
         }
+
+        if (action === "edit") {
+          window.location.href = `addReceptionForm.html?id=${id}`;
+          return;
+        }
+
+        if (action === "archive") {
+          await toggleArchive(id);
+          return;
+        }
+
+        if (action === "delete") {
+          await deleteReception(id);
+          return;
+        }
+
+        if (action === "print") {
+          console.debug("[recepciones] print requested for reception id", id, {
+            hasApi: !!window.api,
+            hasInvoke: !!(window.api && window.api.invoke),
+          });
+          // Use the app-level helper which will create a report if missing and open the report window.
+          try {
+            await openReportWindow(Number(id));
+            console.info("[recepciones] openReportWindow completed for", id);
+          } catch (err) {
+            console.error("[recepciones] openReportWindow failed for", id, err);
+            // fallback: open the report page directly with reception id (note: not a report id)
+            try {
+              window.open(
+                `report.html?id=${id}`,
+                "_blank",
+                "width=800,height=900"
+              );
+            } catch (winErr) {
+              console.error(
+                "[recepciones] fallback window.open failed",
+                winErr
+              );
+            }
+          }
+          return;
+        }
+      } catch (err) {
+        console.error("[recepciones] handler error", err, { action, id });
       }
     };
-    tbody.addEventListener('click', handler);
+
+    tbody.addEventListener("click", handler);
     // keep reference so we can remove later if re-rendering
     tbody._delegatedHandler = handler;
 
-    if (listSummary) listSummary.textContent = `Mostrando ${start + 1}–${Math.min(start + perPage, total)} de ${total} recepciones`;
+    if (listSummary)
+      listSummary.textContent = `Mostrando ${start + 1}–${Math.min(start + perPage, total)} de ${total} recepciones`;
   }
 
   async function openDetailModal(id) {
     try {
-      const rec = cache.find(r => String(r.id) === String(id)) || await window.api.receptionDetails(id);
+      const rec =
+        cache.find((r) => String(r.id) === String(id)) ||
+        (await window.api.receptionDetails(id));
       if (!rec) throw new Error("Recepción no encontrada");
-      const cliente = escapeHtml(rec.client_name || rec.client?.name || rec.client_idNumber || "");
-      const equipo = escapeHtml(rec.device_snapshot?.description || rec.device?.description || rec.device_description || "");
-      const serial = escapeHtml(rec.device_snapshot?.serial_number || rec.device?.serial_number || rec.device_serial || "");
-      const created = escapeHtml(new Date(rec.created_at || rec.createdAt || rec.created || "").toLocaleString());
-      // Build a fallback snapshot object when device_snapshot is missing
+
+      const cliente = escapeHtml(
+        rec.client_name || rec.client?.name || rec.client_idNumber || ""
+      );
+      let clientePhoneRaw = rec.client_phone || rec.client?.phone || "";
+      if (!clientePhoneRaw && rec.client_idNumber) {
+        try {
+          const clientObj = await window.api.getClient(rec.client_idNumber);
+          clientePhoneRaw = clientObj?.phone || "";
+        } catch {}
+      }
+      const clientePhone = escapeHtml(clientePhoneRaw || "—");
+
+      // defensive: some endpoints may return device_snapshot as JSON string; ensure we have an object
+      if (rec && typeof rec.device_snapshot === "string") {
+        try {
+          rec.device_snapshot = JSON.parse(rec.device_snapshot);
+        } catch {
+          rec.device_snapshot = null;
+        }
+      }
+
       const snapshot = rec.device_snapshot || {
         id: rec.device_id || rec.device?.id || null,
-        serial_number: rec.device_snapshot?.serial_number || rec.device_serial || rec.device?.serial_number || null,
-        description: rec.device_snapshot?.description || rec.device_description || rec.device?.description || null,
-        features: rec.device_snapshot?.features || rec.device?.features || null,
-        // prefer snapshot.captured_at else use created_at
-        captured_at: rec.device_snapshot?.captured_at || rec.created_at || null
+        serial_number: rec.device_serial || rec.device?.serial_number || null,
+        description: rec.device_description || rec.device?.description || null,
+        features: rec.device?.features || null,
+        captured_at: rec.created_at || null,
       };
 
+      const equipo = escapeHtml(snapshot.description || "—");
+      const serial = escapeHtml(snapshot.serial_number || "—");
+      const created = escapeHtml(
+        new Date(rec.created_at || "").toLocaleString()
+      );
+      const snapFeatures = escapeHtml(snapshot.features || "—");
+      const snapCaptured = escapeHtml(snapshot.captured_at || "—");
+
       if (modalBody) {
-        const snap = snapshot || {};
-        const snapSerial = escapeHtml(snap.serial_number || "—");
-        const snapDesc = escapeHtml(snap.description || "—");
-        // Prefer features; if missing, fall back to description for a more useful display
-        const snapFeatures = escapeHtml(snap.device_snapshot || "—");
-        const snapCaptured = escapeHtml(snap.captured_at || "—");
-
-        
-        let clientePhoneRaw = rec.client_phone || rec.client?.phone || "";
-        if (!clientePhoneRaw && rec.client_idNumber) {
-          try {
-            const clientObj = await window.api.getClient(rec.client_idNumber);
-            clientePhoneRaw = clientObj?.phone || "";
-          } catch (e) {
-            // ignore fetch errors and keep phone empty
-          }
-        }
-        const clientePhone = escapeHtml(clientePhoneRaw || "—");
-
         modalBody.innerHTML = `
-          <dl class="row">
-            <dt class="col-sm-3">Cliente</dt>
-            <dd class="col-sm-9">${cliente} <br/><small class="text-muted">${escapeHtml(rec.client_idNumber || "")}</small>
-              <br/><small class="text-muted">Tel: ${clientePhone}</small>
-            </dd>
+        <dl class="row">
+          <dt class="col-sm-3">Cliente</dt>
+          <dd class="col-sm-9">${cliente}<br/>
+            <small class="text-muted">${escapeHtml(rec.client_idNumber || "")}</small><br/>
+            <small class="text-muted">Tel: ${clientePhone}</small>
+          </dd>
 
-            <dt class="col-sm-3">Equipo</dt><dd class="col-sm-9">${equipo} ${serial ? `<br/><small class="text-muted">S/N: ${serial}</small>` : ""}</dd>
-            <dt class="col-sm-3">Estado</dt><dd class="col-sm-9">${formatStatusBadge(rec.status)}</dd>
-            <dt class="col-sm-3">Falla</dt><dd class="col-sm-9">${escapeHtml(rec.defect || "")}</dd>
-            <dt class="col-sm-3">Diagnóstico</dt><dd class="col-sm-9">${escapeHtml(rec.repair || "")}</dd>
-            <dt class="col-sm-3">Ingreso</dt><dd class="col-sm-9">${created}</dd>
-            <dt class="col-sm-3">Snapshot</dt>
-            <dd class="col-sm-9">
-              <div><strong>Serial:</strong> ${snapSerial}</div>
-              <div><strong>Descripción:</strong> ${snapDesc}</div>
-              <div><strong>Características:</strong> ${snapFeatures}</div>
-              <div><strong>Capturado:</strong> ${snapCaptured}</div>
-              <pre class="small mt-2">${escapeHtml(JSON.stringify(snap || {}, null, 2))}</pre>
-            </dd>
-          </dl>
-        `;
+          <dt class="col-sm-3">Equipo</dt>
+          <dd class="col-sm-9">${equipo}<br/>
+            <small class="text-muted">S/N: ${serial}</small>
+          </dd>
+
+          <dt class="col-sm-3">Estado</dt><dd class="col-sm-9">${formatStatusBadge(rec.status)}</dd>
+          <dt class="col-sm-3">Falla</dt><dd class="col-sm-9">${escapeHtml(rec.defect || "")}</dd>
+          <dt class="col-sm-3">Diagnóstico</dt><dd class="col-sm-9">${escapeHtml(rec.repair || "")}</dd>
+          <dt class="col-sm-3">Ingreso</dt><dd class="col-sm-9">${created}</dd>
+
+          <dt class="col-sm-3">Snapshot</dt>
+          <dd class="col-sm-9">
+            <div><strong>Serial:</strong> ${serial}</div>
+            <div><strong>Descripción:</strong> ${equipo}</div>
+            <div><strong>Características:</strong> ${snapFeatures}</div>
+            <div><strong>Capturado:</strong> ${snapCaptured}</div>
+            <pre class="small mt-2">${escapeHtml(JSON.stringify(snapshot, null, 2))}</pre>
+          </dd>
+        </dl>
+      `;
       }
-      if (modalEditBtn) modalEditBtn.onclick = () => window.location.href = `addReceptionForm.html?id=${id}`;
-      // store current id on modal element for later actions
-      if (modalEl) modalEl.dataset.currentId = String(id);
 
-      // Attach generate-report handler (uses new IPC channel)
+      if (modalEditBtn) {
+        modalEditBtn.onclick = () =>
+          (window.location.href = `addReceptionForm.html?id=${id}`);
+      }
+
+      // 🧾 Generar reporte
       if (modalGenReportBtn) {
         modalGenReportBtn.onclick = async () => {
           try {
             modalGenReportBtn.disabled = true;
-            modalGenReportBtn.textContent = 'Generando...';
-            const res = await window.api.invoke('create-report-from-reception', Number(id));
-            if (res && res.id) {
-              // ask main to open the report in a new BrowserWindow (preload ensured)
-              if (window.api && typeof window.api.invoke === 'function') {
-                await window.api.invoke('open-report-window', Number(res.id));
-              } else {
-                window.open(`report.html?id=${res.id}`, '_blank', 'width=900,height=800');
-              }
+            modalGenReportBtn.textContent = "Generando...";
+            const res = await window.api.invoke(
+              "create-report-from-reception",
+              Number(id)
+            );
+            if (res?.id) {
+              (await window.api.invoke?.(
+                "open-report-window",
+                Number(res.id)
+              )) ||
+                window.open(
+                  `report.html?id=${res.id}`,
+                  "_blank",
+                  "width=900,height=800"
+                );
             } else {
-              // fallback: use older flow which ensures a report exists and opens it
               await openReportWindow(id);
             }
           } catch (err) {
-            console.error('Error generando reporte:', err);
-            alert('Error al generar el reporte: ' + (err.message || err));
+            console.error("Error generando reporte:", err);
+            alert("Error al generar el reporte: " + (err.message || err));
           } finally {
             modalGenReportBtn.disabled = false;
-            modalGenReportBtn.textContent = 'Generar reporte';
+            modalGenReportBtn.textContent = "Generar reporte";
           }
         };
       }
-      console.log("detail rec: ", rec);
-      // Log snapshot as JSON to avoid console showing expanded objects later
-      console.log("device_snapshot:", JSON.stringify(snapshot || {}, null, 2));
+
+      // 🧭 Estado del modal
+      if (modalEl) modalEl.dataset.currentId = String(id);
+      console.log("detail rec:", rec);
+      console.log("device_snapshot:", JSON.stringify(snapshot, null, 2));
       if (modal) modal.show();
     } catch (err) {
       console.error(err);
@@ -366,7 +550,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function toggleArchive(id) {
     try {
-      const rec = cache.find(r => String(r.id) === String(id));
+      const rec = cache.find((r) => String(r.id) === String(id));
       if (!rec) throw new Error("No encontrado");
       if (rec.archived) await window.api.restoreReception(id);
       else await window.api.archiveReception(id);
@@ -392,26 +576,61 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSeed = document.getElementById("btn-seed");
   if (btnSeed) {
     btnSeed.addEventListener("click", async () => {
-      if (!confirm("Cargar datos de prueba en la base de datos? Esto añadirá clientes, equipos y recepciones de ejemplo.")) return;
+      if (
+        !confirm(
+          "Cargar datos de prueba en la base de datos? Esto añadirá clientes, equipos y recepciones de ejemplo."
+        )
+      )
+        return;
 
       // Datos de prueba: ajusta o añade más objetos según quieras
       const sampleClients = [
         { idNumber: "V12345678", name: "María Pérez", phone: "04141234567" },
         { idNumber: "V87654321", name: "José González", phone: "04147654321" },
-        { idNumber: "E00000001", name: "Taller Demo", phone: "02121234567" }
+        { idNumber: "E00000001", name: "Taller Demo", phone: "02121234567" },
       ];
 
       const sampleDevices = [
-        { serial_number: "SN-1000-A", description: "Teléfono modelo A", features: "Pantalla 6.1, 4GB RAM" },
-        { serial_number: "SN-1001-B", description: "Laptop modelo B", features: "i5, 8GB RAM, 256SSD" },
-        { serial_number: "SN-1002-C", description: "Tablet modelo C", features: "10\" , 3GB RAM" }
+        {
+          serial_number: "SN-1000-A",
+          description: "Teléfono modelo A",
+          features: "Pantalla 6.1, 4GB RAM",
+        },
+        {
+          serial_number: "SN-1001-B",
+          description: "Laptop modelo B",
+          features: "i5, 8GB RAM, 256SSD",
+        },
+        {
+          serial_number: "SN-1002-C",
+          description: "Tablet modelo C",
+          features: '10" , 3GB RAM',
+        },
       ];
 
       // Recepciones de ejemplo; device_id se resolverá luego
       const sampleReceptions = [
-        { client_idNumber: "V12345678", device_serial: "SN-1000-A", defect: "No enciende", status: "PENDIENTE", repair: "" },
-        { client_idNumber: "V87654321", device_serial: "SN-1001-B", defect: "Pantalla rota", status: "PENDIENTE", repair: "" },
-        { client_idNumber: "E00000001", device_serial: "SN-1002-C", defect: "Batería dura poco", status: "PENDIENTE", repair: "" }
+        {
+          client_idNumber: "V12345678",
+          device_serial: "SN-1000-A",
+          defect: "No enciende",
+          status: "PENDIENTE",
+          repair: "",
+        },
+        {
+          client_idNumber: "V87654321",
+          device_serial: "SN-1001-B",
+          defect: "Pantalla rota",
+          status: "PENDIENTE",
+          repair: "",
+        },
+        {
+          client_idNumber: "E00000001",
+          device_serial: "SN-1002-C",
+          defect: "Batería dura poco",
+          status: "PENDIENTE",
+          repair: "",
+        },
       ];
 
       // UI feedback
@@ -430,7 +649,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           } catch (err) {
             console.error("Error creando cliente", c, err);
-            results.errors.push({ type: "client", item: c, err: err.message || err });
+            results.errors.push({
+              type: "client",
+              item: c,
+              err: err.message || err,
+            });
           }
         }
 
@@ -445,7 +668,11 @@ document.addEventListener("DOMContentLoaded", () => {
             results.devices++;
           } catch (err) {
             console.error("Error creando dispositivo", d, err);
-            results.errors.push({ type: "device", item: d, err: err.message || err });
+            results.errors.push({
+              type: "device",
+              item: d,
+              err: err.message || err,
+            });
           }
         }
 
@@ -453,24 +680,37 @@ document.addEventListener("DOMContentLoaded", () => {
         for (const r of sampleReceptions) {
           try {
             const cliente = await window.api.getClient(r.client_idNumber);
-            if (!cliente) throw new Error(`Cliente ${r.client_idNumber} no existe`);
+            if (!cliente)
+              throw new Error(`Cliente ${r.client_idNumber} no existe`);
 
             let device = null;
-            if (window.api.getDeviceBySerial) device = await window.api.getDeviceBySerial(r.device_serial);
+            if (window.api.getDeviceBySerial)
+              device = await window.api.getDeviceBySerial(r.device_serial);
             if (!device) {
-              if (window.api.upsertDeviceBySerial) device = await window.api.upsertDeviceBySerial({ serial_number: r.device_serial, description: r.device_serial });
-              else device = await window.api.createDevice({ serial_number: r.device_serial, description: r.device_serial });
+              if (window.api.upsertDeviceBySerial)
+                device = await window.api.upsertDeviceBySerial({
+                  serial_number: r.device_serial,
+                  description: r.device_serial,
+                });
+              else
+                device = await window.api.createDevice({
+                  serial_number: r.device_serial,
+                  description: r.device_serial,
+                });
             }
 
             const device_id = device?.id;
-            if (!device_id) throw new Error("No se resolvió device_id para serial " + r.device_serial);
+            if (!device_id)
+              throw new Error(
+                "No se resolvió device_id para serial " + r.device_serial
+              );
 
             const device_snapshot = {
               id: device.id,
               serial_number: device.serial_number || r.device_serial,
               description: device.description || "",
               features: device.features || null,
-              captured_at: new Date().toISOString()
+              captured_at: new Date().toISOString(),
             };
 
             const finalReception = {
@@ -479,20 +719,25 @@ document.addEventListener("DOMContentLoaded", () => {
               defect: r.defect,
               status: r.status || "PENDIENTE",
               repair: r.repair || "",
-              device_snapshot: device_snapshot
+              device_snapshot: device_snapshot,
             };
 
             await window.api.createReception(finalReception);
             results.receptions++;
           } catch (err) {
             console.error("Error creando recepción", r, err);
-            results.errors.push({ type: "reception", item: r, err: err.message || err });
+            results.errors.push({
+              type: "reception",
+              item: r,
+              err: err.message || err,
+            });
           }
         }
 
         await loadReceptions();
 
-        const summary = `Carga completada: clientes ${results.clients}, dispositivos ${results.devices}, recepciones ${results.receptions}` +
+        const summary =
+          `Carga completada: clientes ${results.clients}, dispositivos ${results.devices}, recepciones ${results.receptions}` +
           (results.errors.length ? `; errores: ${results.errors.length}` : "");
         alert(summary);
       } catch (err) {
@@ -508,30 +753,65 @@ document.addEventListener("DOMContentLoaded", () => {
   loadReceptions();
 });
 
-
 // Keep this global function for compatibility with other scripts that may call it.
 async function openReportWindow(receptionId) {
-  let reports = await window.api.getReportByReception(receptionId);
+  console.debug("[openReportWindow] start", { receptionId });
+  let reports;
+  try {
+    reports = await window.api.getReportByReception(receptionId);
+    console.debug("[openReportWindow] reports by reception", {
+      receptionId,
+      count: reports?.length || 0,
+    });
+  } catch (err) {
+    console.error("[openReportWindow] getReportByReception failed", err, {
+      receptionId,
+    });
+    reports = null;
+  }
 
   if (!reports || reports.length === 0) {
-    const reception = await window.api.getReception(receptionId);
-  console.log("Reception:", reception);
+    console.debug(
+      "[openReportWindow] no reports found; creating new report for reception",
+      receptionId
+    );
+    let reception = null;
+    try {
+      reception = await window.api.getReception(receptionId);
+      console.debug(
+        "[openReportWindow] fetched reception",
+        receptionId,
+        reception
+      );
+    } catch (err) {
+      console.error("[openReportWindow] getReception failed", err, {
+        receptionId,
+      });
+    }
 
     const description = `
-      <p><strong>ID Recepción:</strong> ${reception.id}</p>
-      <p><strong>Fecha de ingreso:</strong> ${reception.created_at}</p>
-      <p><strong>Cliente:</strong> ${reception.client_idNumber}</p>
-      <p><strong>Equipo:</strong> ${reception.device_snapshot?.description || "No especificado"}</p>
-      <p><strong>Estado inicial:</strong> ${reception.defect}</p>
+      <p><strong>ID Recepción:</strong> ${reception?.id ?? receptionId}</p>
+      <p><strong>Fecha de ingreso:</strong> ${reception?.created_at ?? ""}</p>
+      <p><strong>Cliente:</strong> ${reception?.client_idNumber ?? ""}</p>
+      <p><strong>Equipo:</strong> ${reception?.device_snapshot?.description || reception?.device?.description || "No especificado"}</p>
+      <p><strong>Estado inicial:</strong> ${reception?.defect ?? ""}</p>
       <hr />
       <p><strong>Diagnóstico técnico:</strong></p>
-      <p>${reception.repair || "Pendiente de evaluación"}</p>
+      <p>${reception?.repair || "Pendiente de evaluación"}</p>
     `;
 
-    const newReport = await window.api.createReport({
-      reception_id: receptionId,
-      description,
-    });
+    let newReport = null;
+    try {
+      newReport = await window.api.createReport({
+        reception_id: receptionId,
+        description,
+      });
+      console.debug("[openReportWindow] createReport result", newReport);
+    } catch (err) {
+      console.error("[openReportWindow] createReport failed", err, {
+        receptionId,
+      });
+    }
 
     if (!newReport || !newReport.id) {
       alert("No se pudo crear el reporte.");
@@ -542,13 +822,20 @@ async function openReportWindow(receptionId) {
   }
 
   const reportId = reports[0].id;
-  // Open the report via main to ensure preload is used
-  if (window.api && typeof window.api.invoke === 'function') {
-    await window.api.invoke('open-report-window', Number(reportId));
-  } else {
-    window.open(`report.html?id=${reportId}`, "_blank", "width=800,height=900");
+  console.debug("[openReportWindow] opening report window", { reportId });
+  try {
+    if (window.api && typeof window.api.invoke === "function") {
+      await window.api.invoke("open-report-window", Number(reportId));
+    } else {
+      window.open(
+        `report.html?id=${reportId}`,
+        "_blank",
+        "width=800,height=900"
+      );
+    }
+  } catch (err) {
+    console.error("[openReportWindow] failed to open report window", err, {
+      reportId,
+    });
   }
 }
-
-
-

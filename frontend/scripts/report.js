@@ -4,6 +4,19 @@ window.addEventListener("DOMContentLoaded", () => {
     const reportId = params.get("id");
     const container = document.getElementById("report-content");
 
+    function setContainerHTML(html) {
+      if (container) {
+        container.innerHTML = html;
+      } else {
+        // fallback: append a visible message to body and log
+        console.error('report: container element #report-content not found.');
+        const fallback = document.createElement('div');
+        fallback.className = 'm-3 alert alert-warning';
+        fallback.innerHTML = html;
+        document.body.appendChild(fallback);
+      }
+    }
+
     if (!reportId) {
       container.innerHTML = "<p class='text-danger'>No report ID provided.</p>";
       return;
@@ -11,19 +24,24 @@ window.addEventListener("DOMContentLoaded", () => {
 
     // Helper wrappers to support both direct helpers (window.api.getReport)
     // and the generic invoke exposed by the preload script.
+    const toCamel = (s) => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     const apiCall = async (channel, ...args) => {
       try {
-        if (window.api && typeof window.api[channel] === 'function') return await window.api[channel](...args);
-        if (window.api && typeof window.api.invoke === 'function') return await window.api.invoke(channel, ...args);
+        if (!window.api) throw new Error('API de Electron no disponible');
+        // try exact key (e.g. getReport), then kebab, then generic invoke
+        const maybeFn = window.api[channel] || window.api[toCamel(channel)];
+        if (typeof maybeFn === 'function') return await maybeFn(...args);
+        if (typeof window.api.invoke === 'function') return await window.api.invoke(channel, ...args);
         throw new Error('API de Electron no disponible');
       } catch (err) {
+        console.error('apiCall error', err);
         throw err;
       }
     };
 
     const report = await apiCall('get-report', Number(reportId));
     if (!report) {
-      container.innerHTML = "<p class='text-warning'>Report not found.</p>";
+      setContainerHTML("<p class='text-warning'>Report not found.</p>");
       return;
     }
 
@@ -67,7 +85,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const status = reception?.status || "—";
     const created = reception?.created_at || report?.created_at || "—";
 
-    container.innerHTML = `
+    setContainerHTML(`
       <div class="report">
         <div class="report-header d-flex justify-content-between align-items-start mb-3">
           <div>
@@ -110,7 +128,7 @@ window.addEventListener("DOMContentLoaded", () => {
           ${report.description}
         </div>
       </div>
-    `;
+  `);
 
     // Export: open print dialog but suggest PDF (browsers usually offer Save as PDF)
     const btnExport = document.getElementById('btn-export');

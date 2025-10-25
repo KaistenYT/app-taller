@@ -21,7 +21,7 @@ const createWindow = () => {
       sandbox: false,
     },
   });
-  win.removeMenu();
+  //win.removeMenu();
 
   win.loadFile(path.join(__dirname, "../frontend/views/login.html"));
 };

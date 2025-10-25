@@ -3,11 +3,12 @@ import db from "../db/dbConfig.js";
 export class Reception {
   static async getAll() {
     try {
-      return await db("reception as r")
+      const rows = await db("reception as r")
         .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
         .leftJoin("device as d", "r.device_id", "d.id")
         .select(
           "r.id",
+          "r.device_snapshot",
           "c.name as client_name",
           "c.idNumber as client_idNumber",
           "d.description as device_description",
@@ -17,6 +18,13 @@ export class Reception {
           "r.created_at",
           "r.archived"
         );
+      // ensure device_snapshot is deserialized for each row
+      return rows.map(r => {
+        try {
+          r.device_snapshot = r.device_snapshot ? JSON.parse(r.device_snapshot) : null;
+        } catch { r.device_snapshot = null; }
+        return r;
+      });
     } catch (error) {
       console.error("DB Error [getAll]:", error);
       throw new Error("Error al obtener recepciones");
@@ -25,12 +33,13 @@ export class Reception {
 
   static async getAllArchived() {
     try {
-      return await db("reception as r")
+      const rows = await db("reception as r")
         .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
         .leftJoin("device as d", "r.device_id", "d.id")
         .where("r.archived", true)
         .select(
           "r.id",
+          "r.device_snapshot",
           "c.name as client_name",
           "c.idNumber as client_idNumber",
           "d.description as device_description",
@@ -39,6 +48,10 @@ export class Reception {
           "r.created_at",
           "r.archived"
         );
+      return rows.map(r => {
+        try { r.device_snapshot = r.device_snapshot ? JSON.parse(r.device_snapshot) : null; } catch { r.device_snapshot = null; }
+        return r;
+      });
     } catch (error) {
       console.error("DB Error [getAllArchived]:", error);
       throw new Error("Error al obtener recepciones archivadas");
@@ -89,7 +102,8 @@ export class Reception {
       if (!rec) return null;
 
       try {
-        rec.device_snapshot = rec.device_snapshot ? JSON.parse(rec.device_snapshot) : null;
+       rec.device_snapshot = rec.device_snapshot ? JSON.parse(rec.device_snapshot) : null;
+
       } catch {
         rec.device_snapshot = null;
       }
@@ -102,35 +116,43 @@ export class Reception {
   }
 
   static async create(data) {
-    const trx = await db.transaction();
-    try {
-      const payload = { ...data };
+  const trx = await db.transaction();
+  try {
+    const payload = { ...data };
 
-      if (payload.device_snapshot && typeof payload.device_snapshot === "object") {
-        payload.device_snapshot = JSON.stringify(payload.device_snapshot);
-      }
-
-      payload.created_at = payload.created_at || db.fn.now();
-      payload.updated_at = db.fn.now();
-
-      const [id] = await trx("reception").insert(payload);
-      const created = await trx("reception").where({ id }).first();
-
-      await trx.commit();
-
-      try {
-        created.device_snapshot = created.device_snapshot ? JSON.parse(created.device_snapshot) : null;
-      } catch {
-        created.device_snapshot = null;
-      }
-
-      return created;
-    } catch (error) {
-      await trx.rollback();
-      console.error("DB Error [create]:", error);
-      throw new Error("Error al crear recepción");
+    
+    if (payload.device_snapshot && typeof payload.device_snapshot === "object") {
+      payload.device_snapshot = JSON.stringify(payload.device_snapshot);
     }
+
+   
+    payload.created_at = payload.created_at || db.fn.now();
+    payload.updated_at = db.fn.now();
+
+    // 📥 Inserta la recepción
+    const [id] = await trx("reception").insert(payload);
+    const created = await trx("reception").where({ id }).first();
+
+    await trx.commit();
+
+    // 🔄 Deserializa el snapshot para devolverlo como objeto
+    try {
+      created.device_snapshot = created.device_snapshot
+        ? JSON.parse(created.device_snapshot)
+        : null;
+    } catch {
+      created.device_snapshot = null;
+    }
+
+    return created;
+    
+  } catch (error) {
+    await trx.rollback();
+    console.error("DB Error [create]:", error);
+    throw new Error("Error al crear recepción");
   }
+}
+
 
   static async update(id, data) {
     const trx = await db.transaction();

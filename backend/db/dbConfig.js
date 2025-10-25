@@ -8,7 +8,6 @@ import { table } from "console";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 if (!fs.existsSync(__dirname)) {
   fs.mkdirSync(__dirname, { recursive: true });
 }
@@ -28,20 +27,17 @@ const db = knexLib({
 
 const tables = [
   {
-   
-
-  name: "device",
-  build: (table) => {
-    table.increments("id").primary();
-    table.string("description").notNullable();
-    table.string("features");
-    table.string("serial_number").unique().notNullable();
-    
-    table.timestamp("created_at").defaultTo(db.fn.now());
-    table.timestamp("updated_at").defaultTo(db.fn.now());
-    table.index(["serial_number"]);
+    name: "device",
+    build: (table) => {
+      table.increments("id").primary();
+      table.string("description").notNullable();
+      table.string("features");
+      table.string("serial_number").unique();
+      table.timestamp("created_at").defaultTo(db.fn.now());
+      table.timestamp("updated_at").defaultTo(db.fn.now());
+      table.index(["serial_number"]);
+    },
   },
-},
   {
     name: "client",
     build: (table) => {
@@ -59,7 +55,7 @@ const tables = [
       table.string("defect").notNullable();
       table.string("status").notNullable().defaultTo("PENDIENTE");
       table.string("repair");
-      table.text("device_snapshot");
+      table.json("device_snapshot");
       table.timestamp("created_at").defaultTo(db.fn.now());
       table.timestamp("updated_at").defaultTo(db.fn.now());
       table.boolean("archived").defaultTo(false);
@@ -93,29 +89,28 @@ const tables = [
     },
   },
   {
-  name: "reception_history",
-  build: (table) => {
-   table.increments("id").primary();
-        table.integer("reception_id").notNullable().unsigned();
-        table.string("client_id").notNullable();
-        table.integer("device_id").notNullable().unsigned();
-        table.timestamp("reception_date").notNullable();
-        table.string("status").notNullable();
-        table.string("action").notNullable();
-        table.timestamp("event_timestamp").defaultTo(db.fn.now());
-        table.index(["reception_id"]);
+    name: "reception_history",
+    build: (table) => {
+      table.increments("id").primary();
+      table.integer("reception_id").notNullable().unsigned();
+      table.string("client_id").notNullable();
+      table.integer("device_id").notNullable().unsigned();
+      table.timestamp("reception_date").notNullable();
+      table.string("status").notNullable();
+      table.string("action").notNullable();
+      table.timestamp("event_timestamp").defaultTo(db.fn.now());
+      table.index(["reception_id"]);
+    },
   },
-},
 
-{
-  name : "user",
-  build: (table) =>{
-    table.increments("id").primary().unique();
-    table.string("username").notNullable().unique();
-    table.string("password").notNullable();
-  }
-}
-
+  {
+    name: "user",
+    build: (table) => {
+      table.increments("id").primary().unique();
+      table.string("username").notNullable().unique();
+      table.string("password").notNullable();
+    },
+  },
 ];
 
 async function createTables() {
@@ -137,7 +132,9 @@ async function createTables() {
 
 console.log("[dbConfig] starting createTables()");
 await createTables();
-console.log("[dbConfig] createTables() finished, initializing ReceptionHistory triggers");
+console.log(
+  "[dbConfig] createTables() finished, initializing ReceptionHistory triggers"
+);
 await ReceptionHistory.init(db);
 console.log("[dbConfig] ReceptionHistory.init completed");
 
