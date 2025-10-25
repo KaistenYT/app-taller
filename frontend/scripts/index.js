@@ -1,5 +1,21 @@
 // ../scripts/index.js
 document.addEventListener("DOMContentLoaded", () => {
+  // Session guard: if no app_user in localStorage, redirect to login
+  try {
+    const sessionRaw = localStorage.getItem('app_user');
+    if (!sessionRaw) {
+      window.location.href = 'login.html';
+      return;
+    }
+    // expose username in navbar
+    const session = JSON.parse(sessionRaw);
+    const navUserEl = document.getElementById('navbar-user');
+    if (navUserEl) navUserEl.textContent = session.username || '';
+  } catch (e) {
+    // on error, redirect to login
+    window.location.href = 'login.html';
+    return;
+  }
   // Cache DOM elements with guards (page may not include all elements)
   const tbody = document.getElementById("recepciones-body");
   const filtroGeneral = document.getElementById("filtroGeneral");
@@ -9,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnClear = document.getElementById("btn-clear-filters");
   const btnCreate = document.getElementById("btn-create");
   const btnRefresh = document.getElementById("btn-refresh");
+  const btnLogout = document.getElementById("btn-logout");
   const pagination = document.getElementById("pagination");
   const listSummary = document.getElementById("list-summary");
   const modalEl = document.getElementById("receptionModal");
@@ -23,6 +40,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnCreate) btnCreate.addEventListener("click", () => window.location.href = "addReceptionForm.html");
   if (btnRefresh) btnRefresh.addEventListener("click", () => loadReceptions());
+  if (btnLogout) btnLogout.addEventListener('click', () => {
+    try {
+      localStorage.removeItem('app_user');
+    } catch (e) { /* ignore */ }
+    // redirect to login
+    window.location.href = 'login.html';
+  });
   if (filtroGeneral) filtroGeneral.addEventListener("input", debounce(() => { page = 1; render(); }, 250));
   if (filtroFecha) filtroFecha.addEventListener("change", () => { page = 1; render(); });
   if (ordenFecha) ordenFecha.addEventListener("change", () => { page = 1; render(); });

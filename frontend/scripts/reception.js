@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     disableClientFields(disabled) {
       q.clientId.disabled = disabled;
-      q.deviceSerial.disabled = disabled;
+      
       
     },
     resetForm() {

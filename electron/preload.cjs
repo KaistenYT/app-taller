@@ -33,7 +33,9 @@ contextBridge.exposeInMainWorld("api", {
   deleteReception: (id) => ipcRenderer.invoke("delete-reception", id),
   receptionDetails: (id) => ipcRenderer.invoke("reception-details", id),
 
-  // Reports
+  //user
+  loginUser: (username, password)=> ipcRenderer.invoke("login-user", username, password),
+  registerUser: (userData) => ipcRenderer.invoke("register-user", userData),
   // Reports
   listReports: () => ipcRenderer.invoke("list-reports"),
   getReport: (id) => ipcRenderer.invoke("get-report", id),
@@ -42,6 +44,10 @@ contextBridge.exposeInMainWorld("api", {
   createReport: (data) => ipcRenderer.invoke("create-report", data),
   updateReport: (id, data) => ipcRenderer.invoke("update-report", id, data),
   deleteReport: (id) => ipcRenderer.invoke("delete-report", id),
+
+  // Reception history (audit)
+  listReceptionHistory: (filters) => ipcRenderer.invoke('list-reception-history', filters),
+  countReceptionHistory: (filters) => ipcRenderer.invoke('count-reception-history', filters),
 
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
 });

@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import { ReceptionHistory } from "../model/receptionHistory.js";
+import { table } from "console";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -104,6 +105,15 @@ const tables = [
         table.timestamp("event_timestamp").defaultTo(db.fn.now());
         table.index(["reception_id"]);
   },
+},
+
+{
+  name : "user",
+  build: (table) =>{
+    table.increments("id").primary().unique();
+    table.string("username").notNullable().unique();
+    table.string("password").notNullable();
+  }
 }
 
 ];
