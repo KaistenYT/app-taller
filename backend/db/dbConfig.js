@@ -2,11 +2,13 @@ import knexLib from "knex";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import { ReceptionHistory } from "../model/receptionHistory.js";
+import { table } from "console";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure the db directory exists
+
 if (!fs.existsSync(__dirname)) {
   fs.mkdirSync(__dirname, { recursive: true });
 }
@@ -34,7 +36,7 @@ const tables = [
     table.string("description").notNullable();
     table.string("features");
     table.string("serial_number").unique().notNullable();
-    table.text("device_snapshot");
+    
     table.timestamp("created_at").defaultTo(db.fn.now());
     table.timestamp("updated_at").defaultTo(db.fn.now());
     table.index(["serial_number"]);
@@ -103,6 +105,15 @@ const tables = [
         table.timestamp("event_timestamp").defaultTo(db.fn.now());
         table.index(["reception_id"]);
   },
+},
+
+{
+  name : "user",
+  build: (table) =>{
+    table.increments("id").primary().unique();
+    table.string("username").notNullable().unique();
+    table.string("password").notNullable();
+  }
 }
 
 ];
@@ -124,6 +135,10 @@ async function createTables() {
   }
 }
 
-createTables();
+console.log("[dbConfig] starting createTables()");
+await createTables();
+console.log("[dbConfig] createTables() finished, initializing ReceptionHistory triggers");
+await ReceptionHistory.init(db);
+console.log("[dbConfig] ReceptionHistory.init completed");
 
 export default db;

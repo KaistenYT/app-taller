@@ -1,12 +1,12 @@
 import { app, BrowserWindow, ipcMain } from "electron";
+//require('update-electron-app')();
 import path from "path";
 import { fileURLToPath } from "url";
 import { DeviceService } from "../backend/service/deviceService.js";
 import { ReceptionService } from "../backend/service/receptionService.js";
 import { ClientService } from "../backend/service/clientService.js";
 import { ReportService } from "../backend/service/reportService.js";
-import { ReceptionHistory } from "../backend/model/receptionHistory.js";
-
+import { UserService } from "../backend/service/userService.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -21,8 +21,9 @@ const createWindow = () => {
       sandbox: false,
     },
   });
+  win.removeMenu();
 
-  win.loadFile(path.join(__dirname, "../frontend/views/index.html"));
+  win.loadFile(path.join(__dirname, "../frontend/views/login.html"));
 };
 
 app.whenReady().then(() => {
@@ -45,7 +46,7 @@ const safeHandler = (fn) => async (event, ...args) => {
   }
 };
 
-await ReceptionHistory.init();
+
 
 const registerHandlers = () => {
   const handlers = {
@@ -97,21 +98,22 @@ const registerHandlers = () => {
 
     // Receptions
     "list-receptions": () => ReceptionService.listReceptions(),
+      
     "list-archived-receptions": () => ReceptionService.listArchivedReceptions(),
     "get-reception": (event, id) => {
       if (!id) throw new Error("get-reception: id is required");
       return ReceptionService.getReception(id);
     },
     "create-reception": async (event, data) => {
-      console.log("📥 create-reception:", data);
+      console.log("create-reception:", data);
       const result = await ReceptionService.createReception(data);
-      console.log("✅ recepción creada:", result);
+      console.log("reception created:", result);
       return result;
     },
     "update-reception": async (event, { id, data }) => {
-      console.log("📥 update-reception:", { id, data });
+      console.log("update-reception:", { id, data });
       const result = await ReceptionService.updateReception(id, data);
-      console.log("✅ recepción actualizada:", result);
+      console.log("reception updated:", result);
       return result;
     },
     "delete-reception": (event, id) => {
@@ -151,6 +153,52 @@ const registerHandlers = () => {
     },
     "get-report-by-reception": async (event, receptionId) => {
       return await ReportService.getReportsByReception(receptionId);
+    },
+    //user 
+   "login-user" : (event, username, password) =>{
+     return UserService.login(username, password);
+   },
+   "register-user": async (event, userData) => {
+    if (!userData || !userData.username || !userData.password) throw new Error('register-user: username and password are required');
+    return await UserService.registerUser(userData);
+   },
+    // Open a report view in a new BrowserWindow (ensures preload is applied)
+    "open-report-window": async (event, reportId) => {
+      if (!reportId) throw new Error('open-report-window: reportId is required');
+      try {
+        const win = new BrowserWindow({
+          width: 900,
+          height: 800,
+          webPreferences: {
+            preload: path.join(__dirname, "preload.cjs"),
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: false,
+          },
+        });
+        const filePath = path.join(__dirname, "../frontend/views/report.html");
+        // append query param with id
+        await win.loadFile(filePath, { query: { id: String(reportId) } });
+        win.show();
+        return { ok: true };
+      } catch (err) {
+        console.error('Failed to open report window:', err);
+        throw err;
+      }
+    },
+    "create-report-from-reception": async (event, receptionId) => {
+      if (!receptionId) throw new Error('create-report-from-reception: receptionId is required');
+      return await ReportService.createReportFromReception(receptionId);
+    },
+    // Reception history (audit)
+    "list-reception-history": async (event, filters) => {
+      // lazy require to avoid circular issues
+      const { ReceptionHistoryService } = await import('../backend/service/receptionHistoryService.js');
+      return await ReceptionHistoryService.listHistory(filters || {});
+    },
+    "count-reception-history": async (event, filters) => {
+      const { ReceptionHistoryService } = await import('../backend/service/receptionHistoryService.js');
+      return await ReceptionHistoryService.countHistory(filters || {});
     },
   };
 

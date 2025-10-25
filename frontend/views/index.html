@@ -9,12 +9,16 @@
 </head>
 <body class="bg-light">
   <nav class="navbar navbar-light bg-white shadow-sm mb-4">
-    <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1">APP-TALLER</span>
-      <div>
-        <button class="btn btn-outline-primary me-2" id="btn-refresh" title="Actualizar lista">⟳</button>
+  <div class="container-fluid">
+  <span class="navbar-brand mb-0 h1">APP-TALLER</span>
+  <span id="navbar-user" class="ms-3 me-3 text-muted small" style="vertical-align:middle"></span>
+  <div>
+    <button class="btn btn-outline-primary me-2" id="btn-refresh" title="Actualizar lista">⟳</button>
+    <a class="btn btn-outline-info me-2" href="history.html" id="btn-history" title="Historial">Historial</a>
         <button class="btn btn-success" id="btn-create">+ Nueva recepción</button>
         <button class="btn btn-outline-secondary me-2" id="btn-seed">Cargar datos de prueba</button>
+        <button class="btn btn-outline-danger" id="btn-logout" title="Cerrar sesión">Salir</button>
+        <button class="btn btn-outline-primary" id="btn-reports-list">Ver Reportes</button>
 
 
       </div>
@@ -59,6 +63,7 @@
               <tr>
                 <th>Cliente</th>
                 <th>Equipo / Serial</th>
+                <th>Snapshot</th>
                 <th>Estado</th>
                 <th>Falla</th>
                 <th>Ingreso</th>
@@ -89,6 +94,7 @@
         <div class="modal-body" id="modal-body-content"></div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button id="modal-gen-report" type="button" class="btn btn-primary">Generar reporte</button>
           <button id="modal-edit-btn" type="button" class="btn btn-warning">Editar</button>
         </div>
       </div>

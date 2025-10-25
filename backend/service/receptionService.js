@@ -6,227 +6,204 @@ import { ReceptionHistory } from "../model/receptionHistory.js";
 
 export class ReceptionService {
   static async listReceptions() {
-    try {
-      return await Reception.getAll();
-    } catch (err) {
-      throw err;
-    }
+    return await Reception.getAll();
+    
   }
 
   static async listArchivedReceptions() {
-    try {
-      return await Reception.getAllArchived();
-    } catch (err) {
-      throw err;
-    }
+    return await Reception.getAllArchived();
+  }
+
+  static async getReception(id) {
+    return await Reception.getById(id);
   }
 
   static async getReceptionDetails(id) {
     try {
-      const details = await Reception.getDetailedById(id);
-      if (!details) throw new Error("Recepción no encontrada");
-      return details;
-    } catch (err) {
-      throw err;
-    }
-  }
+      const reception = await Reception.getById(id);
+      if (!reception) throw new Error("Recepción no encontrada");
 
-  static async restoreReception(id) {
-    try {
-      const rec = await Reception.getById(id);
-      if (!rec) throw new Error("Recepción no encontrada");
-      return await Reception.restore(id);
+      const client = reception.client_idNumber
+        ? await Client.getById(reception.client_idNumber)
+        : null;
+
+      const device = reception.device_id
+        ? await Device.getById(reception.device_id)
+        : null;
+
+      return {
+        ...reception,
+        client,
+        device,
+      };
     } catch (err) {
+      console.error("ReceptionService.getReceptionDetails error:", err);
       throw err;
     }
   }
 
   static async archiveReception(id) {
+    const reception = await Reception.getById(id);
+    if (!reception) throw new Error("Recepción no encontrada");
+    // Insert a history row directly to avoid potential circular import timing issues
     try {
-      const reception = await Reception.getById(id);
-      if (!reception) throw new Error("Recepción no encontrada");
-
-      await ReceptionHistory.log({
-        original_id: reception.id,
-        cliente_id: reception.client_idNumber || reception.cliente_id || null,
-        equipo_id: reception.device_id || reception.equipo_id || null,
-        fecha: reception.created_at || reception.fecha || null,
-        estado: reception.status || reception.estado || null,
-        accion: "archivada",
+      await db("reception_history").insert({
+        reception_id: reception.id,
+        client_id: reception.client_idNumber,
+        device_id: reception.device_id,
+        reception_date: reception.created_at,
+        status: reception.status,
+        action: "ARCHIVED",
+        event_timestamp: db.fn.now(),
       });
-
-      await Reception.archive(id);
-      return true;
     } catch (err) {
+      // Log but continue to archive the reception
+      console.error("Failed to insert reception_history row:", err);
+    }
+
+    await Reception.archive(id);
+    return true;
+  }
+
+  static async restoreReception(id) {
+    const reception = await Reception.getById(id);
+    if (!reception) throw new Error("Recepción no encontrada");
+    return await Reception.restore(id);
+  }
+
+  static async createReception(data) {
+    const trx = await db.transaction();
+    try {
+      if (!data || typeof data !== "object") {
+        throw new Error("create-reception: datos inválidos");
+      }
+
+      const { client_idNumber, client_name, client_phone } = data;
+      if (!client_idNumber) throw new Error("create-reception: client_idNumber es requerido");
+
+      // Cliente
+      let client = await Client.getById(client_idNumber, trx);
+      if (!client) {
+        if (!client_name) throw new Error("create-reception: client_name es requerido para crear cliente");
+        client = await Client.create({ idNumber: client_idNumber, name: client_name, phone: client_phone || null }, trx);
+      }
+
+      // Equipo
+      let deviceId = data.device_id;
+      let device = null;
+
+      if (!deviceId) {
+        const info = data.device || (data.device_serial ? { serial_number: data.device_serial } : null);
+        if (!info?.serial_number) throw new Error("create-reception: serial del equipo es requerido");
+
+        device = await Device.getBySerial(info.serial_number, trx);
+        if (!device) {
+          device = await Device.upsertBySerial({
+            serial_number: info.serial_number,
+            description: info.description || null,
+            features: info.features || null,
+          }, trx);
+        }
+
+        deviceId = device.id;
+      } else {
+        device = await Device.getById(deviceId, trx);
+      }
+
+      if (!deviceId) throw new Error("create-reception: no se pudo resolver device_id");
+
+      // Snapshot
+      const snapshot = data.device_snapshot || {
+        id: device.id,
+        serial_number: device.serial_number,
+        description: device.description,
+        features: device.features,
+        captured_at: new Date().toISOString(),
+      };
+
+      const payload = {
+        client_idNumber,
+        device_id: deviceId,
+        defect: data.defect || null,
+        status: data.status || "PENDIENTE",
+        repair: data.repair || null,
+        device_snapshot: JSON.stringify(snapshot),
+        created_at: data.created_at || db.fn.now(),
+        updated_at: db.fn.now(),
+        archived: !!data.archived,
+      };
+
+      const [id] = await trx("reception").insert(payload);
+      const created = await trx("reception").where({ id }).first();
+
+      await trx.commit();
+
+      try {
+        created.device_snapshot = JSON.parse(created.device_snapshot);
+      } catch {
+        created.device_snapshot = null;
+      }
+
+      return created;
+    } catch (err) {
+      await trx.rollback();
+      console.error("ReceptionService.createReception error:", err);
       throw err;
     }
   }
-
-  static async getReception(id) {
-    try {
-      return await Reception.getById(id);
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  // Crea una recepción resolviendo device por device_id, device_serial o device object.
-  // Garantiza device_snapshot y ejecuta todo en una transacción.
- static async createReception(receptionData) {
-  const trx = await db.transaction();
-  try {
-    if (!receptionData || typeof receptionData !== "object") {
-      throw new Error("create-reception: receptionData is required");
-    }
-
-    const { client_idNumber, client_name, client_phone } = receptionData;
-    if (!client_idNumber) throw new Error("create-reception: client_idNumber is required");
-
-    // Verificar cliente o crear
-    let client = await Client.getById(client_idNumber, trx);
-    if (!client) {
-      if (!client_name) throw new Error("create-reception: client_name es requerido para crear cliente");
-      const clientPayload = { idNumber: client_idNumber, name: client_name, phone: client_phone || null };
-      client = await Client.create(clientPayload, trx);
-    }
-
-    // Resolver equipo
-    let deviceId = receptionData.device_id || null;
-    let deviceRecord = null;
-
-    if (!deviceId) {
-      const deviceInfo = receptionData.device || (receptionData.device_serial ? { serial_number: receptionData.device_serial } : null);
-      if (!deviceInfo || !deviceInfo.serial_number) {
-        throw new Error("create-reception: device info inválida");
-      }
-
-      deviceRecord = await Device.getBySerial(deviceInfo.serial_number, trx);
-      if (!deviceRecord) {
-        const upsertPayload = {
-          serial_number: deviceInfo.serial_number,
-          description: deviceInfo.description || null,
-          features: deviceInfo.features || null,
-        };
-        deviceRecord = await Device.upsertBySerial(upsertPayload, trx);
-      }
-
-      deviceId = deviceRecord.id;
-    } else {
-      deviceRecord = await Device.getById(deviceId, trx);
-    }
-
-    if (!deviceId) throw new Error("create-reception: no se pudo resolver device_id");
-
-    // Construir snapshot
-    const snapshot = receptionData.device_snapshot || {
-      id: deviceRecord?.id || deviceId,
-      serial_number: deviceRecord?.serial_number || receptionData.device_serial || null,
-      description: deviceRecord?.description || receptionData.device?.description || null,
-      features: deviceRecord?.features || receptionData.device?.features || null,
-      captured_at: new Date().toISOString(),
-    };
-
-    // Insertar recepción
-    const payload = {
-      client_idNumber,
-      device_id: deviceId,
-      defect: receptionData.defect || null,
-      status: receptionData.status || "PENDIENTE",
-      repair: receptionData.repair || null,
-      device_snapshot: JSON.stringify(snapshot),
-      created_at: receptionData.created_at || db.fn.now(),
-      updated_at: db.fn.now(),
-      archived: receptionData.archived ? true : false,
-    };
-
-    const [id] = await trx("reception").insert(payload);
-    const created = await trx("reception").where({ id }).first();
-
-    await trx.commit();
-
-    try {
-      created.device_snapshot = JSON.parse(created.device_snapshot);
-    } catch {
-      created.device_snapshot = null;
-    }
-
-    return created;
-  } catch (err) {
-    await trx.rollback();
-    console.error("ReceptionService.createReception error:", err);
-    throw err;
-  }
-}
-
 
   static async updateReception(id, data) {
-  const trx = await db.transaction();
-  try {
-    const receptionId = Number(id);
-    if (!receptionId || isNaN(receptionId)) {
-      throw new Error("update-reception: id inválido");
-    }
-    if (!data || typeof data !== "object") {
-      throw new Error("update-reception: datos inválidos");
-    }
-
-    
-    if (data.client_idNumber && (data.client_name || data.client_phone)) {
-      const clientUpdate = {};
-      if (data.client_name) clientUpdate.name = data.client_name;
-      if (data.client_phone) clientUpdate.phone = data.client_phone;
-
-      await trx("client")
-        .where({ idNumber: data.client_idNumber })
-        .update(clientUpdate);
-    }
-
-    
-    const snapshot = data.device_snapshot
-      ? typeof data.device_snapshot === "object"
-        ? JSON.stringify(data.device_snapshot)
-        : data.device_snapshot
-      : null;
-
-   
-    const receptionUpdate = {
-      client_idNumber: data.client_idNumber,
-      device_id: data.device_id,
-      defect: data.defect,
-      status: data.status,
-      repair: data.repair,
-      device_snapshot: snapshot,
-      updated_at: db.fn.now(),
-    };
-
-    await trx("reception").where({ id: receptionId }).update(receptionUpdate);
-
-    const updated = await trx("reception").where({ id: receptionId }).first();
-    await trx.commit();
-
+    const trx = await db.transaction();
     try {
-      updated.device_snapshot = updated.device_snapshot
-        ? JSON.parse(updated.device_snapshot)
+      const receptionId = Number(id);
+      if (!receptionId || isNaN(receptionId)) throw new Error("update-reception: id inválido");
+      if (!data || typeof data !== "object") throw new Error("update-reception: datos inválidos");
+
+      // Actualizar cliente si hay cambios
+      if (data.client_idNumber && (data.client_name || data.client_phone)) {
+        const update = {};
+        if (data.client_name) update.name = data.client_name;
+        if (data.client_phone) update.phone = data.client_phone;
+
+        await trx("client").where({ idNumber: data.client_idNumber }).update(update);
+      }
+
+      const snapshot = data.device_snapshot
+        ? typeof data.device_snapshot === "object"
+          ? JSON.stringify(data.device_snapshot)
+          : data.device_snapshot
         : null;
-    } catch {
-      updated.device_snapshot = null;
-    }
 
-    return updated;
-  } catch (err) {
-    await trx.rollback();
-    console.error("ReceptionService.updateReception error:", err);
-    throw err;
-  }
-}
+      const updatePayload = {
+        client_idNumber: data.client_idNumber,
+        device_id: data.device_id,
+        defect: data.defect,
+        status: data.status,
+        repair: data.repair,
+        device_snapshot: snapshot,
+        updated_at: db.fn.now(),
+      };
 
+      await trx("reception").where({ id: receptionId }).update(updatePayload);
+      const updated = await trx("reception").where({ id: receptionId }).first();
 
+      await trx.commit();
 
-  static async deleteReception(id) {
-    try {
-      return await Reception.delete(id);
+      try {
+        updated.device_snapshot = updated.device_snapshot ? JSON.parse(updated.device_snapshot) : null;
+      } catch {
+        updated.device_snapshot = null;
+      }
+
+      return updated;
     } catch (err) {
+      await trx.rollback();
+      console.error("ReceptionService.updateReception error:", err);
       throw err;
     }
+  }
+
+  static async deleteReception(id) {
+    return await Reception.delete(id);
   }
 }
