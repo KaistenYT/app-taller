@@ -4,7 +4,20 @@ export class Reports {
   static async getAll(trx = null) {
     const q = trx || db;
     try {
-      return await q("report").orderBy("created_at", "desc");
+      return await q("report")
+        .leftJoin("reception", "report.reception_id", "reception.id")
+        .leftJoin("client", "reception.client_idNumber", "client.idNumber")
+        .leftJoin("device", "reception.device_id", "device.id")
+        .select(
+          "report.*",
+          "client.name as client_name",
+          "client.phone as client_phone",
+          "device.serial_number as device_serial",
+          "device.description as device_description",
+          "reception.defect as reception_defect",
+          "reception.status as reception_status"
+        )
+        .orderBy("report.created_at", "desc");
     } catch (err) {
       console.error("DB Error [Reports.getAll]:", err);
       throw new Error("Failed to fetch reports");
@@ -14,7 +27,24 @@ export class Reports {
   static async getById(id, trx = null) {
     const q = trx || db;
     try {
-      return await q("report").where({ id }).first();
+      return await q("report")
+        .leftJoin("reception", "report.reception_id", "reception.id")
+        .leftJoin("client", "reception.client_idNumber", "client.idNumber")
+        .leftJoin("device", "reception.device_id", "device.id")
+        .select(
+          "report.*",
+          "client.idNumber as client_idNumber",
+          "client.name as client_name",
+          "client.phone as client_phone",
+          "device.serial_number as device_serial",
+          "device.description as device_description",
+          "device.features as device_features",
+          "reception.defect as reception_defect",
+          "reception.status as reception_status",
+          "reception.repair as reception_repair"
+        )
+        .where({ "report.id": id })
+        .first();
     } catch (err) {
       console.error(`DB Error [Reports.getById:${id}]:`, err);
       throw new Error("Failed to fetch report");

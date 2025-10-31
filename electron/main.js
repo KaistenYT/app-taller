@@ -21,7 +21,7 @@ const createWindow = () => {
       sandbox: false,
     },
   });
-  //win.removeMenu();
+ // win.removeMenu();
 
   win.loadFile(path.join(__dirname, "../frontend/views/login.html"));
 };
@@ -202,9 +202,15 @@ const registerHandlers = () => {
     },
   };
 
+  // Registrar manejadores estándar
   for (const [channel, handler] of Object.entries(handlers)) {
     ipcMain.handle(channel, safeHandler(handler));
   }
+  
+  // Registrar manejador específico para listar reportes con prefijo
+  ipcMain.handle('report:list-reports', safeHandler(async () => {
+    return await ReportService.listReports();
+  }));
 };
 
 registerHandlers();

@@ -2,13 +2,28 @@
 document.addEventListener("DOMContentLoaded", () => {
   // Session guard: if no app_user in localStorage, redirect to login
   try {
-    const sessionRaw = localStorage.getItem("app_user");
+    // session can be stored in sessionStorage (non-persistent) or localStorage (remember me)
+    let sessionRaw = null;
+    let sessionSource = null;
+    try { sessionRaw = sessionStorage.getItem('app_user'); sessionSource = 'sessionStorage'; } catch(e) { sessionRaw = null; }
+    if (!sessionRaw) {
+      try { sessionRaw = localStorage.getItem('app_user'); sessionSource = 'localStorage'; } catch(e) { sessionRaw = null; }
+    }
     if (!sessionRaw) {
       window.location.href = "login.html";
       return;
     }
-    // expose username in navbar
     const session = JSON.parse(sessionRaw);
+    // if retrieved from localStorage, validate expiry
+    if (sessionSource === 'localStorage') {
+      if (session.expires && Number(session.expires) && Date.now() > Number(session.expires)) {
+        // expired
+        try { localStorage.removeItem('app_user'); } catch(e){}
+        window.location.href = 'login.html';
+        return;
+      }
+    }
+    // expose username in navbar
     const navUserEl = document.getElementById("navbar-user");
     if (navUserEl) navUserEl.textContent = session.username || "";
   } catch (e) {
@@ -33,10 +48,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalBody = document.getElementById("modal-body-content");
   const modalEditBtn = document.getElementById("modal-edit-btn");
   const modalGenReportBtn = document.getElementById("modal-gen-report");
+  const btnReportList = document.getElementById("btn-reports-list");
+  const btnKiosko = document.getElementById("btn-kiosko");
+
 
   let cache = [];
   let page = 1;
   const perPage = 8;
+
+
+  if (btnReportList){
+    btnReportList.addEventListener("click",()=>{
+      window.location.href= "reportList.html";
+    })
+  }
+
+  if (btnKiosko){
+    btnKiosko.addEventListener("click",()=>{
+      window.location.href= "kiosko.html";
+    })
+  }
 
   if (btnCreate)
     btnCreate.addEventListener(
@@ -47,7 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnLogout)
     btnLogout.addEventListener("click", () => {
       try {
-        localStorage.removeItem("app_user");
+        try { sessionStorage.removeItem('app_user'); } catch(e) {}
+        try { localStorage.removeItem('app_user'); } catch(e) {}
       } catch (e) {
         /* ignore */
       }
@@ -96,46 +128,131 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadReceptions() {
+    console.log('Cargando recepciones...');
     if (tbody) showLoadingRows();
     try {
+      // Verificar si window.api está definido
+      if (!window.api) {
+        throw new Error('window.api no está disponible');
+      }
+      
+      // Verificar si el método listReceptions existe
+      if (typeof window.api.listReceptions !== 'function') {
+        throw new Error('El método listReceptions no está disponible en window.api');
+      }
+      
+      console.log('Llamando a window.api.listReceptions()...');
       const res = await window.api.listReceptions();
+      console.log('Respuesta recibida:', res);
+      
+      // Verificar si la respuesta es un array
       const raw = Array.isArray(res) ? res : [];
-      // Normalize each reception so `device_snapshot` is always present when possible
+      console.log(`Se recibieron ${raw.length} recepciones`);
+      
+      // Normalizar los datos de las recepciones
       cache = raw.map((r) => {
-        // If device_snapshot exists, keep it; otherwise build minimal snapshot from known fallbacks
-        const ds = r.device_snapshot || {
-          id: r.device_id || r.device?.id || null,
-          serial_number:
-            r.device_snapshot?.serial_number ||
-            r.device_serial ||
-            r.device?.serial_number ||
-            null,
-          description:
-            r.device_snapshot?.description ||
-            r.device_description ||
-            r.device?.description ||
-            null,
-          // Prefer explicit features, else fall back to device.features, then description
-          features:
-            r.device_snapshot?.features ||
-            r.device?.features ||
-            r.device_snapshot?.description ||
-            r.device?.description ||
-            null,
-          // Use created_at as sensible fallback for captured_at when snapshot lacks it
-          captured_at: r.device_snapshot?.captured_at || r.created_at || null,
-        };
-        return Object.assign({}, r, { device_snapshot: ds });
+        try {
+          // Si device_snapshot es una cadena, intentar parsearla como JSON
+          if (r.device_snapshot && typeof r.device_snapshot === 'string') {
+            try {
+              r.device_snapshot = JSON.parse(r.device_snapshot);
+            } catch (e) {
+              console.warn('Error al parsear device_snapshot:', e);
+              r.device_snapshot = null;
+            }
+          }
+          
+          // Crear un objeto de snapshot con valores por defecto
+          const ds = r.device_snapshot || {
+            id: r.device_id || r.device?.id || null,
+            serial_number: r.device_serial || r.device?.serial_number || null,
+            description: r.device_description || r.device?.description || 'Sin descripción',
+            features: r.device?.features || 'Sin características',
+            captured_at: r.created_at || new Date().toISOString()
+          };
+          
+          return { ...r, device_snapshot: ds };
+        } catch (error) {
+          console.error('Error al procesar recepción:', error, r);
+          // Devolver un objeto con valores por defecto en caso de error
+          return {
+            ...r,
+            device_snapshot: {
+              id: null,
+              serial_number: 'Error al cargar',
+              description: 'Error al cargar los datos del dispositivo',
+              features: '',
+              captured_at: new Date().toISOString()
+            }
+          };
+        }
       });
-      if (listSummary)
-        listSummary.textContent = `Total: ${cache.length} recepciones`;
+      
+      // Actualizar la interfaz de usuario
+      if (listSummary) {
+        listSummary.textContent = `Mostrando ${cache.length} recepción${cache.length !== 1 ? 'es' : ''}`;
+      }
+      
       page = 1;
       render();
+      
     } catch (err) {
-      console.error(err);
-      if (tbody)
-        tbody.innerHTML = `<tr><td colspan="7" class="text-danger p-3">Error al cargar recepciones</td></tr>`;
-      if (listSummary) listSummary.textContent = "Error al cargar";
+      console.error('Error en loadReceptions:', err);
+      
+      // Mostrar mensaje de error en la interfaz
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center p-4">
+              <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>
+                No se encontraron recepciones que coincidan con los filtros actuales.
+                <div class="mt-2">
+                  <button class="btn btn-sm btn-outline-primary" id="btn-clear-filters">
+                    <i class="bi bi-x-circle me-1"></i> Limpiar filtros
+                  </button>
+                  <button class="btn btn-sm btn-primary ms-2" id="btn-create-reception">
+                    <i class="bi bi-plus-circle me-1"></i> Crear primera recepción
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>`;
+        
+        // Agregar manejadores de eventos a los nuevos botones
+        document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
+          if (filtroGeneral) filtroGeneral.value = '';
+          if (filtroFecha) filtroFecha.value = '';
+          loadReceptions();
+        });
+        
+        document.getElementById('btn-create-reception')?.addEventListener('click', () => {
+          // Redirigir al formulario de creación de recepción
+          window.location.href = 'addReceptionForm.html';
+        });
+        
+        return;
+      }
+      
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center p-4">
+              <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Error al cargar las recepciones</strong>
+                <div class="small mt-1">${err.message || 'Error desconocido'}</div>
+              </div>
+              <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Reintentar
+              </button>
+            </td>
+          </tr>`;
+      }
+      
+      if (listSummary) {
+        listSummary.textContent = 'Error al cargar las recepciones';
+      }
     }
   }
 
@@ -268,40 +385,96 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function render() {
-    if (!tbody) return;
-    const list = getFilteredList();
-    const total = list.length;
-    if (total === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">No hay recepciones que coincidan</td></tr>`;
-      if (listSummary) listSummary.textContent = "0 recepciones";
-      if (pagination) pagination.innerHTML = "";
+    console.log('Renderizando la tabla de recepciones...');
+    
+    if (!tbody) {
+      console.error('Error: El elemento tbody no existe en el DOM');
       return;
     }
-    renderPagination(total);
-    const start = (page - 1) * perPage;
-    const slice = list.slice(start, start + perPage);
-    tbody.innerHTML = slice
-      .map((r) => {
+    
+    try {
+      const list = getFilteredList();
+      const total = list.length;
+      console.log(`Mostrando ${total} recepciones`);
+      
+      if (total === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center p-4">
+              <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>
+                No se encontraron recepciones que coincidan con los filtros actuales.
+                <div class="mt-2">
+                  <button class="btn btn-sm btn-outline-primary" id="btn-clear-filters">
+                    <i class="bi bi-x-circle me-1"></i> Limpiar filtros
+                  </button>
+                  <button class="btn btn-sm btn-primary ms-2" id="btn-create-reception">
+                    <i class="bi bi-plus-circle me-1"></i> Crear primera recepción
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>`;
+        
+        // Agregar manejadores de eventos a los nuevos botones
+        document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
+          if (filtroGeneral) filtroGeneral.value = '';
+          if (filtroFecha) filtroFecha.value = '';
+          loadReceptions();
+        });
+        
+        document.getElementById('btn-create-reception')?.addEventListener('click', () => {
+          // Redirigir al formulario de creación de recepción
+          window.location.href = 'addReceptionForm.html';
+        });
+        
+        return;
+      }
+      
+      renderPagination(total);
+      const start = (page - 1) * perPage;
+      const paginated = list.slice(start, start + perPage);
+      console.log(`Mostrando recepciones de ${start + 1} a ${Math.min(start + perPage, total)} de ${total}`);
+      
+      // Limpiar la tabla
+      tbody.innerHTML = '';
+      
+      // Verificar si hay datos para mostrar
+      if (paginated.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center p-4">
+              <div class="alert alert-warning mb-0">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                No hay más recepciones para mostrar.
+              </div>
+            </td>
+          </tr>`;
+        return;
+      }
+      
+      // Generar las filas de la tabla
+      paginated.forEach((r, index) => {
         const cliente = escapeHtml(
           r.client_name || r.client?.name || r.client_idNumber || ""
         );
         const equipo = escapeHtml(
           r.device_snapshot?.description ||
-            r.device?.description ||
-            r.device_description ||
-            ""
+          r.device?.description ||
+          r.device_description ||
+          ""
         );
         const serial = escapeHtml(
           r.device_snapshot?.serial_number ||
-            r.device?.serial_number ||
-            r.device_serial ||
-            ""
+          r.device?.serial_number ||
+          r.device_serial ||
+          ""
         );
         const snapShort = escapeHtml(
           r.device_snapshot?.features ||
-            r.device_snapshot?.description ||
-            r.device?.description ||
-            ""
+          r.device_snapshot?.description ||
+          r.device?.description ||
+          ""
         );
         const estado = formatStatusBadge(r.status || "");
         const falla = escapeHtml(r.defect || "");
@@ -310,15 +483,15 @@ document.addEventListener("DOMContentLoaded", () => {
             r.created_at || r.createdAt || r.created || ""
           ).toLocaleString()
         );
-        return `
-        <tr data-id="${r.id}">
+        const row = document.createElement("tr");
+        row.dataset.id = r.id;
+        row.innerHTML = `
           <td class="table-fixed-row">${cliente} <br/><small class="text-muted">${escapeHtml(r.client_idNumber || "")}</small></td>
           <td class="table-fixed-row">${equipo} ${serial ? `<br/><small class="text-muted">S/N: ${serial}</small>` : ""}</td>
-          <td class="snapshot-cell"><span class="snapshot-serial">${serial ? `S/N: ${serial}` : ""}</span><br/><small class="text-muted">${snapShort}</small></td>
           <td>${estado}</td>
           <td class="table-fixed-row">${falla}</td>
           <td>${created}</td>
-          <td class="text-end">
+          <td class="text-center">
             <div class="btn-group" role="group" aria-label="Acciones">
               <button type="button" class="btn btn-sm btn-outline-primary action-small" data-action="view" data-id="${r.id}" title="Ver" aria-label="Ver">
                 <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/><circle cx="8" cy="8" r="2.5"/></svg>
@@ -343,85 +516,104 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
           </td>
         </tr>
-      `;
-      })
-      .join("");
-
-    // Single delegated handler for action buttons (better perf than multiple listeners)
-    try {
-      if (tbody._delegatedHandler)
-        tbody.removeEventListener("click", tbody._delegatedHandler);
-    } catch (e) {
-      // ignore removal errors
-    }
-
-    const handler = async (e) => {
-      const btn = e.target.closest("button");
-      if (!btn) return;
-      const action = btn.dataset.action;
-      const id = btn.dataset.id;
-      console.debug("[recepciones] action click", { action, id });
-      if (!action || !id) return;
-
+        `;
+        tbody.appendChild(row);
+      });
+      
+      // Single delegated handler for action buttons (better perf than multiple listeners)
       try {
-        if (action === "view") {
-          openDetailModal(id);
-          return;
-        }
-
-        if (action === "edit") {
-          window.location.href = `addReceptionForm.html?id=${id}`;
-          return;
-        }
-
-        if (action === "archive") {
-          await toggleArchive(id);
-          return;
-        }
-
-        if (action === "delete") {
-          await deleteReception(id);
-          return;
-        }
-
-        if (action === "print") {
-          console.debug("[recepciones] print requested for reception id", id, {
-            hasApi: !!window.api,
-            hasInvoke: !!(window.api && window.api.invoke),
-          });
-          // Use the app-level helper which will create a report if missing and open the report window.
-          try {
-            await openReportWindow(Number(id));
-            console.info("[recepciones] openReportWindow completed for", id);
-          } catch (err) {
-            console.error("[recepciones] openReportWindow failed for", id, err);
-            // fallback: open the report page directly with reception id (note: not a report id)
-            try {
-              window.open(
-                `report.html?id=${id}`,
-                "_blank",
-                "width=800,height=900"
-              );
-            } catch (winErr) {
-              console.error(
-                "[recepciones] fallback window.open failed",
-                winErr
-              );
-            }
-          }
-          return;
-        }
-      } catch (err) {
-        console.error("[recepciones] handler error", err, { action, id });
+        if (tbody._delegatedHandler)
+          tbody.removeEventListener("click", tbody._delegatedHandler);
+      } catch (e) {
+        // ignore removal errors
       }
-    };
 
-    tbody.addEventListener("click", handler);
-    // keep reference so we can remove later if re-rendering
-    tbody._delegatedHandler = handler;
+      const handler = async (e) => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        console.debug("[recepciones] action click", { action, id });
+        if (!action || !id) return;
 
-    if (listSummary)
-      listSummary.textContent = `Mostrando ${start + 1}–${Math.min(start + perPage, total)} de ${total} recepciones`;
+        try {
+          if (action === "view") {
+            openDetailModal(id);
+            return;
+          }
+
+          if (action === "edit") {
+            window.location.href = `addReceptionForm.html?id=${id}`;
+            return;
+          }
+
+          if (action === "archive") {
+            await toggleArchive(id);
+            return;
+          }
+
+          if (action === "delete") {
+            await deleteReception(id);
+            return;
+          }
+
+          if (action === "print") {
+            console.debug("[recepciones] print requested for reception id", id, {
+              hasApi: !!window.api,
+              hasInvoke: !!(window.api && window.api.invoke),
+            });
+            // Use the app-level helper which will create a report if missing and open the report window.
+            try {
+              await openReportWindow(Number(id));
+              console.info("[recepciones] openReportWindow completed for", id);
+            } catch (err) {
+              console.error("[recepciones] openReportWindow failed for", id, err);
+              // fallback: open the report page directly with reception id (note: not a report id)
+              try {
+                window.open(
+                  `report.html?id=${id}`,
+                  "_blank",
+                  "width=800,height=900"
+                );
+              } catch (winErr) {
+                console.error(
+                  "[recepciones] fallback window.open failed",
+                  winErr
+                );
+              }
+            }
+            return;
+          }
+        } catch (err) {
+          console.error("[recepciones] handler error", err, { action, id });
+        }
+      };
+
+      tbody.addEventListener("click", handler);
+      // keep reference so we can remove later if re-rendering
+      tbody._delegatedHandler = handler;
+
+      if (listSummary)
+        listSummary.textContent = `Mostrando ${start + 1}–${Math.min(start + perPage, total)} de ${total} recepciones`;
+    } catch (error) {
+      console.error('Error en la función render:', error);
+      
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center p-4">
+              <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Error al cargar los datos</strong>
+                <div class="small mt-1">${error.message || 'Error desconocido'}</div>
+              </div>
+              <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Reintentar
+              </button>
+            </td>
+          </tr>`;
+      }
+    }
   }
 
   async function openDetailModal(id) {
@@ -470,32 +662,143 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (modalBody) {
         modalBody.innerHTML = `
-        <dl class="row">
-          <dt class="col-sm-3">Cliente</dt>
-          <dd class="col-sm-9">${cliente}<br/>
-            <small class="text-muted">${escapeHtml(rec.client_idNumber || "")}</small><br/>
-            <small class="text-muted">Tel: ${clientePhone}</small>
-          </dd>
+        <!-- Header con ID de recepción -->
+        <div class="alert alert-primary d-flex align-items-center mb-3" role="alert">
+          <i class="bi bi-receipt fs-4 me-3"></i>
+          <div>
+            <h6 class="mb-0">Recepción #${rec.id}</h6>
+            <small>Creada el ${created}</small>
+          </div>
+          <div class="ms-auto">
+            ${formatStatusBadge(rec.status)}
+          </div>
+        </div>
 
-          <dt class="col-sm-3">Equipo</dt>
-          <dd class="col-sm-9">${equipo}<br/>
-            <small class="text-muted">S/N: ${serial}</small>
-          </dd>
+        <!-- Información del Cliente -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">
+              <i class="bi bi-person-circle me-2"></i>Información del Cliente
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="text-muted small mb-1">Nombre</label>
+                <div class="fw-semibold">${cliente}</div>
+              </div>
+              <div class="col-md-6">
+                <label class="text-muted small mb-1">Cédula/RIF</label>
+                <div class="fw-semibold">${escapeHtml(rec.client_idNumber || "—")}</div>
+              </div>
+              <div class="col-md-6">
+                <label class="text-muted small mb-1">Teléfono</label>
+                <div class="fw-semibold">
+                  <i class="bi bi-telephone me-1"></i>${clientePhone}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <dt class="col-sm-3">Estado</dt><dd class="col-sm-9">${formatStatusBadge(rec.status)}</dd>
-          <dt class="col-sm-3">Falla</dt><dd class="col-sm-9">${escapeHtml(rec.defect || "")}</dd>
-          <dt class="col-sm-3">Diagnóstico</dt><dd class="col-sm-9">${escapeHtml(rec.repair || "")}</dd>
-          <dt class="col-sm-3">Ingreso</dt><dd class="col-sm-9">${created}</dd>
+        <!-- Información del Equipo -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">
+              <i class="bi bi-laptop me-2"></i>Información del Equipo
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="text-muted small mb-1">Descripción</label>
+                <div class="fw-semibold">${equipo}</div>
+              </div>
+              <div class="col-md-6">
+                <label class="text-muted small mb-1">Número de Serie</label>
+                <div class="fw-semibold">
+                  <i class="bi bi-upc-scan me-1"></i>${serial}
+                </div>
+              </div>
+              ${snapFeatures !== "—" ? `
+              <div class="col-12">
+                <label class="text-muted small mb-1">Características</label>
+                <div class="fw-semibold">${snapFeatures}</div>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
 
-          <dt class="col-sm-3">Snapshot</dt>
-          <dd class="col-sm-9">
-            <div><strong>Serial:</strong> ${serial}</div>
-            <div><strong>Descripción:</strong> ${equipo}</div>
-            <div><strong>Características:</strong> ${snapFeatures}</div>
-            <div><strong>Capturado:</strong> ${snapCaptured}</div>
-            <pre class="small mt-2">${escapeHtml(JSON.stringify(snapshot, null, 2))}</pre>
-          </dd>
-        </dl>
+        <!-- Detalles de la Recepción -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">
+              <i class="bi bi-clipboard-check me-2"></i>Detalles de la Recepción
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="text-muted small mb-1">
+                  <i class="bi bi-exclamation-triangle me-1"></i>Falla Reportada
+                </label>
+                <div class="alert alert-warning mb-0 py-2">
+                  ${escapeHtml(rec.defect || "No especificada")}
+                </div>
+              </div>
+              ${rec.repair ? `
+              <div class="col-12">
+                <label class="text-muted small mb-1">
+                  <i class="bi bi-tools me-1"></i>Diagnóstico/Reparación
+                </label>
+                <div class="alert alert-info mb-0 py-2">
+                  ${escapeHtml(rec.repair)}
+                </div>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline/Historial -->
+        <div class="card">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">
+              <i class="bi bi-clock-history me-2"></i>Historial
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="d-flex align-items-start">
+              <div class="flex-shrink-0">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <i class="bi bi-plus-circle"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <div class="fw-semibold">Recepción creada</div>
+                <small class="text-muted">
+                  <i class="bi bi-calendar3 me-1"></i>${created}
+                </small>
+              </div>
+            </div>
+            ${snapCaptured !== "—" && snapCaptured !== created ? `
+            <div class="d-flex align-items-start mt-3">
+              <div class="flex-shrink-0">
+                <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <i class="bi bi-camera"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1 ms-3">
+                <div class="fw-semibold">Snapshot capturado</div>
+                <small class="text-muted">
+                  <i class="bi bi-calendar3 me-1"></i>${snapCaptured}
+                </small>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
       `;
       }
 
@@ -838,4 +1141,39 @@ async function openReportWindow(receptionId) {
       reportId,
     });
   }
+}
+
+// Keyboard shortcut to open Kiosko mode (Ctrl+K)
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    window.open('kiosko.html', '_blank');
+  }
+});
+
+// Add tooltip to kiosko button
+const kioskoBtn = document.querySelector('a[href="kiosko.html"]');
+if (kioskoBtn) {
+  kioskoBtn.setAttribute('data-bs-toggle', 'tooltip');
+  kioskoBtn.setAttribute('data-bs-placement', 'bottom');
+  kioskoBtn.setAttribute('title', 'Abrir modo Kiosko (Ctrl+K)');
+  
+  // Initialize Bootstrap tooltip
+  if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+    new bootstrap.Tooltip(kioskoBtn);
+  }
+
+  // Intercept click to open Electron BrowserWindow with preload
+  kioskoBtn.addEventListener('click', async (e) => {
+    try {
+      if (window.api && typeof window.api.invoke === 'function') {
+        e.preventDefault();
+        await window.api.invoke('open-kiosko-window');
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to open kiosko window via IPC, falling back to window.open', err);
+    }
+    // Fallback to normal behavior (new tab)
+  });
 }

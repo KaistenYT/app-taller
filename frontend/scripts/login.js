@@ -5,6 +5,42 @@ window.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('btn-login');
   const alertArea = document.getElementById('alert-area');
 
+  // If a session exists in sessionStorage or localStorage && is not expired, skip login page
+  try {
+    let sessionRaw = null;
+    try { sessionRaw = sessionStorage.getItem('app_user'); } catch (e) { sessionRaw = null; }
+    if (!sessionRaw) {
+      try { sessionRaw = localStorage.getItem('app_user'); } catch (e) { sessionRaw = null; }
+    }
+    if (sessionRaw) {
+      try {
+        const sess = JSON.parse(sessionRaw);
+        if (sess && sess.id) {
+          // if stored in localStorage and has expiry, validate it
+          if (sess.expires && Number(sess.expires)) {
+            const exp = Number(sess.expires);
+            if (Date.now() <= exp) {
+              // still valid
+              window.location.href = 'index.html';
+              return;
+            } else {
+              // expired - remove and stay on login
+              try { localStorage.removeItem('app_user'); } catch (e) {}
+            }
+          } else {
+            // sessionStorage case (no expiry) or localStorage without expiry -> assume valid
+            window.location.href = 'index.html';
+            return;
+          }
+        }
+      } catch (e) {
+        // malformed session, ignore and continue to show login
+      }
+    }
+  } catch (e) {
+    // ignore any storage errors and continue to login
+  }
+
   function showAlert(type, message, timeout = 4000) {
     if (!alertArea) return;
     alertArea.innerHTML = `<div class="alert alert-${type} alert-sm" role="alert">${message}</div>`;
@@ -31,6 +67,7 @@ window.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const username = inputUser.value && inputUser.value.trim();
     const password = inputPass.value;
+    const remember = document.getElementById('remember-me')?.checked;
     if (!username || !password) {
       showAlert('danger', 'Usuario y contraseña requeridos', 3500);
       return;
@@ -41,8 +78,21 @@ window.addEventListener('DOMContentLoaded', () => {
       const res = await attemptLogin(username, password);
       // Expecting an object { id, username } on success
       if (res && res.id) {
-        // Save session-lite in localStorage
-        try { localStorage.setItem('app_user', JSON.stringify(res)); } catch(e){ /* ignore */ }
+        // Save session-lite. If user chose 'remember', persist to localStorage with expiry; otherwise use sessionStorage.
+        try {
+          const sessionObj = { ...res };
+          if (remember) {
+            // remember for 30 days
+            const expires = Date.now() + 30 * 24 * 60 * 60 * 1000;
+            sessionObj.expires = expires;
+            localStorage.setItem('app_user', JSON.stringify(sessionObj));
+            // clear any sessionStorage entry
+            try { sessionStorage.removeItem('app_user'); } catch(e) {}
+          } else {
+            sessionStorage.setItem('app_user', JSON.stringify(sessionObj));
+            try { localStorage.removeItem('app_user'); } catch(e) {}
+          }
+        } catch(e){ /* ignore */ }
         // Redirect to main index
         window.location.href = 'index.html';
         return;

@@ -136,6 +136,11 @@ window.addEventListener("DOMContentLoaded", () => {
   })();
 });
 
+function regresar() {
+  window.location.href = "index.html";
+}
+
+
 // small helper used above
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
