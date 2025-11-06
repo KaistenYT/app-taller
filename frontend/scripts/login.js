@@ -99,8 +99,11 @@ window.addEventListener('DOMContentLoaded', () => {
       }
       showAlert('warning', 'Credenciales inválidas', 4000);
     } catch (err) {
-      console.error('Login error:', err);
-      showAlert('danger', err?.message || 'Error al iniciar sesión', 6000);
+       let userMessage = 'Ocurrió un problema al intentar iniciar sesión. Por favor, verifica tus credenciales.';
+       if (err?.message?.includes('API de Electron no disponible')) {
+         userMessage = 'La aplicación no pudo conectarse con el sistema interno. Contacta al soporte técnico.';
+       }
+       try { showAlert('danger', userMessage, 5000); } catch (e) { /* ignore */ }
     } finally {
       btn.disabled = false;
       btn.textContent = 'Entrar';

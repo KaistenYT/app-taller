@@ -562,8 +562,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Limpiar el formulario para una nueva entrada
         setTimeout(() => {
           ui.resetForm();
-          // Enfocar el campo de cédula para la siguiente entrada
-          q.clientId.focus();
+          window.location.href = "index.html";
         }, 1000);
       }
       

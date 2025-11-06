@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>APP-TALLER — Registro</title>
     <link href="../styles/style.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -20,12 +20,14 @@
             <div id="alert-area"></div>
 
             <form id="register-form">
+              <!-- Usuario -->
               <div class="mb-3">
                 <label for="username" class="form-label">Usuario</label>
                 <input id="username" name="username" class="form-control form-control-lg" required autofocus aria-describedby="usernameHelp" />
                 <div id="usernameHelp" class="form-text">El nombre de usuario será su identificador para iniciar sesión.</div>
               </div>
 
+              <!-- Contraseña -->
               <div class="mb-3 position-relative">
                 <label for="input-pass" class="form-label">Contraseña</label>
                 <div class="input-group">
@@ -34,12 +36,10 @@
                     <!-- eye icon SVG inserted by script -->
                   </button>
                 </div>
-                <div id="passwordHelp" class="form-text">Mínimo 8 caracteres. Usa mayúsculas, minúsculas y números para mayor seguridad.</div>
-                <div class="progress mt-2" style="height:6px;">
-                  <div id="passwordStrength" class="progress-bar" role="progressbar" style="width:0%"></div>
-                </div>
+                <div id="passwordHelp" class="form-text">Mínimo 4 caracteres.</div>
               </div>
 
+              <!-- Confirmar contraseña -->
               <div class="mb-3">
                 <label for="input-pass-confirm" class="form-label">Confirmar contraseña</label>
                 <div class="input-group">
@@ -51,6 +51,7 @@
                 <div id="confirmHelp" class="form-text">Vuelve a introducir la contraseña para confirmar.</div>
               </div>
 
+              <!-- Botones -->
               <div class="d-flex justify-content-between align-items-center mt-3">
                 <a href="login.html">Volver al login</a>
                 <button id="btn-register" type="submit" class="btn btn-primary btn-lg">Registrar</button>

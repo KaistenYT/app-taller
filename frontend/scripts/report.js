@@ -4,11 +4,11 @@ window.addEventListener("DOMContentLoaded", () => {
     const reportId = params.get("id");
     const container = document.getElementById("report-content");
 
+    // Función para insertar contenido en el contenedor o mostrar fallback
     function setContainerHTML(html) {
       if (container) {
         container.innerHTML = html;
       } else {
-        // fallback: append a visible message to body and log
         console.error('report: container element #report-content not found.');
         const fallback = document.createElement('div');
         fallback.className = 'm-3 alert alert-warning';
@@ -18,17 +18,15 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!reportId) {
-      container.innerHTML = "<p class='text-danger'>No report ID provided.</p>";
+      setContainerHTML("<p class='text-danger'>No se proporcionó un ID de reporte.</p>");
       return;
     }
 
-    // Helper wrappers to support both direct helpers (window.api.getReport)
-    // and the generic invoke exposed by the preload script.
+    // Función auxiliar para llamadas a la API
     const toCamel = (s) => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     const apiCall = async (channel, ...args) => {
       try {
         if (!window.api) throw new Error('API de Electron no disponible');
-        // try exact key (e.g. getReport), then kebab, then generic invoke
         const maybeFn = window.api[channel] || window.api[toCamel(channel)];
         if (typeof maybeFn === 'function') return await maybeFn(...args);
         if (typeof window.api.invoke === 'function') return await window.api.invoke(channel, ...args);
@@ -39,30 +37,31 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     };
 
+    // Obtener el reporte
     const report = await apiCall('get-report', Number(reportId));
     if (!report) {
-      setContainerHTML("<p class='text-warning'>Report not found.</p>");
+      setContainerHTML("<p class='text-warning'>Reporte no encontrado.</p>");
       return;
     }
 
-    // Try to fetch related reception and client/device details for richer header
+    // Obtener recepción relacionada
     let reception = null;
     try {
-      if (report.reception_id) reception = await apiCall('get-reception', report.reception_id);
+      if (report.reception_id) {
+        reception = await apiCall('get-reception', report.reception_id);
+      }
     } catch (e) {
-      // ignore: missing reception data is non-fatal for displaying a report
+      // Ignorar errores de recepción
     }
 
-    // Normalize client display values with several fallbacks.
-    // Try: reception.client?.name, reception.client_name, reception.client?.fullName, reception.client_idNumber
-    // For phone: reception.client?.phone, reception.client_phone; if missing and we have idNumber, try to fetch client.
+    // Resolver información del cliente con múltiples fuentes
     async function resolveClientInfo(rec) {
       if (!rec) return { name: '—', phone: '—', idNumber: '' };
+
       const idNumber = rec.client_idNumber || rec.client?.idNumber || rec.client?.id || '';
       let name = rec.client?.name || rec.client_name || rec.client?.fullName || idNumber || '—';
       let phone = rec.client?.phone || rec.client_phone || '';
 
-      // If phone is missing but we have an idNumber, attempt to fetch the client record (best-effort)
       if ((!phone || phone === '') && idNumber) {
         try {
           const clientObj = await apiCall('get-client', idNumber);
@@ -71,7 +70,7 @@ window.addEventListener("DOMContentLoaded", () => {
             phone = clientObj.phone || phone;
           }
         } catch (e) {
-          // ignore errors fetching client — keep fallbacks
+          // Ignorar errores al obtener cliente
         }
       }
 
@@ -85,6 +84,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const status = reception?.status || "—";
     const created = reception?.created_at || report?.created_at || "—";
 
+    // Renderizar contenido del reporte
     setContainerHTML(`
       <div class="report">
         <div class="report-header d-flex justify-content-between align-items-start mb-3">
@@ -96,7 +96,6 @@ window.addEventListener("DOMContentLoaded", () => {
             </div>
           </div>
           <div class="text-end">
-            <button class="btn btn-sm btn-outline-secondary me-2" onclick="window.print()">Imprimir</button>
             <button id="btn-export" class="btn btn-sm btn-primary">Guardar PDF</button>
           </div>
         </div>
@@ -128,21 +127,28 @@ window.addEventListener("DOMContentLoaded", () => {
           ${report.description}
         </div>
       </div>
-  `);
+    `);
 
-    // Export: open print dialog but suggest PDF (browsers usually offer Save as PDF)
+    // Botón para exportar como PDF
     const btnExport = document.getElementById('btn-export');
-    if (btnExport) btnExport.addEventListener('click', () => window.print());
+    if (btnExport) {
+      btnExport.addEventListener('click', () => window.print());
+    }
   })();
 });
 
+// Redirección al inicio
 function regresar() {
   window.location.href = "index.html";
 }
 
-
-// small helper used above
+// Escapar caracteres HTML
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
-  return String(str).replace(/[&<>\"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  return String(str).replace(/[&<>\"]/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;'
+  })[ch]);
 }

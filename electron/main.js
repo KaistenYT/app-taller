@@ -21,7 +21,7 @@ const createWindow = () => {
       sandbox: false,
     },
   });
- // win.removeMenu();
+  win.removeMenu();
 
   win.loadFile(path.join(__dirname, "../frontend/views/login.html"));
 };
@@ -175,7 +175,10 @@ const registerHandlers = () => {
             contextIsolation: true,
             sandbox: false,
           },
+
+          
         });
+        win.removeMenu();
         const filePath = path.join(__dirname, "../frontend/views/report.html");
         // append query param with id
         await win.loadFile(filePath, { query: { id: String(reportId) } });
@@ -185,6 +188,7 @@ const registerHandlers = () => {
         console.error('Failed to open report window:', err);
         throw err;
       }
+      
     },
     "create-report-from-reception": async (event, receptionId) => {
       if (!receptionId) throw new Error('create-report-from-reception: receptionId is required');

@@ -434,7 +434,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderPagination(total);
       const start = (page - 1) * perPage;
       const paginated = list.slice(start, start + perPage);
-      console.log(`Mostrando recepciones de ${start + 1} a ${Math.min(start + perPage, total)} de ${total}`);
+     
       
       // Limpiar la tabla
       tbody.innerHTML = '';
@@ -493,23 +493,23 @@ document.addEventListener("DOMContentLoaded", () => {
           <td>${created}</td>
           <td class="text-center">
             <div class="btn-group" role="group" aria-label="Acciones">
-              <button type="button" class="btn btn-sm btn-outline-primary action-small" data-action="view" data-id="${r.id}" title="Ver" aria-label="Ver">
+              <button type="button" class="btn btn-sm btn-outline-primary action-small mx-1" data-action="view" data-id="${r.id}" title="Ver" aria-label="Ver">
                 <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/><circle cx="8" cy="8" r="2.5"/></svg>
                 <span class="visually-hidden">Ver</span>
               </button>
-              <button type="button" class="btn btn-sm btn-outline-warning action-small" data-action="edit" data-id="${r.id}" title="Editar" aria-label="Editar">
+              <button type="button" class="btn btn-sm btn-outline-warning action-small mx-1" data-action="edit" data-id="${r.id}" title="Editar" aria-label="Editar">
                 <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12.146 0.146a.5.5 0 01.708 0l3 3a.5.5 0 010 .708l-9.793 9.793a.5.5 0 01-.233.131l-5 1a.5.5 0 01-.61-.61l1-5a.5.5 0 01.131-.232L12.146.146zM11.207 2L3 10.207V12h1.793L14 3.793 11.207 2z"/></svg>
                 <span class="visually-hidden">Editar</span>
               </button>
-              <button type="button" class="btn btn-sm btn-outline-secondary action-small" data-action="archive" data-id="${r.id}" title="Archivar/Restaurar" aria-label="Archivar/Restaurar">
+              <button type="button" class="btn btn-sm btn-outline-secondary action-small mx-1" data-action="archive" data-id="${r.id}" title="Archivar/Restaurar" aria-label="Archivar/Restaurar">
                 <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 3a.5.5 0 00-.5.5V4h10v-.5a.5.5 0 00-.5-.5h-9zM1 5v8.5A1.5 1.5 0 002.5 15h11a1.5 1.5 0 001.5-1.5V5H1zm4 3.5a.5.5 0 01.5-.5h5a.5.5 0 010 1h-5a.5.5 0 01-.5-.5z"/></svg>
                 <span class="visually-hidden">${r.archived ? "Restaurar" : "Archivar"}</span>
               </button>
-              <button type="button" class="btn btn-sm btn-outline-danger action-small" data-action="delete" data-id="${r.id}" title="Eliminar" aria-label="Eliminar">
+              <button type="button" class="btn btn-sm btn-outline-danger action-small mx-1" data-action="delete" data-id="${r.id}" title="Eliminar" aria-label="Eliminar">
                 <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M5.5 5.5a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5zm3 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0v-6a.5.5 0 01.5-.5z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9.5A2.5 2.5 0 0110.5 16h-5A2.5 2.5 0 013 13.5V4h-.5a1 1 0 010-2H5l1-1h4l1 1h2.5a1 1 0 011 1zM4.118 4L4 4.059V13.5c0 .827.673 1.5 1.5 1.5h5c.827 0 1.5-.673 1.5-1.5V4.059L11.882 4H4.118z"/></svg>
                 <span class="visually-hidden">Eliminar</span>
               </button>
-              <button type="button" class="btn btn-sm btn-outline-secondary action-small" data-action="print" data-id="${r.id}" title="Imprimir" aria-label="Imprimir">
+              <button type="button" class="btn btn-sm btn-outline-secondary action-small mx-1" data-action="print" data-id="${r.id}" title="Imprimir" aria-label="Imprimir">
                 <svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M2 7a1 1 0 011-1h10a1 1 0 011 1v2h-1v4H3V9H2V7zM5 12h6v-3H5v3z"/><path d="M5 1h6v3H5z"/></svg>
                 <span class="visually-hidden">Imprimir</span>
               </button>
@@ -782,21 +782,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 </small>
               </div>
             </div>
-            ${snapCaptured !== "—" && snapCaptured !== created ? `
-            <div class="d-flex align-items-start mt-3">
-              <div class="flex-shrink-0">
-                <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                  <i class="bi bi-camera"></i>
-                </div>
-              </div>
-              <div class="flex-grow-1 ms-3">
-                <div class="fw-semibold">Snapshot capturado</div>
-                <small class="text-muted">
-                  <i class="bi bi-calendar3 me-1"></i>${snapCaptured}
-                </small>
-              </div>
-            </div>
-            ` : ''}
           </div>
         </div>
       `;
@@ -807,7 +792,7 @@ document.addEventListener("DOMContentLoaded", () => {
           (window.location.href = `addReceptionForm.html?id=${id}`);
       }
 
-      // 🧾 Generar reporte
+    
       if (modalGenReportBtn) {
         modalGenReportBtn.onclick = async () => {
           try {
@@ -840,7 +825,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
       }
 
-      // 🧭 Estado del modal
+     
       if (modalEl) modalEl.dataset.currentId = String(id);
       console.log("detail rec:", rec);
       console.log("device_snapshot:", JSON.stringify(snapshot, null, 2));
