@@ -897,8 +897,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const sampleDevices = [
         {
           serial_number: "SN-1000-A",
-          description: "Teléfono modelo A",
-          features: "Pantalla 6.1, 4GB RAM",
+          description: "PC Generica Modelo A",
+          features: "Características varias",
         },
         {
           serial_number: "SN-1001-B",
@@ -907,8 +907,8 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         {
           serial_number: "SN-1002-C",
-          description: "Tablet modelo C",
-          features: '10" , 3GB RAM',
+          description: "AIO modelo C",
+          features: 'i7, 16GB RAM, 512SSD',
         },
       ];
 

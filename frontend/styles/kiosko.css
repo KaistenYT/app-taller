@@ -1,12 +1,10 @@
-/* Kiosko Mode Styles */
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   overflow-x: hidden;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   min-height: 100vh;
 }
 
-/* Header */
 .kiosko-header {
   background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -15,25 +13,25 @@ body {
   z-index: 1000;
 }
 
-/* Clock */
 .clock-container {
   animation: fadeIn 1s ease-in;
 }
 
 #current-time {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   letter-spacing: 2px;
   text-shadow: 0 0 10px rgba(13, 110, 253, 0.5);
 }
 
-/* Search Section */
 .search-section {
   animation: slideDown 0.8s ease-out;
 }
 
 .search-section .card {
   border-radius: 20px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .search-section .card:hover {
@@ -65,12 +63,10 @@ body {
   letter-spacing: 1px;
 }
 
-/* Results Section */
 .results-section {
   min-height: 400px;
 }
 
-/* Reception Card */
 .reception-card {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 20px;
@@ -88,7 +84,7 @@ body {
 }
 
 .reception-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -142,7 +138,6 @@ body {
   font-weight: 500;
 }
 
-/* Status Badges */
 .status-badge {
   font-size: 1.2rem;
   padding: 0.75rem 1.5rem;
@@ -180,7 +175,6 @@ body {
   color: #fff;
 }
 
-/* Detail Button */
 .detail-btn {
   background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
   border: none;
@@ -198,7 +192,6 @@ body {
   box-shadow: 0 8px 25px rgba(13, 110, 253, 0.5);
 }
 
-/* Legend Section */
 .legend-section .badge {
   transition: transform 0.3s ease;
 }
@@ -207,13 +200,11 @@ body {
   transform: scale(1.1);
 }
 
-/* Footer */
 .kiosko-footer {
   background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
   margin-top: auto;
 }
 
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -246,7 +237,8 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -255,7 +247,8 @@ body {
 }
 
 @keyframes glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 4px 15px rgba(25, 135, 84, 0.4);
   }
   50% {
@@ -263,9 +256,10 @@ body {
   }
 }
 
-/* Loading Animation */
 #loading .spinner-border {
-  animation: spin 1s linear infinite, pulse 2s ease-in-out infinite;
+  animation:
+    spin 1s linear infinite,
+    pulse 2s ease-in-out infinite;
 }
 
 @keyframes spin {
@@ -274,7 +268,6 @@ body {
   }
 }
 
-/* Modal Improvements */
 .modal-content {
   border-radius: 20px;
   border: 2px solid #0d6efd;
@@ -284,7 +277,6 @@ body {
   border-radius: 20px 20px 0 0;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .kiosko-header .col-4 {
     flex: 0 0 100%;
@@ -314,7 +306,6 @@ body {
   }
 }
 
-/* Auto-refresh indicator */
 .auto-refresh-indicator {
   position: fixed;
   bottom: 20px;
@@ -329,7 +320,6 @@ body {
   z-index: 1000;
 }
 
-/* Fullscreen mode adjustments */
 body:-webkit-full-screen {
   width: 100%;
   height: 100%;
