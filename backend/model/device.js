@@ -6,7 +6,6 @@ export class Device {
     try {
       return await q("device").select("*");
     } catch (err) {
-      console.error("DB Error [Device.getAll]:", err);
       throw new Error("Error al obtener dispositivos");
     }
   }
@@ -16,7 +15,6 @@ export class Device {
     try {
       return await q("device").where({ id }).first();
     } catch (err) {
-      console.error("DB Error [Device.getById]:", err);
       throw new Error("Error al obtener dispositivo");
     }
   }
@@ -26,7 +24,6 @@ export class Device {
     try {
       return await q("device").where({ serial_number: serial }).first();
     } catch (err) {
-      console.error("DB Error [Device.getBySerial]:", err);
       throw new Error("Error al obtener dispositivo por serial");
     }
   }
@@ -37,7 +34,6 @@ export class Device {
       const [id] = await q("device").insert(deviceData);
       return await q("device").where({ id }).first();
     } catch (err) {
-      console.error("DB Error [Device.create]:", err);
       throw new Error("Error al crear dispositivo");
     }
   }
@@ -55,7 +51,6 @@ export class Device {
         return await q("device").where({ id }).first();
       }
     } catch (err) {
-      console.error("DB Error [Device.upsertBySerial]:", err);
       throw new Error("Error al upsert dispositivo");
     }
   }
@@ -66,7 +61,6 @@ export class Device {
       await q("device").where({ id }).update(deviceData);
       return await q("device").where({ id }).first();
     } catch (err) {
-      console.error("DB Error [Device.update]:", err);
       throw new Error("Error al actualizar dispositivo");
     }
   }
@@ -76,7 +70,6 @@ export class Device {
     try {
       return await q("device").where({ id }).del();
     } catch (err) {
-      console.error("DB Error [Device.delete]:", err);
       throw new Error("Error al eliminar dispositivo");
     }
   }

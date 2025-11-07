@@ -1,7 +1,6 @@
 import db from "../db/dbConfig.js";
 
 export class ReceptionHistoryService {
-  // list entries with optional filters: { reception_id, client_id, device_id, action, from, to, limit, offset }
   static async listHistory(filters = {}) {
     // Join with client and device to provide human-friendly fields
     const q = db('reception_history as rh')

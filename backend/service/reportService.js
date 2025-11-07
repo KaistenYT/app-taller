@@ -6,7 +6,6 @@ export class ReportService {
     try {
       return await Reports.getAll();
     } catch (err) {
-      console.error("Service Error [listReports]:", err);
       throw err;
     }
   }
@@ -15,7 +14,6 @@ export class ReportService {
     try {
       return await Reports.getById(id);
     } catch (err) {
-      console.error(`Service Error [getReport:${id}]:`, err);
       throw err;
     }
   }
@@ -24,7 +22,6 @@ export class ReportService {
     try {
       return await Reports.create(reportData);
     } catch (err) {
-      console.error("Service Error [createReport]:", err);
       throw err;
     }
   }
@@ -34,7 +31,6 @@ export class ReportService {
       await Reports.update(id, reportData);
       return true;
     } catch (err) {
-      console.error(`Service Error [updateReport:${id}]:`, err);
       throw err;
     }
   }
@@ -44,7 +40,6 @@ export class ReportService {
       await Reports.delete(id);
       return true;
     } catch (err) {
-      console.error(`Service Error [deleteReport:${id}]:`, err);
       throw err;
     }
   }
@@ -53,19 +48,17 @@ export class ReportService {
   try {
     return await Reports.getByReceptionId(receptionId);
   } catch (err) {
-    console.error(`Service Error [getReportsByReception:${receptionId}]:`, err);
     throw err;
   }
 }
 
-  // Create a report automatically from an existing reception record
   static async createReportFromReception(receptionId) {
     try {
       if (!receptionId) throw new Error('receptionId is required');
       const rec = await ReceptionService.getReceptionDetails(receptionId);
       if (!rec) throw new Error('Reception not found');
 
-      // Build a simple HTML description using available DB fields
+
       const clientName = rec.client?.name || rec.client_name || '';
       const clientId = rec.client_idNumber || '';
       const clientPhone = rec.client?.phone || rec.client_phone || '';
@@ -79,14 +72,17 @@ export class ReportService {
 
       const description = `
         <h4>Reporte de recepción #${receptionId}</h4>
-        <p><strong>Fecha ingreso:</strong> ${created}</p>
+        <p><strong>Fecha ingreso: </strong> ${created}</p>
         <h5>Cliente</h5>
-        <p>${clientName} <br/><small>${clientId} · ${clientPhone}</small></p>
+        <p><strong>Cliente:</strong>${clientName}</p> 
+        <p><strong>Cedula o RIF: </strong>${clientId}</p>
+        <p><strong>Telefono: </strong> ${clientPhone}</p>
         <h5>Equipo</h5>
-        <p>${deviceSerial} <br/><small>${deviceDesc}</small></p>
-        <p><strong>Características:</strong> ${deviceFeatures}</p>
+        <p><strong>Serial: </strong>${deviceSerial}</p>
+        <p><strong>Descripcion: </strong>${deviceDesc}</p>
+        <p><strong>Características: </strong> ${deviceFeatures}</p>
         <h5>Informe técnico</h5>
-        <p><strong>Falla reportada:</strong> ${defect}</p>
+        <p><strong>Falla reportada: </strong> ${defect}</p>
         <p><strong>Diagnóstico / Reparación:</strong> ${repair || 'Pendiente'}</p>
         <p><strong>Estado:</strong> ${status}</p>
       `;
@@ -94,7 +90,6 @@ export class ReportService {
       const result = await Reports.create({ reception_id: receptionId, description });
       return result;
     } catch (err) {
-      console.error('ReportService.createReportFromReception error:', err);
       throw err;
     }
   }

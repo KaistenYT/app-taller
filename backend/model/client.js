@@ -5,7 +5,7 @@ export class Client {
     try {
       return await db("client").select("*");
     } catch (error) {
-      console.error("DB Error [Client.getAll]:", error);
+      
       throw new Error("Error al obtener lista de clientes");
     }
   }
@@ -15,7 +15,6 @@ export class Client {
   try {
     return await query("client").where({ idNumber }).first();
   } catch (error) {
-    console.error("DB Error [Client.getById]:", error);
     return null;
   }
 }
@@ -26,7 +25,6 @@ static async create(clientData, trx = null) {
     const [id] = await query("client").insert(clientData);
     return await query("client").where({ idNumber: clientData.idNumber }).first();
   } catch (error) {
-    console.error("DB Error [Client.create]:", error);
     throw new Error("Error al crear cliente");
   }
 }
@@ -38,7 +36,6 @@ static async create(clientData, trx = null) {
       await query("client").where({ idNumber }).update(clientData);
       return await query("client").where({ idNumber }).first();
     } catch (error) {
-      console.error("DB Error [Client.update]:", error);
       throw new Error("Error al actualizar cliente");
     }
   }
@@ -48,7 +45,6 @@ static async create(clientData, trx = null) {
       const query = trx || db;
       return await query("client").where({ idNumber }).del();
     } catch (error) {
-      console.error("DB Error [Client.delete]:", error);
       throw new Error("Error al eliminar cliente");
     }
   }

@@ -61,8 +61,6 @@ export class ReceptionHistory {
     console.log("Reception history triggers created");
   }
 
-  // Log a manual entry into reception_history table. Expected payload keys:
-  // { original_id, cliente_id, equipo_id, fecha, estado, accion }
   static async log(entry = {}) {
     const db = ReceptionHistory.db;
     if (!db) throw new Error("ReceptionHistory not initialized with db");

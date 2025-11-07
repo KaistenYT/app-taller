@@ -18,7 +18,6 @@ export class Reception {
           "r.created_at",
           "r.archived"
         );
-      // ensure device_snapshot is deserialized for each row
       return rows.map(r => {
         try {
           r.device_snapshot = r.device_snapshot ? JSON.parse(r.device_snapshot) : null;
@@ -26,7 +25,6 @@ export class Reception {
         return r;
       });
     } catch (error) {
-      console.error("DB Error [getAll]:", error);
       throw new Error("Error al obtener recepciones");
     }
   }
@@ -53,7 +51,6 @@ export class Reception {
         return r;
       });
     } catch (error) {
-      console.error("DB Error [getAllArchived]:", error);
       throw new Error("Error al obtener recepciones archivadas");
     }
   }
@@ -91,7 +88,6 @@ export class Reception {
         reports
       };
     } catch (error) {
-      console.error("DB Error [getDetailedById]:", error);
       throw new Error("Error al obtener detalles de la recepción");
     }
   }
@@ -110,7 +106,6 @@ export class Reception {
 
       return rec;
     } catch (error) {
-      console.error("DB Error [getById]:", error);
       throw new Error("Error al obtener recepción");
     }
   }
@@ -129,13 +124,13 @@ export class Reception {
     payload.created_at = payload.created_at || db.fn.now();
     payload.updated_at = db.fn.now();
 
-    // 📥 Inserta la recepción
+    
     const [id] = await trx("reception").insert(payload);
     const created = await trx("reception").where({ id }).first();
 
     await trx.commit();
 
-    // 🔄 Deserializa el snapshot para devolverlo como objeto
+    
     try {
       created.device_snapshot = created.device_snapshot
         ? JSON.parse(created.device_snapshot)
@@ -148,7 +143,6 @@ export class Reception {
     
   } catch (error) {
     await trx.rollback();
-    console.error("DB Error [create]:", error);
     throw new Error("Error al crear recepción");
   }
 }
@@ -179,7 +173,6 @@ export class Reception {
       return updated;
     } catch (error) {
       await trx.rollback();
-      console.error("DB Error [update]:", error);
       throw new Error("Error al actualizar recepción");
     }
   }
@@ -190,7 +183,6 @@ export class Reception {
         .where({ id })
         .update({ archived: true, updated_at: db.fn.now() });
     } catch (error) {
-      console.error("DB Error [archive]:", error);
       throw new Error("Error al archivar recepción");
     }
   }
@@ -201,7 +193,6 @@ export class Reception {
         .where({ id })
         .update({ archived: false, updated_at: db.fn.now() });
     } catch (error) {
-      console.error("DB Error [restore]:", error);
       throw new Error("Error al restaurar recepción");
     }
   }
@@ -210,7 +201,6 @@ export class Reception {
     try {
       return await db("reception").where({ id }).del();
     } catch (error) {
-      console.error("DB Error [delete]:", error);
       throw new Error("Error al eliminar recepción");
     }
   }

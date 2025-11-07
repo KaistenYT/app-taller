@@ -19,7 +19,6 @@ export class Reports {
         )
         .orderBy("report.created_at", "desc");
     } catch (err) {
-      console.error("DB Error [Reports.getAll]:", err);
       throw new Error("Failed to fetch reports");
     }
   }
@@ -46,7 +45,6 @@ export class Reports {
         .where({ "report.id": id })
         .first();
     } catch (err) {
-      console.error(`DB Error [Reports.getById:${id}]:`, err);
       throw new Error("Failed to fetch report");
     }
   }
@@ -58,7 +56,6 @@ export class Reports {
         .where({ reception_id })
         .orderBy("created_at", "desc");
     } catch (err) {
-      console.error(`DB Error [Reports.getByReceptionId:${reception_id}]:`, err);
       throw new Error("Failed to fetch reports by reception");
     }
   }
@@ -73,7 +70,6 @@ export class Reports {
       });
       return { id };
     } catch (err) {
-      console.error("DB Error [Reports.create]:", err);
       throw new Error("Failed to create report");
     }
   }
@@ -83,10 +79,9 @@ export class Reports {
     try {
       await q("report").where({ id }).update({
         description,
-        created_at: db.fn.now(), // Optional: update timestamp on edit
+        created_at: db.fn.now(),
       });
     } catch (err) {
-      console.error(`DB Error [Reports.update:${id}]:`, err);
       throw new Error("Failed to update report");
     }
   }
@@ -96,7 +91,6 @@ export class Reports {
     try {
       await q("report").where({ id }).del();
     } catch (err) {
-      console.error(`DB Error [Reports.delete:${id}]:`, err);
       throw new Error("Failed to delete report");
     }
   }

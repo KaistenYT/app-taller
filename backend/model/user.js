@@ -9,7 +9,6 @@ export class User {
       const [newUserId] = await db("user").insert(payload);
       return await db("user").where({ id: newUserId }).first();
     } catch (error) {
-      console.error("DB Error [User.create]: ", error);
       return null;
     }
   }
@@ -18,7 +17,6 @@ export class User {
     try {
       return await db("user").where({ username }).first();
     } catch (error) {
-      console.error("DB Error [User.getByUsername]: ", error);
       return null;
     }
   }
@@ -29,7 +27,6 @@ export class User {
       if (!user || !user.password) return false;
       return await bcrypt.compare(password, user.password);
     } catch (error) {
-      console.error("DB Error [User.validatePassword]: ", error);
       return false;
     }
   }
@@ -38,7 +35,6 @@ export class User {
     try {
       return await db("user").where({ id }).first();
     } catch (error) {
-      console.error("DB Error [User.getById]: ", error);
       return null;
     }
   }

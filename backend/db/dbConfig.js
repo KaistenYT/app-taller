@@ -130,11 +130,9 @@ async function createTables() {
   }
 }
 
-console.log("[dbConfig] starting createTables()");
+
 await createTables();
-console.log(
-  "[dbConfig] createTables() finished, initializing ReceptionHistory triggers"
-);
+
 await ReceptionHistory.init(db);
 console.log("[dbConfig] ReceptionHistory.init completed");
 

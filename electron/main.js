@@ -1,5 +1,4 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-//require('update-electron-app')();
 import path from "path";
 import { fileURLToPath } from "url";
 import { DeviceService } from "../backend/service/deviceService.js";
@@ -41,7 +40,6 @@ const safeHandler = (fn) => async (event, ...args) => {
   try {
     return await fn(event, ...args);
   } catch (err) {
-    console.error("IPC Error:", err);
     throw err;
   }
 };

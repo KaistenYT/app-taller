@@ -1,37 +1,48 @@
-// ../scripts/index.js
 document.addEventListener("DOMContentLoaded", () => {
-  // Session guard: if no app_user in localStorage, redirect to login
   try {
-    // session can be stored in sessionStorage (non-persistent) or localStorage (remember me)
     let sessionRaw = null;
     let sessionSource = null;
-    try { sessionRaw = sessionStorage.getItem('app_user'); sessionSource = 'sessionStorage'; } catch(e) { sessionRaw = null; }
+    try {
+      sessionRaw = sessionStorage.getItem("app_user");
+      sessionSource = "sessionStorage";
+    } catch (e) {
+      sessionRaw = null;
+    }
     if (!sessionRaw) {
-      try { sessionRaw = localStorage.getItem('app_user'); sessionSource = 'localStorage'; } catch(e) { sessionRaw = null; }
+      try {
+        sessionRaw = localStorage.getItem("app_user");
+        sessionSource = "localStorage";
+      } catch (e) {
+        sessionRaw = null;
+      }
     }
     if (!sessionRaw) {
       window.location.href = "login.html";
       return;
     }
     const session = JSON.parse(sessionRaw);
-    // if retrieved from localStorage, validate expiry
-    if (sessionSource === 'localStorage') {
-      if (session.expires && Number(session.expires) && Date.now() > Number(session.expires)) {
-        // expired
-        try { localStorage.removeItem('app_user'); } catch(e){}
-        window.location.href = 'login.html';
+
+    if (sessionSource === "localStorage") {
+      if (
+        session.expires &&
+        Number(session.expires) &&
+        Date.now() > Number(session.expires)
+      ) {
+        try {
+          localStorage.removeItem("app_user");
+        } catch (e) {}
+        window.location.href = "login.html";
         return;
       }
     }
-    // expose username in navbar
+
     const navUserEl = document.getElementById("navbar-user");
     if (navUserEl) navUserEl.textContent = session.username || "";
   } catch (e) {
-    // on error, redirect to login
     window.location.href = "login.html";
     return;
   }
-  // Cache DOM elements with guards (page may not include all elements)
+
   const tbody = document.getElementById("recepciones-body");
   const filtroGeneral = document.getElementById("filtroGeneral");
   const filtroFecha = document.getElementById("filtroFecha");
@@ -51,22 +62,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnReportList = document.getElementById("btn-reports-list");
   const btnKiosko = document.getElementById("btn-kiosko");
 
-
   let cache = [];
   let page = 1;
   const perPage = 8;
 
-
-  if (btnReportList){
-    btnReportList.addEventListener("click",()=>{
-      window.location.href= "reportList.html";
-    })
+  if (btnReportList) {
+    btnReportList.addEventListener("click", () => {
+      window.location.href = "reportList.html";
+    });
   }
 
-  if (btnKiosko){
-    btnKiosko.addEventListener("click",()=>{
-      window.location.href= "kiosko.html";
-    })
+  if (btnKiosko) {
+    btnKiosko.addEventListener("click", () => {
+      window.location.href = "kiosko.html";
+    });
   }
 
   if (btnCreate)
@@ -78,12 +87,15 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnLogout)
     btnLogout.addEventListener("click", () => {
       try {
-        try { sessionStorage.removeItem('app_user'); } catch(e) {}
-        try { localStorage.removeItem('app_user'); } catch(e) {}
+        try {
+          sessionStorage.removeItem("app_user");
+        } catch (e) {}
+        try {
+          localStorage.removeItem("app_user");
+        } catch (e) {}
       } catch (e) {
-        /* ignore */
+        throw e;
       }
-      // redirect to login
       window.location.href = "login.html";
     });
   if (filtroGeneral)
@@ -128,78 +140,74 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadReceptions() {
-    console.log('Cargando recepciones...');
+    console.log("Cargando recepciones...");
     if (tbody) showLoadingRows();
     try {
-      // Verificar si window.api está definido
       if (!window.api) {
-        throw new Error('window.api no está disponible');
+        throw new Error("window.api no está disponible");
       }
-      
-      // Verificar si el método listReceptions existe
-      if (typeof window.api.listReceptions !== 'function') {
-        throw new Error('El método listReceptions no está disponible en window.api');
+
+      if (typeof window.api.listReceptions !== "function") {
+        throw new Error(
+          "El método listReceptions no está disponible en window.api"
+        );
       }
-      
-      console.log('Llamando a window.api.listReceptions()...');
+
+      console.log("Llamando a window.api.listReceptions()...");
       const res = await window.api.listReceptions();
-      console.log('Respuesta recibida:', res);
-      
-      // Verificar si la respuesta es un array
+      console.log("Respuesta recibida:", res);
+
       const raw = Array.isArray(res) ? res : [];
       console.log(`Se recibieron ${raw.length} recepciones`);
-      
-      // Normalizar los datos de las recepciones
+
       cache = raw.map((r) => {
         try {
-          // Si device_snapshot es una cadena, intentar parsearla como JSON
-          if (r.device_snapshot && typeof r.device_snapshot === 'string') {
+          if (r.device_snapshot && typeof r.device_snapshot === "string") {
             try {
               r.device_snapshot = JSON.parse(r.device_snapshot);
             } catch (e) {
-              console.warn('Error al parsear device_snapshot:', e);
+              console.warn("Error al parsear device_snapshot:", e);
               r.device_snapshot = null;
             }
           }
-          
-          // Crear un objeto de snapshot con valores por defecto
+
           const ds = r.device_snapshot || {
             id: r.device_id || r.device?.id || null,
             serial_number: r.device_serial || r.device?.serial_number || null,
-            description: r.device_description || r.device?.description || 'Sin descripción',
-            features: r.device?.features || 'Sin características',
-            captured_at: r.created_at || new Date().toISOString()
+            description:
+              r.device_description ||
+              r.device?.description ||
+              "Sin descripción",
+            features: r.device?.features || "Sin características",
+            captured_at: r.created_at || new Date().toISOString(),
           };
-          
+
           return { ...r, device_snapshot: ds };
         } catch (error) {
-          console.error('Error al procesar recepción:', error, r);
-          // Devolver un objeto con valores por defecto en caso de error
+          console.error("Error al procesar recepción:", error, r);
+
           return {
             ...r,
             device_snapshot: {
               id: null,
-              serial_number: 'Error al cargar',
-              description: 'Error al cargar los datos del dispositivo',
-              features: '',
-              captured_at: new Date().toISOString()
-            }
+              serial_number: "Error al cargar",
+              description: "Error al cargar los datos del dispositivo",
+              features: "",
+              captured_at: new Date().toISOString(),
+            },
           };
         }
       });
-      
-      // Actualizar la interfaz de usuario
+
       if (listSummary) {
-        listSummary.textContent = `Mostrando ${cache.length} recepción${cache.length !== 1 ? 'es' : ''}`;
+        listSummary.textContent = `Mostrando ${cache.length} recepción${cache.length !== 1 ? "es" : ""}`;
       }
-      
+
       page = 1;
       render();
-      
     } catch (err) {
-      console.error('Error en loadReceptions:', err);
-      
-      // Mostrar mensaje de error en la interfaz
+      console.error("Error en loadReceptions:", err);
+
       if (tbody) {
         tbody.innerHTML = `
           <tr>
@@ -218,22 +226,24 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
             </td>
           </tr>`;
-        
-        // Agregar manejadores de eventos a los nuevos botones
-        document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
-          if (filtroGeneral) filtroGeneral.value = '';
-          if (filtroFecha) filtroFecha.value = '';
-          loadReceptions();
-        });
-        
-        document.getElementById('btn-create-reception')?.addEventListener('click', () => {
-          // Redirigir al formulario de creación de recepción
-          window.location.href = 'addReceptionForm.html';
-        });
-        
+
+        document
+          .getElementById("btn-clear-filters")
+          ?.addEventListener("click", () => {
+            if (filtroGeneral) filtroGeneral.value = "";
+            if (filtroFecha) filtroFecha.value = "";
+            loadReceptions();
+          });
+
+        document
+          .getElementById("btn-create-reception")
+          ?.addEventListener("click", () => {
+            window.location.href = "addReceptionForm.html";
+          });
+
         return;
       }
-      
+
       if (tbody) {
         tbody.innerHTML = `
           <tr>
@@ -241,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="alert alert-danger">
                 <i class="bi bi-exclamation-triangle me-2"></i>
                 <strong>Error al cargar las recepciones</strong>
-                <div class="small mt-1">${err.message || 'Error desconocido'}</div>
+                <div class="small mt-1">${err.message || "Error desconocido"}</div>
               </div>
               <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.location.reload()">
                 <i class="bi bi-arrow-clockwise me-1"></i> Reintentar
@@ -249,9 +259,9 @@ document.addEventListener("DOMContentLoaded", () => {
             </td>
           </tr>`;
       }
-      
+
       if (listSummary) {
-        listSummary.textContent = 'Error al cargar las recepciones';
+        listSummary.textContent = "Error al cargar las recepciones";
       }
     }
   }
@@ -276,7 +286,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (listSummary) listSummary.textContent = "Cargando...";
   }
 
-  // Fast HTML escaper (small set of chars) using regex
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
     return String(str).replace(
@@ -297,7 +306,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return `<span class="badge bg-${cls} badge-status">${escapeHtml(status || "")}</span>`;
   }
 
-  // Normalize created date to a timestamp (ms) for faster sorting
   function getCreatedTs(r) {
     const v = r.created_at || r.createdAt || r.created || "";
     const t = Date.parse(v);
@@ -355,7 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
       list = list.filter((r) => {
         const created = r.created_at || r.createdAt || r.created || "";
         if (!created) return false;
-        // compare YYYY-MM-DD
+
         return new Date(created).toISOString().slice(0, 10) === dateFilter;
       });
     }
@@ -385,18 +393,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function render() {
-    console.log('Renderizando la tabla de recepciones...');
-    
+    console.log("Renderizando la tabla de recepciones...");
+
     if (!tbody) {
-      console.error('Error: El elemento tbody no existe en el DOM');
+      console.error("Error: El elemento tbody no existe en el DOM");
       return;
     }
-    
+
     try {
       const list = getFilteredList();
       const total = list.length;
       console.log(`Mostrando ${total} recepciones`);
-      
+
       if (total === 0) {
         tbody.innerHTML = `
           <tr>
@@ -415,31 +423,30 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
             </td>
           </tr>`;
-        
-        // Agregar manejadores de eventos a los nuevos botones
-        document.getElementById('btn-clear-filters')?.addEventListener('click', () => {
-          if (filtroGeneral) filtroGeneral.value = '';
-          if (filtroFecha) filtroFecha.value = '';
-          loadReceptions();
-        });
-        
-        document.getElementById('btn-create-reception')?.addEventListener('click', () => {
-          // Redirigir al formulario de creación de recepción
-          window.location.href = 'addReceptionForm.html';
-        });
-        
+
+        document
+          .getElementById("btn-clear-filters")
+          ?.addEventListener("click", () => {
+            if (filtroGeneral) filtroGeneral.value = "";
+            if (filtroFecha) filtroFecha.value = "";
+            loadReceptions();
+          });
+
+        document
+          .getElementById("btn-create-reception")
+          ?.addEventListener("click", () => {
+            window.location.href = "addReceptionForm.html";
+          });
+
         return;
       }
-      
+
       renderPagination(total);
       const start = (page - 1) * perPage;
       const paginated = list.slice(start, start + perPage);
-     
-      
-      // Limpiar la tabla
-      tbody.innerHTML = '';
-      
-      // Verificar si hay datos para mostrar
+
+      tbody.innerHTML = "";
+
       if (paginated.length === 0) {
         tbody.innerHTML = `
           <tr>
@@ -452,29 +459,28 @@ document.addEventListener("DOMContentLoaded", () => {
           </tr>`;
         return;
       }
-      
-      // Generar las filas de la tabla
+
       paginated.forEach((r, index) => {
         const cliente = escapeHtml(
           r.client_name || r.client?.name || r.client_idNumber || ""
         );
         const equipo = escapeHtml(
           r.device_snapshot?.description ||
-          r.device?.description ||
-          r.device_description ||
-          ""
+            r.device?.description ||
+            r.device_description ||
+            ""
         );
         const serial = escapeHtml(
           r.device_snapshot?.serial_number ||
-          r.device?.serial_number ||
-          r.device_serial ||
-          ""
+            r.device?.serial_number ||
+            r.device_serial ||
+            ""
         );
         const snapShort = escapeHtml(
           r.device_snapshot?.features ||
-          r.device_snapshot?.description ||
-          r.device?.description ||
-          ""
+            r.device_snapshot?.description ||
+            r.device?.description ||
+            ""
         );
         const estado = formatStatusBadge(r.status || "");
         const falla = escapeHtml(r.defect || "");
@@ -519,13 +525,12 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         tbody.appendChild(row);
       });
-      
-      // Single delegated handler for action buttons (better perf than multiple listeners)
+
       try {
         if (tbody._delegatedHandler)
           tbody.removeEventListener("click", tbody._delegatedHandler);
       } catch (e) {
-        // ignore removal errors
+        throw e;
       }
 
       const handler = async (e) => {
@@ -558,17 +563,25 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           if (action === "print") {
-            console.debug("[recepciones] print requested for reception id", id, {
-              hasApi: !!window.api,
-              hasInvoke: !!(window.api && window.api.invoke),
-            });
-            // Use the app-level helper which will create a report if missing and open the report window.
+            console.debug(
+              "[recepciones] print requested for reception id",
+              id,
+              {
+                hasApi: !!window.api,
+                hasInvoke: !!(window.api && window.api.invoke),
+              }
+            );
+
             try {
               await openReportWindow(Number(id));
               console.info("[recepciones] openReportWindow completed for", id);
             } catch (err) {
-              console.error("[recepciones] openReportWindow failed for", id, err);
-              // fallback: open the report page directly with reception id (note: not a report id)
+              console.error(
+                "[recepciones] openReportWindow failed for",
+                id,
+                err
+              );
+
               try {
                 window.open(
                   `report.html?id=${id}`,
@@ -590,14 +603,14 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       tbody.addEventListener("click", handler);
-      // keep reference so we can remove later if re-rendering
+
       tbody._delegatedHandler = handler;
 
       if (listSummary)
         listSummary.textContent = `Mostrando ${start + 1}–${Math.min(start + perPage, total)} de ${total} recepciones`;
     } catch (error) {
-      console.error('Error en la función render:', error);
-      
+      console.error("Error en la función render:", error);
+
       if (tbody) {
         tbody.innerHTML = `
           <tr>
@@ -605,7 +618,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="alert alert-danger">
                 <i class="bi bi-exclamation-triangle me-2"></i>
                 <strong>Error al cargar los datos</strong>
-                <div class="small mt-1">${error.message || 'Error desconocido'}</div>
+                <div class="small mt-1">${error.message || "Error desconocido"}</div>
               </div>
               <button class="btn btn-sm btn-outline-primary mt-2" onclick="window.location.reload()">
                 <i class="bi bi-arrow-clockwise me-1"></i> Reintentar
@@ -635,7 +648,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const clientePhone = escapeHtml(clientePhoneRaw || "—");
 
-      // defensive: some endpoints may return device_snapshot as JSON string; ensure we have an object
       if (rec && typeof rec.device_snapshot === "string") {
         try {
           rec.device_snapshot = JSON.parse(rec.device_snapshot);
@@ -720,12 +732,16 @@ document.addEventListener("DOMContentLoaded", () => {
                   <i class="bi bi-upc-scan me-1"></i>${serial}
                 </div>
               </div>
-              ${snapFeatures !== "—" ? `
+              ${
+                snapFeatures !== "—"
+                  ? `
               <div class="col-12">
                 <label class="text-muted small mb-1">Características</label>
                 <div class="fw-semibold">${snapFeatures}</div>
               </div>
-              ` : ''}
+              `
+                  : ""
+              }
             </div>
           </div>
         </div>
@@ -747,7 +763,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   ${escapeHtml(rec.defect || "No especificada")}
                 </div>
               </div>
-              ${rec.repair ? `
+              ${
+                rec.repair
+                  ? `
               <div class="col-12">
                 <label class="text-muted small mb-1">
                   <i class="bi bi-tools me-1"></i>Diagnóstico/Reparación
@@ -756,7 +774,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   ${escapeHtml(rec.repair)}
                 </div>
               </div>
-              ` : ''}
+              `
+                  : ""
+              }
             </div>
           </div>
         </div>
@@ -792,7 +812,6 @@ document.addEventListener("DOMContentLoaded", () => {
           (window.location.href = `addReceptionForm.html?id=${id}`);
       }
 
-    
       if (modalGenReportBtn) {
         modalGenReportBtn.onclick = async () => {
           try {
@@ -825,7 +844,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
       }
 
-     
       if (modalEl) modalEl.dataset.currentId = String(id);
       console.log("detail rec:", rec);
       console.log("device_snapshot:", JSON.stringify(snapshot, null, 2));
@@ -860,7 +878,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Handler para cargar datos de prueba (si existe el botón)
   const btnSeed = document.getElementById("btn-seed");
   if (btnSeed) {
     btnSeed.addEventListener("click", async () => {
@@ -871,7 +888,6 @@ document.addEventListener("DOMContentLoaded", () => {
       )
         return;
 
-      // Datos de prueba: ajusta o añade más objetos según quieras
       const sampleClients = [
         { idNumber: "V12345678", name: "María Pérez", phone: "04141234567" },
         { idNumber: "V87654321", name: "José González", phone: "04147654321" },
@@ -896,7 +912,6 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       ];
 
-      // Recepciones de ejemplo; device_id se resolverá luego
       const sampleReceptions = [
         {
           client_idNumber: "V12345678",
@@ -921,13 +936,11 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       ];
 
-      // UI feedback
       btnSeed.disabled = true;
       btnSeed.textContent = "Cargando datos...";
       const results = { clients: 0, devices: 0, receptions: 0, errors: [] };
 
       try {
-        // 1) Crear o asegurar clientes
         for (const c of sampleClients) {
           try {
             const existing = await window.api.getClient(c.idNumber);
@@ -945,7 +958,6 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        // 2) Crear / upsert dispositivos (por serial)
         for (const d of sampleDevices) {
           try {
             if (window.api.upsertDeviceBySerial) {
@@ -964,7 +976,6 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        // 3) Crear recepciones: resolver device_id por serial y crear recepción
         for (const r of sampleReceptions) {
           try {
             const cliente = await window.api.getClient(r.client_idNumber);
@@ -1041,7 +1052,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadReceptions();
 });
 
-// Keep this global function for compatibility with other scripts that may call it.
 async function openReportWindow(receptionId) {
   console.debug("[openReportWindow] start", { receptionId });
   let reports;
@@ -1128,37 +1138,35 @@ async function openReportWindow(receptionId) {
   }
 }
 
-// Keyboard shortcut to open Kiosko mode (Ctrl+K)
-document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "k") {
     e.preventDefault();
-    window.open('kiosko.html', '_blank');
+    window.open("kiosko.html", "_blank");
   }
 });
 
-// Add tooltip to kiosko button
 const kioskoBtn = document.querySelector('a[href="kiosko.html"]');
 if (kioskoBtn) {
-  kioskoBtn.setAttribute('data-bs-toggle', 'tooltip');
-  kioskoBtn.setAttribute('data-bs-placement', 'bottom');
-  kioskoBtn.setAttribute('title', 'Abrir modo Kiosko (Ctrl+K)');
-  
-  // Initialize Bootstrap tooltip
-  if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+  kioskoBtn.setAttribute("data-bs-toggle", "tooltip");
+  kioskoBtn.setAttribute("data-bs-placement", "bottom");
+  kioskoBtn.setAttribute("title", "Abrir modo Kiosko (Ctrl+K)");
+
+  if (typeof bootstrap !== "undefined" && bootstrap.Tooltip) {
     new bootstrap.Tooltip(kioskoBtn);
   }
 
-  // Intercept click to open Electron BrowserWindow with preload
-  kioskoBtn.addEventListener('click', async (e) => {
+  kioskoBtn.addEventListener("click", async (e) => {
     try {
-      if (window.api && typeof window.api.invoke === 'function') {
+      if (window.api && typeof window.api.invoke === "function") {
         e.preventDefault();
-        await window.api.invoke('open-kiosko-window');
+        await window.api.invoke("open-kiosko-window");
         return;
       }
     } catch (err) {
-      console.error('Failed to open kiosko window via IPC, falling back to window.open', err);
+      console.error(
+        "Failed to open kiosko window via IPC, falling back to window.open",
+        err
+      );
     }
-    // Fallback to normal behavior (new tab)
   });
 }

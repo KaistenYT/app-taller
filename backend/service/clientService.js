@@ -5,7 +5,6 @@ export class ClientService {
     try {
       return await Client.getAll();
     } catch (err) {
-      console.error("ClientService.listClients error:", err);
       throw new Error("Error al listar clientes");
     }
   }
@@ -15,7 +14,6 @@ export class ClientService {
     try {
       return await Client.getById(idNumber);
     } catch (err) {
-      console.error("ClientService.getClient error:", err);
       throw new Error("Error al obtener cliente");
     }
   }
@@ -27,7 +25,6 @@ export class ClientService {
     try {
       return await Client.create(clientData, trx);
     } catch (err) {
-      console.error("ClientService.createClient error:", err);
       throw new Error("Error al crear cliente");
     }
   }
@@ -40,7 +37,6 @@ export class ClientService {
       await Client.update(idNumber, clientData);
       return true;
     } catch (err) {
-      console.error("ClientService.updateClient error:", err);
       throw new Error("Error al actualizar cliente");
     }
   }
@@ -51,7 +47,6 @@ export class ClientService {
       await Client.delete(idNumber);
       return true;
     } catch (err) {
-      console.error("ClientService.deleteClient error:", err);
       throw new Error("Error al eliminar cliente");
     }
   }

@@ -2,7 +2,7 @@ import db from "../db/dbConfig.js";
 import { Device } from "../model/device.js";
 import { Client } from "../model/client.js";
 import { Reception } from "../model/reception.js";
-import { ReceptionHistory } from "../model/receptionHistory.js";
+
 
 export class ReceptionService {
   static async listReceptions() {
@@ -37,15 +37,13 @@ export class ReceptionService {
         device,
       };
     } catch (err) {
-      console.error("ReceptionService.getReceptionDetails error:", err);
       throw err;
     }
   }
 
   static async archiveReception(id) {
     const reception = await Reception.getById(id);
-    if (!reception) throw new Error("Recepción no encontrada");
-    // Insert a history row directly to avoid potential circular import timing issues
+    if (!reception) throw new Error("Recepcion no encontrada");
     try {
       await db("reception_history").insert({
         reception_id: reception.id,
@@ -57,8 +55,7 @@ export class ReceptionService {
         event_timestamp: db.fn.now(),
       });
     } catch (err) {
-      // Log but continue to archive the reception
-      console.error("Failed to insert reception_history row:", err);
+      throw new Error("Error al archivar recepcion");
     }
 
     await Reception.archive(id);
@@ -81,14 +78,14 @@ export class ReceptionService {
       const { client_idNumber, client_name, client_phone } = data;
       if (!client_idNumber) throw new Error("create-reception: client_idNumber es requerido");
 
-      // Cliente
+     
       let client = await Client.getById(client_idNumber, trx);
       if (!client) {
         if (!client_name) throw new Error("create-reception: client_name es requerido para crear cliente");
         client = await Client.create({ idNumber: client_idNumber, name: client_name, phone: client_phone || null }, trx);
       }
 
-      // Equipo
+     
       let deviceId = data.device_id;
       let device = null;
 
@@ -112,7 +109,7 @@ export class ReceptionService {
 
       if (!deviceId) throw new Error("create-reception: no se pudo resolver device_id");
 
-      // Snapshot
+    
       const snapshot = data.device_snapshot || {
         id: device.id,
         serial_number: device.serial_number,
@@ -147,7 +144,6 @@ export class ReceptionService {
       return created;
     } catch (err) {
       await trx.rollback();
-      console.error("ReceptionService.createReception error:", err);
       throw err;
     }
   }
@@ -159,7 +155,7 @@ export class ReceptionService {
       if (!receptionId || isNaN(receptionId)) throw new Error("update-reception: id inválido");
       if (!data || typeof data !== "object") throw new Error("update-reception: datos inválidos");
 
-      // Actualizar cliente si hay cambios
+    
       if (data.client_idNumber && (data.client_name || data.client_phone)) {
         const update = {};
         if (data.client_name) update.name = data.client_name;
@@ -198,7 +194,6 @@ export class ReceptionService {
       return updated;
     } catch (err) {
       await trx.rollback();
-      console.error("ReceptionService.updateReception error:", err);
       throw err;
     }
   }
