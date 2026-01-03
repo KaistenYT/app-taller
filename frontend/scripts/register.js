@@ -48,6 +48,18 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function loginUser(username, password) {
+    try {
+      if (window.api?.loginUser)
+        return await window.api.loginUser(username, password);
+      if (window.api?.invoke)
+        return await window.api.invoke("login-user", username, password);
+      throw new Error("API de Electron no disponible");
+    } catch (err) {
+      throw err;
+    }
+  }
+
   function validateForm() {
     const username = inputUser.value?.trim();
     const password = inputPass.value || "";
@@ -90,11 +102,25 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const res = await registerUser(username, password);
       if (res?.id) {
-        showAlert(
-          "success",
-          "Usuario creado correctamente. Redirigiendo al login...",
-          3000
-        );
+        btn.innerHTML =
+          '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Iniciando sesión...';
+
+        const loginRes = await loginUser(username, password);
+
+        if (loginRes && loginRes.id) {
+          sessionStorage.setItem("app_user", JSON.stringify(loginRes));
+          try {
+            localStorage.removeItem("app_user");
+          } catch (e) {}
+
+          showAlert("success", "¡Registro exitoso! Entrando...", 2000);
+          setTimeout(() => {
+            window.location.href = "index.html";
+          }, 1000);
+          return;
+        }
+
+        showAlert("success", "Usuario creado. Redirigiendo al login...", 3000);
         setTimeout(() => {
           window.location.href = "login.html?registered=1";
         }, 900);

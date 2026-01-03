@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "nanologic-app",
   "version": "1.0.0",
   "main": "electron/main.js",
   "type": "module",
