@@ -1,443 +1,518 @@
 window.addEventListener("DOMContentLoaded", () => {
-  const fSearch = document.getElementById("f-search");
-  const fReceptionId = document.getElementById("f-reception-id");
-  const fAction = document.getElementById("f-action");
-  const fStatus = document.getElementById("f-status");
-  const fFrom = document.getElementById("f-from");
-  const fTo = document.getElementById("f-to");
-  const pageSizeSelect = document.getElementById("page-size");
-  const btnFilter = document.getElementById("btn-filter");
-  const btnClear = document.getElementById("btn-clear");
-  const btnQuickToday = document.getElementById("btn-quick-today");
-  const btnQuickWeek = document.getElementById("btn-quick-week");
-  const tbody = document.getElementById("history-body");
-  const alertArea = document.getElementById("alert-area");
-  const prevBtn = document.getElementById("prev-page");
-  const nextBtn = document.getElementById("next-page");
-  const pagingInfo = document.getElementById("paging-info");
-  const loadingIndicator = document.getElementById("loading-indicator");
-  const historyTable = document.getElementById("history-table");
-  const totalCount = document.getElementById("total-count");
-  const activeFiltersDiv = document.getElementById("active-filters");
-  const filterBadges = document.getElementById("filter-badges");
+  // 1. Mejor organización de referencias DOM
+  const domRefs = {
+    // Filtros
+    search: document.getElementById("f-search"),
+    receptionId: document.getElementById("f-reception-id"),
+    action: document.getElementById("f-action"),
+    status: document.getElementById("f-status"),
+    from: document.getElementById("f-from"),
+    to: document.getElementById("f-to"),
+    pageSize: document.getElementById("page-size"),
+    
+    // Botones
+    btnFilter: document.getElementById("btn-filter"),
+    btnClear: document.getElementById("btn-clear"),
+    btnQuickToday: document.getElementById("btn-quick-today"),
+    btnQuickWeek: document.getElementById("btn-quick-week"),
+    btnExport: document.getElementById("btn-export"),
+    btnPrint: document.getElementById("btn-print"),
+    
+    // Tabla y contenido
+    tbody: document.getElementById("history-body"),
+    alertArea: document.getElementById("alert-area"),
+    prevBtn: document.getElementById("prev-page"),
+    nextBtn: document.getElementById("next-page"),
+    pagingInfo: document.getElementById("paging-info"),
+    loadingIndicator: document.getElementById("loading-indicator"),
+    historyTable: document.getElementById("history-table"),
+    totalCount: document.getElementById("total-count"),
+    activeFiltersDiv: document.getElementById("active-filters"),
+    filterBadges: document.getElementById("filter-badges"),
+  };
 
-  let page = 0;
-  let pageSize = 50;
-  let searchTimeout = null;
+  // 2. Constantes y configuraciones
+  const CONSTANTS = {
+    DEFAULT_PAGE_SIZE: 50,
+    SEARCH_DEBOUNCE_MS: 500,
+    ALERT_TIMEOUT: {
+      DEFAULT: 5000,
+      SHORT: 2000,
+      NONE: 0
+    }
+  };
 
-  function showAlert(type, msg, timeout = 5000) {
-    if (!alertArea) return;
-    const iconMap = {
-      success: "check-circle-fill",
-      danger: "exclamation-triangle-fill",
-      warning: "exclamation-circle-fill",
-      info: "info-circle-fill",
-    };
-    const icon = iconMap[type] || "info-circle-fill";
-    alertArea.innerHTML = `
-      <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-        <i class="bi bi-${icon} me-2"></i>${msg}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    `;
-    if (timeout)
-      setTimeout(() => {
-        alertArea.innerHTML = "";
-      }, timeout);
-  }
+  const STATUS_COLORS = {
+    PENDIENTE: "warning",
+    EN_PROCESO: "info",
+    REPARADO: "success",
+    ENTREGADO: "secondary",
+    CANCELADO: "danger",
+  };
 
-  function showLoading(show) {
-    if (loadingIndicator)
-      loadingIndicator.style.display = show ? "block" : "none";
-    if (historyTable) historyTable.style.display = show ? "none" : "block";
-  }
+  const ACTION_CONFIG = {
+    UPDATED: { color: "info", icon: "pencil-square" },
+    DELETED: { color: "danger", icon: "trash" },
+    ARCHIVED: { color: "warning text-dark", icon: "archive" },
+    CREATED: { color: "success", icon: "plus-circle" },
+  };
 
-  function buildFilters() {
-    const filters = {};
+  const FILTER_LABELS = {
+    free: { label: "Búsqueda", icon: "search" },
+    reception_id: { label: "Recepción #", icon: "receipt" },
+    action: { label: "Acción", icon: "lightning" },
+    status: { label: "Estado", icon: "flag" },
+    from: { label: "Desde", icon: "calendar-event" },
+    to: { label: "Hasta", icon: "calendar-check" },
+  };
 
-    const free = fSearch?.value?.trim();
-    if (free) filters.free = free;
+  const ALERT_ICONS = {
+    success: "check-circle-fill",
+    danger: "exclamation-triangle-fill",
+    warning: "exclamation-circle-fill",
+    info: "info-circle-fill",
+  };
 
-    const receptionId = fReceptionId?.value?.trim();
-    if (receptionId) filters.reception_id = receptionId;
+  // 3. Estado de la aplicación
+  let state = {
+    currentPage: 0,
+    pageSize: CONSTANTS.DEFAULT_PAGE_SIZE,
+    searchTimeout: null,
+    currentFilters: {},
+    totalRecords: 0
+  };
 
-    if (fAction?.value) filters.action = fAction.value;
+  // 4. Utilidades reutilizables
+  const utils = {
+    pad: (n) => n < 10 ? `0${n}` : n,
+    
+    formatDate: (iso) => {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return `${utils.pad(d.getDate())}/${utils.pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+    },
+    
+    formatDateTime: (iso) => {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return `${utils.pad(d.getDate())}/${utils.pad(d.getMonth() + 1)}/${d.getFullYear()} ${utils.pad(d.getHours())}:${utils.pad(d.getMinutes())}`;
+    },
+    
+    escapeHtml: (text) => {
+      if (text == null) return "";
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    },
 
-    if (fStatus?.value) filters.status = fStatus.value;
+    debounce: (func, wait) => {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+  };
 
-    if (fFrom?.value) filters.from = fFrom.value;
-    if (fTo?.value) filters.to = fTo.value;
-
-    filters.limit = pageSize;
-    filters.offset = page * pageSize;
-
-    return filters;
-  }
-
-  function displayActiveFilters(filters) {
-    if (!filterBadges || !activeFiltersDiv) return;
-
-    filterBadges.innerHTML = "";
-    let hasFilters = false;
-
-    const filterLabels = {
-      free: { label: "Búsqueda", icon: "search" },
-      reception_id: { label: "Recepción #", icon: "receipt" },
-      action: { label: "Acción", icon: "lightning" },
-      status: { label: "Estado", icon: "flag" },
-      from: { label: "Desde", icon: "calendar-event" },
-      to: { label: "Hasta", icon: "calendar-check" },
-    };
-
-    Object.keys(filters).forEach((key) => {
-      if (key === "limit" || key === "offset") return;
-      if (!filters[key]) return;
-
-      hasFilters = true;
-      const config = filterLabels[key] || { label: key, icon: "filter" };
-      const badge = document.createElement("span");
-      badge.className = "badge bg-primary-subtle text-primary";
-      badge.innerHTML = `
-        <i class="bi bi-${config.icon} me-1"></i>${config.label}: ${filters[key]}
-        <button type="button" class="btn-close btn-close-sm ms-1" style="font-size: 0.6rem;" data-filter="${key}"></button>
+  // 5. Funciones del DOM
+  const dom = {
+    showAlert: (type, msg, timeout = CONSTANTS.ALERT_TIMEOUT.DEFAULT) => {
+      if (!domRefs.alertArea) return;
+      
+      const icon = ALERT_ICONS[type] || "info-circle-fill";
+      domRefs.alertArea.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          <i class="bi bi-${icon} me-2"></i>${msg}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
       `;
-
-      badge.querySelector(".btn-close").addEventListener("click", () => {
-        removeFilter(key);
-      });
-
-      filterBadges.appendChild(badge);
-    });
-
-    activeFiltersDiv.style.display = hasFilters ? "block" : "none";
-  }
-
-  function removeFilter(filterKey) {
-    switch (filterKey) {
-      case "free":
-        if (fSearch) fSearch.value = "";
-        break;
-      case "reception_id":
-        if (fReceptionId) fReceptionId.value = "";
-        break;
-      case "action":
-        if (fAction) fAction.value = "";
-        break;
-      case "status":
-        if (fStatus) fStatus.value = "";
-        break;
-      case "from":
-        if (fFrom) fFrom.value = "";
-        break;
-      case "to":
-        if (fTo) fTo.value = "";
-        break;
-    }
-    page = 0;
-    loadPage();
-  }
-
-  async function loadPage() {
-    const filters = buildFilters();
-    currentFilters = filters;
-
-    try {
-      showLoading(true);
-      const rows = await window.api.listReceptionHistory(filters);
-      tbody.innerHTML = "";
-
-      if (!rows || rows.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="8" class="text-center py-5">
-              <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
-              <p class="text-muted mt-3 mb-0">No se encontraron registros</p>
-              <small class="text-muted">Intenta ajustar los filtros de búsqueda</small>
-            </td>
-          </tr>
-        `;
-      } else {
-        for (const r of rows) {
-          const tr = document.createElement("tr");
-          tr.style.cursor = "pointer";
-          tr.title = "Ver detalles";
-
-          const client = r.client_name
-            ? `${r.client_name}<br><small class="text-muted">${r.client_id || ""}</small>`
-            : r.client_id || '<span class="text-muted">N/A</span>';
-          const device = r.device_description
-            ? `${r.device_description}<br><small class="text-muted">${r.device_serial || ""}</small>`
-            : r.device_serial ||
-              r.device_id ||
-              '<span class="text-muted">N/A</span>';
-
-          const statusColors = {
-            PENDIENTE: "warning",
-            EN_PROCESO: "info",
-            REPARADO: "success",
-            ENTREGADO: "secondary",
-            CANCELADO: "danger",
-          };
-          const statusColor = statusColors[r.status] || "secondary";
-          const statusBadge = `<span class="badge bg-${statusColor}">${escapeHtml(r.status || "N/A")}</span>`;
-
-          const actionConfig = {
-            UPDATED: { color: "info", icon: "pencil-square" },
-            DELETED: { color: "danger", icon: "trash" },
-            ARCHIVED: { color: "warning text-dark", icon: "archive" },
-            CREATED: { color: "success", icon: "plus-circle" },
-          };
-          const config = actionConfig[r.action] || {
-            color: "secondary",
-            icon: "circle",
-          };
-          const actionBadge = `<span class="badge bg-${config.color}"><i class="bi bi-${config.icon} me-1"></i>${escapeHtml(r.action || "N/A")}</span>`;
-
-          tr.innerHTML = `
-            <td class="text-center align-middle fw-bold text-muted">${r.id}</td>
-            <td class="align-middle">
-              <span class="badge bg-primary-subtle text-primary">#${r.reception_id || "N/A"}</span>
-            </td>
-            <td class="align-middle">${client}</td>
-            <td class="align-middle">${device}</td>
-            <td class="text-center align-middle">${statusBadge}</td>
-            <td class="text-center align-middle">${actionBadge}</td>
-            <td class="align-middle">
-              <small><i class="bi bi-calendar3 me-1"></i>${formatDate(r.reception_date)}</small>
-            </td>
-            <td class="align-middle">
-              <small><i class="bi bi-clock me-1"></i>${formatDateTime(r.event_timestamp)}</small>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        }
+      
+      if (timeout) {
+        setTimeout(() => {
+          domRefs.alertArea.innerHTML = "";
+        }, timeout);
       }
+    },
 
-      const total = await window.api.countReceptionHistory(filters);
-      const start = page * pageSize + 1;
-      const end = Math.min((page + 1) * pageSize, total || 0);
+    showLoading: (show) => {
+      if (domRefs.loadingIndicator) {
+        domRefs.loadingIndicator.style.display = show ? "block" : "none";
+      }
+      if (domRefs.historyTable) {
+        domRefs.historyTable.style.display = show ? "none" : "block";
+      }
+    },
 
-      pagingInfo.innerHTML = `Mostrando <strong>${start}-${end}</strong> de <strong>${total || 0}</strong> registros`;
-      if (totalCount) totalCount.textContent = `${total || 0} registros`;
+    updatePagination: (total) => {
+      state.totalRecords = total || 0;
+      const start = state.currentPage * state.pageSize + 1;
+      const end = Math.min((state.currentPage + 1) * state.pageSize, state.totalRecords);
+      
+      if (domRefs.pagingInfo) {
+        domRefs.pagingInfo.innerHTML = 
+          `Mostrando <strong>${start}-${end}</strong> de <strong>${state.totalRecords}</strong> registros`;
+      }
+      
+      if (domRefs.totalCount) {
+        domRefs.totalCount.textContent = `${state.totalRecords} registros`;
+      }
+      
+      if (domRefs.prevBtn) {
+        domRefs.prevBtn.disabled = state.currentPage === 0;
+      }
+      
+      if (domRefs.nextBtn) {
+        domRefs.nextBtn.disabled = end >= state.totalRecords;
+      }
+    },
 
-      prevBtn.disabled = page === 0;
-      nextBtn.disabled = end >= (total || 0);
+    renderEmptyState: () => {
+      domRefs.tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-5">
+            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mt-3 mb-0">No se encontraron registros</p>
+            <small class="text-muted">Intenta ajustar los filtros de búsqueda</small>
+          </td>
+        </tr>
+      `;
+    },
 
-      showLoading(false);
-      displayActiveFilters(filters);
-    } catch (err) {
-      console.error("load history error", err);
-      showLoading(false);
-      showAlert(
-        "danger",
-        "Error al cargar el historial. Por favor, intente nuevamente."
-      );
+    renderRow: (record) => {
+      const tr = document.createElement("tr");
+      tr.style.cursor = "pointer";
+      tr.title = "Ver detalles";
+
+      const client = record.client_name
+        ? `${record.client_name}<br><small class="text-muted">${record.client_id || ""}</small>`
+        : record.client_id || '<span class="text-muted">N/A</span>';
+      
+      const device = record.device_description
+        ? `${record.device_description}<br><small class="text-muted">${record.device_serial || ""}</small>`
+        : record.device_serial || record.device_id || '<span class="text-muted">N/A</span>';
+
+      const statusColor = STATUS_COLORS[record.status] || "secondary";
+      const statusBadge = `<span class="badge bg-${statusColor}">${utils.escapeHtml(record.status || "N/A")}</span>`;
+
+      const actionConfig = ACTION_CONFIG[record.action] || { color: "secondary", icon: "circle" };
+      const actionBadge = `<span class="badge bg-${actionConfig.color}">
+        <i class="bi bi-${actionConfig.icon} me-1"></i>${utils.escapeHtml(record.action || "N/A")}
+      </span>`;
+
+      tr.innerHTML = `
+        <td class="text-center align-middle fw-bold text-muted">${record.id}</td>
+        <td class="align-middle">
+          <span class="badge bg-primary-subtle text-primary">#${record.reception_id || "N/A"}</span>
+        </td>
+        <td class="align-middle">${client}</td>
+        <td class="align-middle">${device}</td>
+        <td class="text-center align-middle">${statusBadge}</td>
+        <td class="text-center align-middle">${actionBadge}</td>
+        <td class="align-middle">
+          <small><i class="bi bi-calendar3 me-1"></i>${utils.formatDate(record.reception_date)}</small>
+        </td>
+        <td class="align-middle">
+          <small><i class="bi bi-clock me-1"></i>${utils.formatDateTime(record.event_timestamp)}</small>
+        </td>
+      `;
+      
+      return tr;
     }
-  }
+  };
 
-  function debounceSearch() {
-    if (searchTimeout) clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      page = 0;
+  // 6. Gestión de filtros
+  const filters = {
+    build: () => {
+      const filters = {};
+      
+      const values = {
+        free: domRefs.search?.value?.trim(),
+        reception_id: domRefs.receptionId?.value?.trim(),
+        action: domRefs.action?.value,
+        status: domRefs.status?.value,
+        from: domRefs.from?.value,
+        to: domRefs.to?.value,
+      };
+      
+      Object.entries(values).forEach(([key, value]) => {
+        if (value) filters[key] = value;
+      });
+      
+      filters.limit = state.pageSize;
+      filters.offset = state.currentPage * state.pageSize;
+      
+      return filters;
+    },
+
+    displayActive: (filters) => {
+      if (!domRefs.filterBadges || !domRefs.activeFiltersDiv) return;
+      
+      domRefs.filterBadges.innerHTML = "";
+      let hasFilters = false;
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (key === "limit" || key === "offset" || !value) return;
+        
+        hasFilters = true;
+        const config = FILTER_LABELS[key] || { label: key, icon: "filter" };
+        
+        const badge = document.createElement("span");
+        badge.className = "badge bg-primary-subtle text-primary me-2 mb-2";
+        badge.innerHTML = `
+          <i class="bi bi-${config.icon} me-1"></i>${config.label}: ${value}
+          <button type="button" class="btn-close btn-close-sm ms-1" data-filter="${key}"></button>
+        `;
+        
+        badge.querySelector(".btn-close").addEventListener("click", (e) => {
+          e.stopPropagation();
+          filters.remove(key);
+        });
+        
+        domRefs.filterBadges.appendChild(badge);
+      });
+      
+      domRefs.activeFiltersDiv.style.display = hasFilters ? "block" : "none";
+    },
+
+    remove: (filterKey) => {
+      const elementMap = {
+        free: domRefs.search,
+        reception_id: domRefs.receptionId,
+        action: domRefs.action,
+        status: domRefs.status,
+        from: domRefs.from,
+        to: domRefs.to,
+      };
+      
+      if (elementMap[filterKey]) {
+        elementMap[filterKey].value = "";
+      }
+      
+      state.currentPage = 0;
       loadPage();
-    }, 500);
-  }
+    },
 
-  function downloadCSV(rows) {
-    if (!rows || rows.length === 0) {
-      return showAlert(
-        "warning",
-        "No hay datos para exportar. Intenta ajustar los filtros."
-      );
+    clearAll: () => {
+      const elementsToClear = [
+        domRefs.search,
+        domRefs.receptionId,
+        domRefs.action,
+        domRefs.status,
+        domRefs.from,
+        domRefs.to
+      ];
+      
+      elementsToClear.forEach(el => el && (el.value = ""));
+      
+      if (domRefs.pageSize) {
+        domRefs.pageSize.value = CONSTANTS.DEFAULT_PAGE_SIZE.toString();
+      }
+      
+      state.pageSize = CONSTANTS.DEFAULT_PAGE_SIZE;
+      state.currentPage = 0;
+      
+      loadPage();
+      dom.showAlert("info", "Filtros limpiados", CONSTANTS.ALERT_TIMEOUT.SHORT);
+    },
+
+    applyQuickFilter: (type) => {
+      const today = new Date();
+      const dateString = today.toISOString().split("T")[0];
+      
+      switch(type) {
+        case 'today':
+          if (domRefs.from) domRefs.from.value = dateString;
+          if (domRefs.to) domRefs.to.value = dateString;
+          dom.showAlert("info", "Mostrando registros de hoy", CONSTANTS.ALERT_TIMEOUT.SHORT);
+          break;
+          
+        case 'week':
+          const lastWeek = new Date(today);
+          lastWeek.setDate(today.getDate() - 7);
+          
+          if (domRefs.from) domRefs.from.value = lastWeek.toISOString().split("T")[0];
+          if (domRefs.to) domRefs.to.value = dateString;
+          dom.showAlert("info", "Mostrando registros de la última semana", CONSTANTS.ALERT_TIMEOUT.SHORT);
+          break;
+      }
+      
+      state.currentPage = 0;
+      loadPage();
     }
+  };
 
-    const headers = [
-      "id",
-      "reception_id",
-      "client_id",
-      "client_name",
-      "device_id",
-      "device_description",
-      "reception_date",
-      "status",
-      "action",
-      "event_timestamp",
-    ];
-    const csv = [headers.join(",")];
-    for (const r of rows) {
-      const line = headers
-        .map((h) => {
-          let v = r[h] == null ? "" : String(r[h]);
-
-          v = '"' + v.replace(/"/g, '""') + '"';
-          return v;
-        })
-        .join(",");
-      csv.push(line);
-    }
-    const blob = new Blob([csv.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `reception_history_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    showAlert(
-      "success",
-      `Archivo CSV exportado exitosamente (${rows.length} registros)`
-    );
-  }
-
-  async function exportCurrentPage() {
-    const filters = buildFilters();
+  // 7. Carga de datos
+  async function loadPage() {
+    const currentFilters = filters.build();
+    state.currentFilters = currentFilters;
+    
     try {
-      showAlert("info", "Exportando datos...", 0);
-      const rows = await window.api.listReceptionHistory(filters);
-      downloadCSV(rows);
+      dom.showLoading(true);
+      
+      const [rows, total] = await Promise.all([
+        window.api.listReceptionHistory(currentFilters),
+        window.api.countReceptionHistory(currentFilters)
+      ]);
+      
+      domRefs.tbody.innerHTML = "";
+      
+      if (!rows || rows.length === 0) {
+        dom.renderEmptyState();
+      } else {
+        const fragment = document.createDocumentFragment();
+        rows.forEach(record => {
+          fragment.appendChild(dom.renderRow(record));
+        });
+        domRefs.tbody.appendChild(fragment);
+      }
+      
+      dom.updatePagination(total);
+      filters.displayActive(currentFilters);
+      
     } catch (err) {
-      console.error("export error", err);
-      showAlert("danger", "Error al exportar CSV");
+      console.error("Error al cargar el historial:", err);
+      dom.showAlert("danger", "Error al cargar el historial. Por favor, intente nuevamente.");
+    } finally {
+      dom.showLoading(false);
     }
   }
 
-  async function exportAll() {
-    const filters = buildFilters();
-    delete filters.limit;
-    delete filters.offset;
+  // 8. Exportación de datos
+  const exportHandler = {
+    downloadCSV: (rows) => {
+      if (!rows || rows.length === 0) {
+        return dom.showAlert("warning", "No hay datos para exportar. Intenta ajustar los filtros.");
+      }
+      
+      const headers = [
+        "id", "reception_id", "client_id", "client_name",
+        "device_id", "device_description", "reception_date",
+        "status", "action", "event_timestamp"
+      ];
+      
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => 
+          headers.map(header => {
+            const value = row[header] == null ? "" : String(row[header]);
+            return `"${value.replace(/"/g, '""')}"`;
+          }).join(",")
+        )
+      ].join("\n");
+      
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `reception_history_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      dom.showAlert("success", `Archivo CSV exportado exitosamente (${rows.length} registros)`);
+    },
 
-    try {
-      showAlert("info", "Exportando todos los registros...", 0);
-      const rows = await window.api.listReceptionHistory(filters);
-      downloadCSV(rows);
-    } catch (err) {
-      console.error("export all error", err);
-      showAlert("danger", "Error al exportar todos los registros");
+    exportCurrentPage: async () => {
+      try {
+        dom.showAlert("info", "Exportando datos...", CONSTANTS.ALERT_TIMEOUT.NONE);
+        const currentFilters = filters.build();
+        const rows = await window.api.listReceptionHistory(currentFilters);
+        exportHandler.downloadCSV(rows);
+      } catch (err) {
+        console.error("Error en exportación:", err);
+        dom.showAlert("danger", "Error al exportar CSV");
+      }
+    },
+
+    exportAll: async () => {
+      try {
+        dom.showAlert("info", "Exportando todos los registros...", CONSTANTS.ALERT_TIMEOUT.NONE);
+        const currentFilters = filters.build();
+        delete currentFilters.limit;
+        delete currentFilters.offset;
+        
+        const rows = await window.api.listReceptionHistory(currentFilters);
+        exportHandler.downloadCSV(rows);
+      } catch (err) {
+        console.error("Error en exportación total:", err);
+        dom.showAlert("danger", "Error al exportar todos los registros");
+      }
     }
-  }
+  };
 
-  function printView() {
-    window.print();
-  }
-
-  function pad(n) {
-    return n < 10 ? "0" + n : n;
-  }
-  function formatDate(iso) {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-  }
-  function formatDateTime(iso) {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-  function escapeHtml(s) {
-    if (s == null) return "";
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  btnFilter.addEventListener("click", () => {
-    page = 0;
-    loadPage();
-  });
-
-  if (fSearch) {
-    fSearch.addEventListener("input", debounceSearch);
-  }
-
-  if (fReceptionId) {
-    fReceptionId.addEventListener("input", debounceSearch);
-  }
-
-  if (fAction) {
-    fAction.addEventListener("change", () => {
-      page = 0;
+  // 9. Configuración de eventos optimizada
+  const setupEventListeners = () => {
+    // Eventos de filtros
+    const debouncedLoad = utils.debounce(() => {
+      state.currentPage = 0;
       loadPage();
+    }, CONSTANTS.SEARCH_DEBOUNCE_MS);
+    
+    [domRefs.search, domRefs.receptionId].forEach(input => {
+      input?.addEventListener("input", debouncedLoad);
     });
-  }
-
-  if (fStatus) {
-    fStatus.addEventListener("change", () => {
-      page = 0;
-      loadPage();
+    
+    [domRefs.action, domRefs.status].forEach(select => {
+      select?.addEventListener("change", () => {
+        state.currentPage = 0;
+        loadPage();
+      });
     });
-  }
-
-  document
-    .getElementById("btn-export")
-    ?.addEventListener("click", exportCurrentPage);
-  document.getElementById("btn-print")?.addEventListener("click", printView);
-
-  prevBtn.addEventListener("click", () => {
-    if (page > 0) page--;
-    loadPage();
-  });
-  nextBtn.addEventListener("click", () => {
-    page++;
-    loadPage();
-  });
-
-  pageSizeSelect?.addEventListener("change", (e) => {
-    pageSize = Number(e.target.value) || 50;
-    page = 0;
-    loadPage();
-  });
-
-  [fSearch, fReceptionId, fFrom, fTo].forEach((input) => {
-    if (input) {
-      input.addEventListener("keypress", (e) => {
+    
+    // Enter en campos de búsqueda
+    [domRefs.search, domRefs.receptionId, domRefs.from, domRefs.to].forEach(input => {
+      input?.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
-          page = 0;
+          state.currentPage = 0;
           loadPage();
         }
       });
-    }
-  });
+    });
+    
+    // Botones principales
+    domRefs.btnFilter?.addEventListener("click", () => {
+      state.currentPage = 0;
+      loadPage();
+    });
+    
+    domRefs.btnClear?.addEventListener("click", filters.clearAll);
+    domRefs.btnQuickToday?.addEventListener("click", () => filters.applyQuickFilter('today'));
+    domRefs.btnQuickWeek?.addEventListener("click", () => filters.applyQuickFilter('week'));
+    
+    // Exportación e impresión
+    domRefs.btnExport?.addEventListener("click", exportHandler.exportCurrentPage);
+    domRefs.btnPrint?.addEventListener("click", () => window.print());
+    
+    // Paginación
+    domRefs.prevBtn?.addEventListener("click", () => {
+      if (state.currentPage > 0) {
+        state.currentPage--;
+        loadPage();
+      }
+    });
+    
+    domRefs.nextBtn?.addEventListener("click", () => {
+      if (((state.currentPage + 1) * state.pageSize) < state.totalRecords) {
+        state.currentPage++;
+        loadPage();
+      }
+    });
+    
+    // Tamaño de página
+    domRefs.pageSize?.addEventListener("change", (e) => {
+      state.pageSize = Number(e.target.value) || CONSTANTS.DEFAULT_PAGE_SIZE;
+      state.currentPage = 0;
+      loadPage();
+    });
+  };
 
-  btnClear?.addEventListener("click", () => {
-    if (fSearch) fSearch.value = "";
-    if (fReceptionId) fReceptionId.value = "";
-    if (fAction) fAction.value = "";
-    if (fStatus) fStatus.value = "";
-    if (fFrom) fFrom.value = "";
-    if (fTo) fTo.value = "";
-    if (pageSizeSelect) pageSizeSelect.value = "50";
-    pageSize = 50;
-    page = 0;
-    loadPage();
-    showAlert("info", "Filtros limpiados", 2000);
-  });
-
-  btnQuickToday?.addEventListener("click", () => {
-    const today = new Date().toISOString().split("T")[0];
-    if (fFrom) fFrom.value = today;
-    if (fTo) fTo.value = today;
-    page = 0;
-    loadPage();
-    showAlert("info", "Mostrando registros de hoy", 2000);
-  });
-
-  btnQuickWeek?.addEventListener("click", () => {
-    const today = new Date();
-    const lastWeek = new Date(today);
-    lastWeek.setDate(today.getDate() - 7);
-
-    if (fFrom) fFrom.value = lastWeek.toISOString().split("T")[0];
-    if (fTo) fTo.value = today.toISOString().split("T")[0];
-    page = 0;
-    loadPage();
-    showAlert("info", "Mostrando registros de la última semana", 2000);
-  });
-
+  // 10. Inicialización
+  setupEventListeners();
   loadPage();
 });
