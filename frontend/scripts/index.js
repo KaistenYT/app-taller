@@ -1137,36 +1137,3 @@ async function openReportWindow(receptionId) {
     });
   }
 }
-
-document.addEventListener("keydown", (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-    e.preventDefault();
-    window.open("kiosko.html", "_blank");
-  }
-});
-
-const kioskoBtn = document.querySelector('a[href="kiosko.html"]');
-if (kioskoBtn) {
-  kioskoBtn.setAttribute("data-bs-toggle", "tooltip");
-  kioskoBtn.setAttribute("data-bs-placement", "bottom");
-  kioskoBtn.setAttribute("title", "Abrir modo Kiosko (Ctrl+K)");
-
-  if (typeof bootstrap !== "undefined" && bootstrap.Tooltip) {
-    new bootstrap.Tooltip(kioskoBtn);
-  }
-
-  kioskoBtn.addEventListener("click", async (e) => {
-    try {
-      if (window.api && typeof window.api.invoke === "function") {
-        e.preventDefault();
-        await window.api.invoke("open-kiosko-window");
-        return;
-      }
-    } catch (err) {
-      console.error(
-        "Failed to open kiosko window via IPC, falling back to window.open",
-        err
-      );
-    }
-  });
-}
