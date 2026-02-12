@@ -18,7 +18,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!reportId) {
       setContainerHTML(
-        "<p class='text-danger'>No se proporcionó un ID de reporte.</p>"
+        "<p class='text-danger'>No se proporcionó un ID de reporte.</p>",
       );
       return;
     }
@@ -102,7 +102,7 @@ window.addEventListener("DOMContentLoaded", () => {
             </div>
           </div>
           <div class="text-end">
-            <button id="btn-export" class="btn btn-sm btn-primary">Guardar PDF</button>
+            <button id="btn-export" class="btn btn-sm btn-primary">Imprimir</button>
           </div>
         </div>
 
@@ -156,6 +156,6 @@ function escapeHtml(str) {
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
-      })[ch]
+      })[ch],
   );
 }

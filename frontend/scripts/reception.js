@@ -294,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      o;
+
       const loadDeviceData = async () => {
         try {
           if (rec.device_snapshot) {

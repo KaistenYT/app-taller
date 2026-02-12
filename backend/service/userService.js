@@ -45,4 +45,26 @@ export class UserService {
       throw error;
     }
   }
+
+  static async resetPassword(username, newPassword) {
+    try {
+      if (!username || !newPassword) {
+        throw new Error("resetPassword: username and newPassword are required");
+      }
+      const user = await User.getByUsername(username);
+      if (!user) {
+        throw new Error("resetPassword: Usuario no encontrado");
+      }
+
+      // Assuming User.updatePassword handles hashing the new password
+      // If not, we would need to import a hashing utility here.
+      // Assuming User.update method exists and can update password
+      const updatedUser = await User.update(user.id, { password: newPassword });
+      
+      return updatedUser;
+    } catch (error) {
+      console.error("Error in UserService.resetPassword:", error);
+      throw error;
+    }
+  }
 }

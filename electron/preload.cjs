@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld("api", {
   //user
   loginUser: (username, password)=> ipcRenderer.invoke("login-user", username, password),
   registerUser: (userData) => ipcRenderer.invoke("register-user", userData),
+  resetUserPassword: ({ username, newPassword }) => ipcRenderer.invoke("reset-user-password", { username, newPassword }),
   // Reports
   listReports: () => ipcRenderer.invoke("list-reports"),
   getReport: (id) => ipcRenderer.invoke("get-report", id),

@@ -1,3 +1,21 @@
+function showNotification(message, type = "success", targetElementId = "forgot-password-alert-area") {
+  const alertArea = document.getElementById(targetElementId);
+  if (!alertArea) return;
+
+  const iconClass = type === "success" ? "bi-check-circle" : "bi-exclamation-triangle";
+  alertArea.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      <i class="bi ${iconClass} me-2"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
+
+  setTimeout(() => {
+    if (alertArea) alertArea.innerHTML = "";
+  }, 5000);
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("login-form");
   const inputUser = document.getElementById("username");
@@ -124,6 +142,84 @@ window.addEventListener("DOMContentLoaded", () => {
       btn.textContent = "Entrar";
     }
   });
+
+  // --- Forgot Password Logic ---
+  const forgotPasswordLink = document.getElementById('forgot-password-link');
+  const forgotPasswordModalEl = document.getElementById('forgotPasswordModal');
+  const forgotPasswordModal = forgotPasswordModalEl ? new bootstrap.Modal(forgotPasswordModalEl) : null;
+  const fpForm = document.getElementById('forgot-password-form');
+  const fpUsernameInput = document.getElementById('fp-username');
+  const fpNewPasswordInput = document.getElementById('fp-new-password');
+  const fpConfirmPasswordInput = document.getElementById('fp-confirm-password');
+  const fpSubmitBtn = document.getElementById('fp-submit-btn');
+
+  if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Clear previous messages and inputs
+      document.getElementById('forgot-password-alert-area').innerHTML = '';
+      fpForm.reset();
+      forgotPasswordModal.show();
+    });
+  }
+
+  if (fpForm) {
+    fpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = fpUsernameInput.value.trim();
+      const newPassword = fpNewPasswordInput.value;
+      const confirmPassword = fpConfirmPasswordInput.value;
+
+      document.getElementById('forgot-password-alert-area').innerHTML = ''; // Clear alerts
+
+      if (!username) {
+        showNotification('Por favor, introduce tu nombre de usuario.', 'danger');
+        return;
+      }
+      if (newPassword.length < 4) {
+        showNotification('La nueva contraseña debe tener al menos 4 caracteres.', 'danger');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        showNotification('Las contraseñas no coinciden.', 'danger');
+        return;
+      }
+
+      fpSubmitBtn.disabled = true;
+      fpSubmitBtn.textContent = 'Restableciendo...';
+
+      try {
+        // --- IPC call to main process ---
+        // This 'reset-user-password' channel needs to be implemented in electron/main.js
+        // and exposed via preload.cjs
+        if (window.api && typeof window.api.invoke === 'function') {
+          const result = await window.api.invoke('reset-user-password', { username, newPassword });
+
+          if (result && result.success) {
+            showNotification('Contraseña restablecida exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.', 'success');
+            setTimeout(() => {
+              forgotPasswordModal.hide();
+              // Optionally clear login form and pre-fill username
+              inputUser.value = username;
+              inputPass.value = '';
+            }, 2000);
+          } else {
+            showNotification(result.message || 'Error al restablecer la contraseña. Usuario no encontrado o error interno.', 'danger');
+          }
+        } else {
+          // Fallback for non-Electron environment or API not available
+          showNotification('Funcionalidad de recuperación no disponible en este entorno.', 'danger');
+        }
+      } catch (error) {
+        console.error('Error durante el restablecimiento de contraseña:', error);
+        showNotification(error.message || 'Error interno al restablecer la contraseña.', 'danger');
+      } finally {
+        fpSubmitBtn.disabled = false;
+        fpSubmitBtn.textContent = 'Restablecer Contraseña';
+      }
+    });
+  }
+  // --- End Forgot Password Logic ---
 
   const toggle = document.getElementById("toggle-pass");
   const eyeSvg =

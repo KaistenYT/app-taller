@@ -38,4 +38,23 @@ export class User {
       return null;
     }
   }
+
+  static async update(id, data) {
+    try {
+      if (!id || !data) {
+        throw new Error("User.update: id and data are required");
+      }
+      const updatedData = { ...data };
+
+      if (updatedData.password) {
+        updatedData.password = await bcrypt.hash(updatedData.password, 10);
+      }
+
+      await db("user").where({ id }).update(updatedData);
+      return await db("user").where({ id }).first(); // Return the updated user
+    } catch (error) {
+      console.error("Error in User.update:", error);
+      throw error;
+    }
+  }
 }

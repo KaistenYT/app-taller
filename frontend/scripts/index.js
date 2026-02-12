@@ -60,7 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalEditBtn = document.getElementById("modal-edit-btn");
   const modalGenReportBtn = document.getElementById("modal-gen-report");
   const btnReportList = document.getElementById("btn-reports-list");
-  const btnKiosko = document.getElementById("btn-kiosko");
 
   let cache = [];
   let page = 1;
@@ -72,16 +71,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (btnKiosko) {
-    btnKiosko.addEventListener("click", () => {
-      window.location.href = "kiosko.html";
-    });
-  }
-
   if (btnCreate)
     btnCreate.addEventListener(
       "click",
-      () => (window.location.href = "addReceptionForm.html")
+      () => (window.location.href = "addReceptionForm.html"),
     );
   if (btnRefresh) btnRefresh.addEventListener("click", () => loadReceptions());
   if (btnLogout)
@@ -104,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
       debounce(() => {
         page = 1;
         render();
-      }, 250)
+      }, 250),
     );
   if (filtroFecha)
     filtroFecha.addEventListener("change", () => {
@@ -139,6 +132,92 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  // --- Custom Bootstrap Modal for Alerts and Confirmations ---
+  let customModalInstance = null; // To hold the Bootstrap Modal instance
+
+  async function showCustomModal(options) {
+    const defaultOptions = {
+      type: 'info', // 'info', 'success', 'warning', 'danger', 'question'
+      title: 'Mensaje del Sistema',
+      message: '',
+      detail: '',
+      buttons: ['OK'] // Array of button labels
+    };
+    const opts = { ...defaultOptions, ...options };
+
+    if (!customModalInstance) {
+      customModalInstance = new bootstrap.Modal(document.getElementById('customAlertConfirmModal'), {
+        backdrop: 'static', // Prevent closing by clicking outside
+        keyboard: false     // Prevent closing by pressing Esc key
+      });
+    }
+
+    const modalElement = document.getElementById('customAlertConfirmModal');
+    const modalTitle = document.getElementById('customAlertConfirmModalLabel');
+    const modalIcon = document.getElementById('customAlertConfirmModalIcon');
+    const modalMessage = document.getElementById('customAlertConfirmModalMessage');
+    const modalDetail = document.getElementById('customAlertConfirmModalDetail');
+    const modalFooter = document.getElementById('customAlertConfirmModalFooter');
+
+    // Set title and content
+    modalTitle.textContent = opts.title;
+    modalMessage.textContent = opts.message;
+    modalDetail.textContent = opts.detail;
+
+    // Set icon based on type
+    modalIcon.className = `me-3 fs-4`; // Reset classes
+    switch (opts.type) {
+      case 'info':
+        modalIcon.classList.add('bi', 'bi-info-circle-fill', 'text-primary');
+        break;
+      case 'success':
+        modalIcon.classList.add('bi', 'bi-check-circle-fill', 'text-success');
+        break;
+      case 'warning':
+        modalIcon.classList.add('bi', 'bi-exclamation-triangle-fill', 'text-warning');
+        break;
+      case 'danger':
+        modalIcon.classList.add('bi', 'bi-x-circle-fill', 'text-danger');
+        break;
+      case 'question':
+        modalIcon.classList.add('bi', 'bi-question-circle-fill', 'text-secondary');
+        break;
+      default:
+        modalIcon.classList.add('bi', 'bi-info-circle-fill', 'text-primary');
+    }
+
+    // Clear previous buttons
+    modalFooter.innerHTML = '';
+
+    return new Promise(resolve => {
+      opts.buttons.forEach((buttonText, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `btn ${index === 0 ? 'btn-primary' : 'btn-secondary'} me-2`; // Primary for first button, secondary for others
+        btn.textContent = buttonText;
+        btn.addEventListener('click', () => {
+          customModalInstance.hide();
+          resolve(index); // Resolve with the index of the clicked button
+        });
+        modalFooter.appendChild(btn);
+      });
+      customModalInstance.show();
+    });
+  }
+
+  // --- Wrapper functions for backward compatibility/clarity ---
+  async function showAppMessageBox(message, type = 'info', title = 'Mensaje del Sistema') {
+    const options = { type, title, message, buttons: ['OK'] };
+    await showCustomModal(options);
+  }
+
+  async function showAppConfirmBox(message, title = 'Confirmación', detail = '') {
+    const options = { type: 'question', title, message, detail, buttons: ['Sí', 'No'] };
+    const responseIndex = await showCustomModal(options);
+    return responseIndex === 0; // 'Sí' button is at index 0
+  }
+  // --- End Custom Bootstrap Modal ---
+
   async function loadReceptions() {
     console.log("Cargando recepciones...");
     if (tbody) showLoadingRows();
@@ -149,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (typeof window.api.listReceptions !== "function") {
         throw new Error(
-          "El método listReceptions no está disponible en window.api"
+          "El método listReceptions no está disponible en window.api",
         );
       }
 
@@ -280,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td><div class="skeleton" style="width:100px"></div></td>
         <td><div class="skeleton" style="width:120px"></div></td>
       </tr>
-    `
+    `,
       )
       .join("");
     if (listSummary) listSummary.textContent = "Cargando...";
@@ -290,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (str === null || str === undefined) return "";
     return String(str).replace(
       /[&<>\"]/g,
-      (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]
+      (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch],
     );
   }
 
@@ -462,32 +541,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
       paginated.forEach((r, index) => {
         const cliente = escapeHtml(
-          r.client_name || r.client?.name || r.client_idNumber || ""
+          r.client_name || r.client?.name || r.client_idNumber || "",
         );
         const equipo = escapeHtml(
           r.device_snapshot?.description ||
             r.device?.description ||
             r.device_description ||
-            ""
+            "",
         );
         const serial = escapeHtml(
           r.device_snapshot?.serial_number ||
             r.device?.serial_number ||
             r.device_serial ||
-            ""
+            "",
         );
         const snapShort = escapeHtml(
           r.device_snapshot?.features ||
             r.device_snapshot?.description ||
             r.device?.description ||
-            ""
+            "",
         );
         const estado = formatStatusBadge(r.status || "");
         const falla = escapeHtml(r.defect || "");
         const created = escapeHtml(
           new Date(
-            r.created_at || r.createdAt || r.created || ""
-          ).toLocaleString()
+            r.created_at || r.createdAt || r.created || "",
+          ).toLocaleString(),
         );
         const row = document.createElement("tr");
         row.dataset.id = r.id;
@@ -569,7 +648,7 @@ document.addEventListener("DOMContentLoaded", () => {
               {
                 hasApi: !!window.api,
                 hasInvoke: !!(window.api && window.api.invoke),
-              }
+              },
             );
 
             try {
@@ -579,19 +658,19 @@ document.addEventListener("DOMContentLoaded", () => {
               console.error(
                 "[recepciones] openReportWindow failed for",
                 id,
-                err
+                err,
               );
 
               try {
                 window.open(
                   `report.html?id=${id}`,
                   "_blank",
-                  "width=800,height=900"
+                  "width=800,height=900",
                 );
               } catch (winErr) {
                 console.error(
                   "[recepciones] fallback window.open failed",
-                  winErr
+                  winErr,
                 );
               }
             }
@@ -637,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!rec) throw new Error("Recepción no encontrada");
 
       const cliente = escapeHtml(
-        rec.client_name || rec.client?.name || rec.client_idNumber || ""
+        rec.client_name || rec.client?.name || rec.client_idNumber || "",
       );
       let clientePhoneRaw = rec.client_phone || rec.client?.phone || "";
       if (!clientePhoneRaw && rec.client_idNumber) {
@@ -667,7 +746,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const equipo = escapeHtml(snapshot.description || "—");
       const serial = escapeHtml(snapshot.serial_number || "—");
       const created = escapeHtml(
-        new Date(rec.created_at || "").toLocaleString()
+        new Date(rec.created_at || "").toLocaleString(),
       );
       const snapFeatures = escapeHtml(snapshot.features || "—");
       const snapCaptured = escapeHtml(snapshot.captured_at || "—");
@@ -819,24 +898,28 @@ document.addEventListener("DOMContentLoaded", () => {
             modalGenReportBtn.textContent = "Generando...";
             const res = await window.api.invoke(
               "create-report-from-reception",
-              Number(id)
+              Number(id),
             );
             if (res?.id) {
               (await window.api.invoke?.(
                 "open-report-window",
-                Number(res.id)
+                Number(res.id),
               )) ||
                 window.open(
                   `report.html?id=${res.id}`,
                   "_blank",
-                  "width=900,height=800"
+                  "width=900,height=800",
                 );
             } else {
               await openReportWindow(id);
             }
           } catch (err) {
             console.error("Error generando reporte:", err);
-            alert("Error al generar el reporte: " + (err.message || err));
+            showAppMessageBox(
+              "Error al generar el reporte: " + (err.message || err),
+              "error",
+              "Error al Generar Reporte",
+            );
           } finally {
             modalGenReportBtn.disabled = false;
             modalGenReportBtn.textContent = "Generar reporte";
@@ -850,7 +933,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (modal) modal.show();
     } catch (err) {
       console.error(err);
-      alert("No se pudo cargar el detalle");
+      showAppMessageBox(
+        "No se pudo cargar el detalle",
+        "error",
+        "Error al Cargar Detalle",
+      );
     }
   }
 
@@ -863,18 +950,28 @@ document.addEventListener("DOMContentLoaded", () => {
       await loadReceptions();
     } catch (err) {
       console.error(err);
-      alert("Error cambiando estado");
+      showAppMessageBox(
+        "Error cambiando estado",
+        "error",
+        "Error de Estado",
+      );
     }
   }
 
   async function deleteReception(id) {
-    if (!confirm("¿Eliminar esta recepción?")) return;
+    if (
+      !(await showAppConfirmBox(
+        "¿Eliminar esta recepción?",
+        "Confirmar Eliminación",
+      ))
+    )
+      return;
     try {
       await window.api.deleteReception(id);
       await loadReceptions();
     } catch (err) {
       console.error(err);
-      alert("Error eliminando");
+      showAppMessageBox("Error eliminando", "error", "Error al Eliminar");
     }
   }
 
@@ -882,9 +979,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnSeed) {
     btnSeed.addEventListener("click", async () => {
       if (
-        !confirm(
-          "Cargar datos de prueba en la base de datos? Esto añadirá clientes, equipos y recepciones de ejemplo."
-        )
+        !(await showAppConfirmBox(
+          "Cargar datos de prueba en la base de datos?",
+          "Confirmar Carga de Datos",
+          "Esto añadirá clientes, equipos y recepciones de ejemplo.",
+        ))
       )
         return;
 
@@ -908,7 +1007,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           serial_number: "SN-1002-C",
           description: "AIO modelo C",
-          features: 'i7, 16GB RAM, 512SSD',
+          features: "i7, 16GB RAM, 512SSD",
         },
       ];
 
@@ -1001,7 +1100,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const device_id = device?.id;
             if (!device_id)
               throw new Error(
-                "No se resolvió device_id para serial " + r.device_serial
+                "No se resolvió device_id para serial " + r.device_serial,
               );
 
             const device_snapshot = {
@@ -1038,10 +1137,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const summary =
           `Carga completada: clientes ${results.clients}, dispositivos ${results.devices}, recepciones ${results.receptions}` +
           (results.errors.length ? `; errores: ${results.errors.length}` : "");
-        alert(summary);
+        showAppMessageBox(summary, "info", "Carga de Datos de Prueba");
       } catch (err) {
         console.error("Error en proceso de seed:", err);
-        alert("Ocurrió un error al cargar datos de prueba");
+        showAppMessageBox(
+          "Ocurrió un error al cargar datos de prueba",
+          "error",
+          "Error de Carga de Datos",
+        );
       } finally {
         btnSeed.disabled = false;
         btnSeed.textContent = "Cargar datos de prueba";
@@ -1071,7 +1174,7 @@ async function openReportWindow(receptionId) {
   if (!reports || reports.length === 0) {
     console.debug(
       "[openReportWindow] no reports found; creating new report for reception",
-      receptionId
+      receptionId,
     );
     let reception = null;
     try {
@@ -1079,7 +1182,7 @@ async function openReportWindow(receptionId) {
       console.debug(
         "[openReportWindow] fetched reception",
         receptionId,
-        reception
+        reception,
       );
     } catch (err) {
       console.error("[openReportWindow] getReception failed", err, {
@@ -1112,7 +1215,11 @@ async function openReportWindow(receptionId) {
     }
 
     if (!newReport || !newReport.id) {
-      alert("No se pudo crear el reporte.");
+      showAppMessageBox(
+        "No se pudo crear el reporte.",
+        "error",
+        "Error al Crear Reporte",
+      );
       return;
     }
 
@@ -1128,7 +1235,7 @@ async function openReportWindow(receptionId) {
       window.open(
         `report.html?id=${reportId}`,
         "_blank",
-        "width=800,height=900"
+        "width=800,height=900",
       );
     }
   } catch (err) {

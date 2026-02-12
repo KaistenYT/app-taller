@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { DeviceService } from "../backend/service/deviceService.js";
@@ -20,7 +20,7 @@ const createWindow = () => {
       sandbox: false,
     },
   });
-  win.removeMenu();
+  //win.removeMenu();
 
   win.loadFile(path.join(__dirname, "../frontend/views/login.html"));
 };
@@ -36,15 +36,15 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-const safeHandler = (fn) => async (event, ...args) => {
-  try {
-    return await fn(event, ...args);
-  } catch (err) {
-    throw err;
-  }
-};
-
-
+const safeHandler =
+  (fn) =>
+  async (event, ...args) => {
+    try {
+      return await fn(event, ...args);
+    } catch (err) {
+      throw err;
+    }
+  };
 
 const registerHandlers = () => {
   const handlers = {
@@ -59,15 +59,18 @@ const registerHandlers = () => {
       return DeviceService.getDeviceBySerial(serial);
     },
     "create-device": (event, data) => {
-      if (!data || typeof data !== "object") throw new Error("create-device: deviceData is required");
+      if (!data || typeof data !== "object")
+        throw new Error("create-device: deviceData is required");
       return DeviceService.createDevice(data);
     },
     "upsert-device-by-serial": (event, data) => {
-      if (!data || typeof data !== "object") throw new Error("upsert-device-by-serial: deviceData is required");
+      if (!data || typeof data !== "object")
+        throw new Error("upsert-device-by-serial: deviceData is required");
       return DeviceService.upsertDeviceBySerial(data);
     },
     "update-device": (event, id, data) => {
-      if (!id || !data || typeof data !== "object") throw new Error("update-device: id and deviceData are required");
+      if (!id || !data || typeof data !== "object")
+        throw new Error("update-device: id and deviceData are required");
       return DeviceService.updateDevice(id, data);
     },
     "delete-device": (event, id) => {
@@ -82,11 +85,13 @@ const registerHandlers = () => {
       return ClientService.getClient(id);
     },
     "create-client": (event, data) => {
-      if (!data || typeof data !== "object") throw new Error("create-client: clientData is required");
+      if (!data || typeof data !== "object")
+        throw new Error("create-client: clientData is required");
       return ClientService.createClient(data);
     },
     "update-client": (event, id, data) => {
-      if (!id || !data || typeof data !== "object") throw new Error("update-client: id and clientData are required");
+      if (!id || !data || typeof data !== "object")
+        throw new Error("update-client: id and clientData are required");
       return ClientService.updateClient(id, data);
     },
     "delete-client": (event, id) => {
@@ -96,7 +101,7 @@ const registerHandlers = () => {
 
     // Receptions
     "list-receptions": () => ReceptionService.listReceptions(),
-      
+
     "list-archived-receptions": () => ReceptionService.listArchivedReceptions(),
     "get-reception": (event, id) => {
       if (!id) throw new Error("get-reception: id is required");
@@ -138,11 +143,13 @@ const registerHandlers = () => {
       return ReportService.getReport(id);
     },
     "create-report": (event, data) => {
-      if (!data || typeof data !== "object") throw new Error("create-report: reportData is required");
+      if (!data || typeof data !== "object")
+        throw new Error("create-report: reportData is required");
       return ReportService.createReport(data);
     },
     "update-report": (event, id, data) => {
-      if (!id || !data || typeof data !== "object") throw new Error("update-report: id and reportData are required");
+      if (!id || !data || typeof data !== "object")
+        throw new Error("update-report: id and reportData are required");
       return ReportService.updateReport(id, data);
     },
     "delete-report": (event, id) => {
@@ -152,17 +159,19 @@ const registerHandlers = () => {
     "get-report-by-reception": async (event, receptionId) => {
       return await ReportService.getReportsByReception(receptionId);
     },
-    //user 
-   "login-user" : (event, username, password) =>{
-     return UserService.login(username, password);
-   },
-   "register-user": async (event, userData) => {
-    if (!userData || !userData.username || !userData.password) throw new Error('register-user: username and password are required');
-    return await UserService.registerUser(userData);
-   },
+    //user
+    "login-user": (event, username, password) => {
+      return UserService.login(username, password);
+    },
+    "register-user": async (event, userData) => {
+      if (!userData || !userData.username || !userData.password)
+        throw new Error("register-user: username and password are required");
+      return await UserService.registerUser(userData);
+    },
     // Open a report view in a new BrowserWindow (ensures preload is applied)
     "open-report-window": async (event, reportId) => {
-      if (!reportId) throw new Error('open-report-window: reportId is required');
+      if (!reportId)
+        throw new Error("open-report-window: reportId is required");
       try {
         const win = new BrowserWindow({
           width: 900,
@@ -173,8 +182,6 @@ const registerHandlers = () => {
             contextIsolation: true,
             sandbox: false,
           },
-
-          
         });
         win.removeMenu();
         const filePath = path.join(__dirname, "../frontend/views/report.html");
@@ -183,36 +190,60 @@ const registerHandlers = () => {
         win.show();
         return { ok: true };
       } catch (err) {
-        console.error('Failed to open report window:', err);
+        console.error("Failed to open report window:", err);
         throw err;
       }
-      
     },
     "create-report-from-reception": async (event, receptionId) => {
-      if (!receptionId) throw new Error('create-report-from-reception: receptionId is required');
+      if (!receptionId)
+        throw new Error(
+          "create-report-from-reception: receptionId is required",
+        );
       return await ReportService.createReportFromReception(receptionId);
     },
     // Reception history (audit)
     "list-reception-history": async (event, filters) => {
       // lazy require to avoid circular issues
-      const { ReceptionHistoryService } = await import('../backend/service/receptionHistoryService.js');
+      const { ReceptionHistoryService } = await import(
+        "../backend/service/receptionHistoryService.js"
+      );
       return await ReceptionHistoryService.listHistory(filters || {});
     },
     "count-reception-history": async (event, filters) => {
-      const { ReceptionHistoryService } = await import('../backend/service/receptionHistoryService.js');
+      const { ReceptionHistoryService } = await import(
+        "../backend/service/receptionHistoryService.js"
+      );
       return await ReceptionHistoryService.countHistory(filters || {});
     },
+
+    // User password reset
+    "reset-user-password": async (event, { username, newPassword }) => {
+      if (!username || !newPassword) {
+        throw new Error("reset-user-password: username and newPassword are required");
+      }
+      try {
+        await UserService.resetPassword(username, newPassword);
+        return { success: true };
+      } catch (error) {
+        console.error("Error resetting user password:", error);
+        return { success: false, message: error.message };
+      }
+    },
+
   };
 
   // Registrar manejadores estándar
   for (const [channel, handler] of Object.entries(handlers)) {
     ipcMain.handle(channel, safeHandler(handler));
   }
-  
+
   // Registrar manejador específico para listar reportes con prefijo
-  ipcMain.handle('report:list-reports', safeHandler(async () => {
-    return await ReportService.listReports();
-  }));
+  ipcMain.handle(
+    "report:list-reports",
+    safeHandler(async () => {
+      return await ReportService.listReports();
+    }),
+  );
 };
 
 registerHandlers();
