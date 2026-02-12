@@ -87,6 +87,12 @@
       .was-validated .form-control:invalid ~ .invalid-feedback {
         display: block;
       }
+
+      /* Custom styles for client_idNumber_prefix */
+      #client_idNumber_prefix {
+        width: 4.5rem; /* Adjust as needed */
+        flex: none; /* Prevent it from growing within the input-group */
+      }
     </style>
   </head>
   <body>
@@ -108,25 +114,38 @@
         <div class="form-section">
           <h5><i class="bi bi-person me-2"></i>Datos del Cliente</h5>
           <div class="row g-3">
-            <div class="col-md-4">
-              <label for="client_idNumber" class="form-label"
+            <div class="col-md-3">
+              <label for="client_idNumber_num" class="form-label"
                 >Cédula o RIF *</label
               >
-              <input
-                type="text"
-                class="form-control"
-                id="client_idNumber"
-                required
-                pattern="[VEJPGvejpg][0-9]{7,9}"
-                title="Formato: V12345678 o J123456789"
-              />
-              <div class="invalid-feedback">
-                Por favor ingrese una cédula o RIF válido (Ej: V12345678 o
-                J123456789)
+              <div class="input-group">
+                <select
+                  class="form-select"
+                  id="client_idNumber_prefix"
+                  required
+                >
+                  <option value="V">V</option>
+                  <option value="E">E</option>
+                  <option value="J">J</option>
+                  <option value="P">P</option>
+                  <option value="G">G</option>
+                </select>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="client_idNumber_num"
+                  required
+                  pattern="[0-9]{7,9}"
+                  title="Solo números (7 a 9 dígitos)"
+                />
+                <div class="invalid-feedback">
+                  Por favor ingrese una cédula o RIF válido (Ej: V12345678 o
+                  J123456789)
+                </div>
               </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-5">
               <label for="client_name" class="form-label"
                 >Nombre Completo *</label
               >
@@ -151,7 +170,7 @@
                   type="tel"
                   class="form-control"
                   id="client_phone"
-                  pattern="[0-9+\-() ]+"
+                  pattern="[0-9+() -]+"
                   title="Ingrese un número de teléfono válido"
                 />
                 <div class="invalid-feedback">

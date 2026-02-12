@@ -1,14 +1,16 @@
 import db from "../db/dbConfig.js";
 import bcrypt from "bcrypt";
-
+//Operaciones CRUD para la tabla user
 export class User {
   static async create(userData) {
     try {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
-      const payload = { ...userData, password: hashedPassword };
+      const role = userData.role || "user";
+      const payload = { ...userData, password: hashedPassword, role: role };
       const [newUserId] = await db("user").insert(payload);
       return await db("user").where({ id: newUserId }).first();
     } catch (error) {
+      console.error("Error creating user:", error);
       return null;
     }
   }
@@ -51,7 +53,7 @@ export class User {
       }
 
       await db("user").where({ id }).update(updatedData);
-      return await db("user").where({ id }).first(); // Return the updated user
+      return await db("user").where({ id }).first();
     } catch (error) {
       console.error("Error in User.update:", error);
       throw error;

@@ -1,5 +1,5 @@
 import db from "../db/dbConfig.js";
-
+//Operaciones CRUD para la tabla device
 export class Device {
   static async getAll(trx = null) {
     const q = trx || db;
@@ -42,7 +42,9 @@ export class Device {
     const q = trx || db;
     try {
       if (!deviceData.serial_number) throw new Error("serial_number requerido");
-      const existing = await q("device").where({ serial_number: deviceData.serial_number }).first();
+      const existing = await q("device")
+        .where({ serial_number: deviceData.serial_number })
+        .first();
       if (existing) {
         await q("device").where({ id: existing.id }).update(deviceData);
         return await q("device").where({ id: existing.id }).first();

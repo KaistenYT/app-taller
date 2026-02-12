@@ -4,7 +4,6 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import { ReceptionHistory } from "../model/receptionHistory.js";
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -95,11 +94,18 @@ const tables = [
       table.integer("reception_id").notNullable().unsigned();
       table.string("client_id").notNullable();
       table.integer("device_id").notNullable().unsigned();
+      table.integer("user_id").notNullable().unsigned();
       table.timestamp("reception_date").notNullable();
       table.string("status").notNullable();
       table.string("action").notNullable();
       table.timestamp("event_timestamp").defaultTo(db.fn.now());
       table.index(["reception_id"]);
+      table.index(["user_id"]);
+      table
+        .foreign("user_id")
+        .references("user.id")
+        .onDelete("RESTRICT")
+        .onUpdate("CASCADE");
     },
   },
 
@@ -109,6 +115,7 @@ const tables = [
       table.increments("id").primary().unique();
       table.string("username").notNullable().unique();
       table.string("password").notNullable();
+      table.string("role").notNullable().defaultTo("user");
     },
   },
 ];
@@ -129,7 +136,6 @@ async function createTables() {
     console.error("Error al crear tablas:", err);
   }
 }
-
 
 await createTables();
 

@@ -1,5 +1,5 @@
 import db from "../db/dbConfig.js";
-
+//Operaciones CRUD para la tabla reception
 export class Reception {
   static async getAll() {
     try {
@@ -16,12 +16,16 @@ export class Reception {
           "r.status",
           "r.defect",
           "r.created_at",
-          "r.archived"
+          "r.archived",
         );
-      return rows.map(r => {
+      return rows.map((r) => {
         try {
-          r.device_snapshot = r.device_snapshot ? JSON.parse(r.device_snapshot) : null;
-        } catch { r.device_snapshot = null; }
+          r.device_snapshot = r.device_snapshot
+            ? JSON.parse(r.device_snapshot)
+            : null;
+        } catch {
+          r.device_snapshot = null;
+        }
         return r;
       });
     } catch (error) {
@@ -44,10 +48,16 @@ export class Reception {
           "d.serial_number as device_serial",
           "r.defect",
           "r.created_at",
-          "r.archived"
+          "r.archived",
         );
-      return rows.map(r => {
-        try { r.device_snapshot = r.device_snapshot ? JSON.parse(r.device_snapshot) : null; } catch { r.device_snapshot = null; }
+      return rows.map((r) => {
+        try {
+          r.device_snapshot = r.device_snapshot
+            ? JSON.parse(r.device_snapshot)
+            : null;
+        } catch {
+          r.device_snapshot = null;
+        }
         return r;
       });
     } catch (error) {
@@ -67,14 +77,16 @@ export class Reception {
           "c.phone as client_phone",
           "d.description as device_description",
           "d.features as device_features",
-          "d.serial_number as device_serial"
+          "d.serial_number as device_serial",
         )
         .first();
 
       if (!rec) return null;
 
       try {
-        rec.device_snapshot = rec.device_snapshot ? JSON.parse(rec.device_snapshot) : null;
+        rec.device_snapshot = rec.device_snapshot
+          ? JSON.parse(rec.device_snapshot)
+          : null;
       } catch {
         rec.device_snapshot = null;
       }
@@ -85,21 +97,23 @@ export class Reception {
 
       return {
         ...rec,
-        reports
+        reports,
       };
     } catch (error) {
       throw new Error("Error al obtener detalles de la recepción");
     }
   }
 
-  static async getById(id) {
+  static async getById(id, transaction = null) {
     try {
-      const rec = await db("reception").where({ id }).first();
+      const knexInstance = transaction || db;
+      const rec = await knexInstance("reception").where({ id }).first();
       if (!rec) return null;
 
       try {
-       rec.device_snapshot = rec.device_snapshot ? JSON.parse(rec.device_snapshot) : null;
-
+        rec.device_snapshot = rec.device_snapshot
+          ? JSON.parse(rec.device_snapshot)
+          : null;
       } catch {
         rec.device_snapshot = null;
       }
@@ -111,49 +125,49 @@ export class Reception {
   }
 
   static async create(data) {
-  const trx = await db.transaction();
-  try {
-    const payload = { ...data };
-
-    
-    if (payload.device_snapshot && typeof payload.device_snapshot === "object") {
-      payload.device_snapshot = JSON.stringify(payload.device_snapshot);
-    }
-
-   
-    payload.created_at = payload.created_at || db.fn.now();
-    payload.updated_at = db.fn.now();
-
-    
-    const [id] = await trx("reception").insert(payload);
-    const created = await trx("reception").where({ id }).first();
-
-    await trx.commit();
-
-    
+    const trx = await db.transaction();
     try {
-      created.device_snapshot = created.device_snapshot
-        ? JSON.parse(created.device_snapshot)
-        : null;
-    } catch {
-      created.device_snapshot = null;
+      const payload = { ...data };
+
+      if (
+        payload.device_snapshot &&
+        typeof payload.device_snapshot === "object"
+      ) {
+        payload.device_snapshot = JSON.stringify(payload.device_snapshot);
+      }
+
+      payload.created_at = payload.created_at || db.fn.now();
+      payload.updated_at = db.fn.now();
+
+      const [id] = await trx("reception").insert(payload);
+      const created = await trx("reception").where({ id }).first();
+
+      await trx.commit();
+
+      try {
+        created.device_snapshot = created.device_snapshot
+          ? JSON.parse(created.device_snapshot)
+          : null;
+      } catch {
+        created.device_snapshot = null;
+      }
+
+      return created;
+    } catch (error) {
+      await trx.rollback();
+      throw new Error("Error al crear recepción");
     }
-
-    return created;
-    
-  } catch (error) {
-    await trx.rollback();
-    throw new Error("Error al crear recepción");
   }
-}
-
 
   static async update(id, data) {
     const trx = await db.transaction();
     try {
       const payload = { ...data };
 
-      if (payload.device_snapshot && typeof payload.device_snapshot === "object") {
+      if (
+        payload.device_snapshot &&
+        typeof payload.device_snapshot === "object"
+      ) {
         payload.device_snapshot = JSON.stringify(payload.device_snapshot);
       }
 
@@ -165,7 +179,9 @@ export class Reception {
       await trx.commit();
 
       try {
-        updated.device_snapshot = updated.device_snapshot ? JSON.parse(updated.device_snapshot) : null;
+        updated.device_snapshot = updated.device_snapshot
+          ? JSON.parse(updated.device_snapshot)
+          : null;
       } catch {
         updated.device_snapshot = null;
       }

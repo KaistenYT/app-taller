@@ -76,13 +76,8 @@
   }
 }
 
-#history-table .table tbody tr {
-  transition: all 0.2s ease;
-}
-
-#history-table .table tbody tr:hover {
-  background-color: #f8f9fa;
-  transform: translateX(2px);
+#history-table .table tbody tr:hover td {
+  background-color: #c7cace;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 

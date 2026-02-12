@@ -1,5 +1,5 @@
 import db from "../db/dbConfig.js";
-
+//Operaciones CRUD para la tabla report
 export class Reports {
   static async getAll(trx = null) {
     const q = trx || db;
@@ -15,7 +15,7 @@ export class Reports {
           "device.serial_number as device_serial",
           "device.description as device_description",
           "reception.defect as reception_defect",
-          "reception.status as reception_status"
+          "reception.status as reception_status",
         )
         .orderBy("report.created_at", "desc");
     } catch (err) {
@@ -40,7 +40,7 @@ export class Reports {
           "device.features as device_features",
           "reception.defect as reception_defect",
           "reception.status as reception_status",
-          "reception.repair as reception_repair"
+          "reception.repair as reception_repair",
         )
         .where({ "report.id": id })
         .first();
@@ -49,7 +49,7 @@ export class Reports {
     }
   }
 
-    static async getByReceptionId(reception_id, trx = null) {
+  static async getByReceptionId(reception_id, trx = null) {
     const q = trx || db;
     try {
       return await q("report")

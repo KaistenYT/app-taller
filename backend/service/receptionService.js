@@ -2,22 +2,156 @@ import db from "../db/dbConfig.js";
 import { Device } from "../model/device.js";
 import { Client } from "../model/client.js";
 import { Reception } from "../model/reception.js";
+import { ReceptionHistory } from "../model/receptionHistory.js"; // New Import
+import { User } from "../model/user.js"; // New Import
 
 
 export class ReceptionService {
-  static async listReceptions() {
-    return await Reception.getAll();
-    
+  /**
+   * Lista las recepciones, aplicando filtros, ordenamiento y paginación.
+   * @param {Object} filters - Objeto con los filtros a aplicar (ej. general, dateFrom, dateTo, orderBy, orderDirection, archived, limit, offset).
+   * @returns {Promise<Array<Object>>} Una promesa que resuelve con un array de objetos recepción.
+   */
+  static async listReceptions(filters = {}) {
+    const q = db("reception as r")
+      .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
+      .leftJoin("device as d", "r.device_id", "d.id")
+      .select(
+        "r.id",
+        "r.client_idNumber",
+        "r.device_id",
+        "r.defect",
+        "r.status",
+        "r.repair",
+        "r.device_snapshot",
+        "r.created_at",
+        "r.updated_at",
+        "r.archived",
+        "c.name as client_name",
+        "c.phone as client_phone",
+        "d.serial_number as device_serial",
+        "d.description as device_description"
+      );
+
+    if (filters.general) {
+      const searchTerm = `%${filters.general}%`;
+      q.andWhere(function () {
+        this.where("c.name", "like", searchTerm)
+          .orWhere("d.serial_number", "like", searchTerm)
+          .orWhere("d.description", "like", searchTerm)
+          .orWhere("r.defect", "like", searchTerm);
+      });
+    }
+
+    if (filters.dateFrom) {
+      q.where("r.created_at", ">=", filters.dateFrom);
+    }
+    if (filters.dateTo) {
+        // To include the entire day, add ' 23:59:59' to the date
+        q.where("r.created_at", "<=", filters.dateTo + ' 23:59:59');
+    }
+
+    if (typeof filters.archived === 'boolean') {
+        q.where('r.archived', filters.archived);
+    } else {
+        // Default to not showing archived if no specific filter is set
+        q.where('r.archived', false);
+    }
+
+    if (filters.orderBy && filters.orderDirection) {
+      const orderByColumn = filters.orderBy === "created_at" ? "r.created_at" : filters.orderBy;
+      q.orderBy(orderByColumn, filters.orderDirection);
+    } else {
+      q.orderBy("r.created_at", "desc"); // Default order
+    }
+
+    // Apply pagination
+    const limit = Number(filters.limit) || 10;
+    const offset = Number(filters.offset) || 0;
+    q.limit(limit).offset(offset);
+
+    const rows = await q;
+    return rows.map((r) => {
+      try {
+        r.device_snapshot = r.device_snapshot
+          ? JSON.parse(r.device_snapshot)
+          : null;
+      } catch {
+        r.device_snapshot = null;
+      }
+      return r;
+    });
   }
 
+  /**
+   * Cuenta el número total de recepciones que coinciden con los filtros dados.
+   * @param {Object} filters - Objeto con los filtros a aplicar.
+   * @returns {Promise<number>} Una promesa que resuelve con el número total de recepciones.
+   */
+  static async countReceptions(filters = {}) {
+    const q = db("reception as r")
+      .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
+      .leftJoin("device as d", "r.device_id", "d.id")
+      .count({ count: "*" }); // Select count of all matching rows
+
+    if (filters.general) {
+      const searchTerm = `%${filters.general}%`;
+      q.andWhere(function () {
+        this.where("c.name", "like", searchTerm)
+          .orWhere("d.serial_number", "like", searchTerm)
+          .orWhere("d.description", "like", searchTerm)
+          .orWhere("r.defect", "like", searchTerm);
+      });
+    }
+
+    if (filters.dateFrom) {
+      q.where("r.created_at", ">=", filters.dateFrom);
+    }
+    if (filters.dateTo) {
+        // To include the entire day, add ' 23:59:59' to the date
+        q.where("r.created_at", "<=", filters.dateTo + ' 23:59:59');
+    }
+
+    if (typeof filters.archived === 'boolean') {
+        q.where('r.archived', filters.archived);
+    } else {
+        // Default to not showing archived if no specific filter is set
+        q.where('r.archived', false);
+    }
+
+    if (filters.orderBy && filters.orderDirection) {
+      const orderByColumn = filters.orderBy === "created_at" ? "r.created_at" : filters.orderBy;
+      q.orderBy(orderByColumn, filters.orderDirection);
+    } else {
+      q.orderBy("r.created_at", "desc"); // Default order
+    }
+
+    const result = await q.first();
+    return result ? result.count : 0;
+  }
+
+  /**
+   * Lista todas las recepciones archivadas.
+   * @returns {Promise<Array<Object>>} Una promesa que resuelve con un array de objetos recepción archivados.
+   */
   static async listArchivedReceptions() {
     return await Reception.getAllArchived();
   }
 
+  /**
+   * Obtiene una recepción específica por su ID.
+   * @param {number} id - El ID único de la recepción.
+   * @returns {Promise<Object|null>} Una promesa que resuelve con el objeto recepción o null si no se encuentra.
+   */
   static async getReception(id) {
     return await Reception.getById(id);
   }
 
+  /**
+   * Obtiene los detalles completos de una recepción, incluyendo información de cliente y equipo.
+   * @param {number} id - El ID único de la recepción.
+   * @returns {Promise<Object>} Una promesa que resuelve con un objeto detallado de la recepción.
+   */
   static async getReceptionDetails(id) {
     try {
       const reception = await Reception.getById(id);
@@ -41,34 +175,61 @@ export class ReceptionService {
     }
   }
 
-  static async archiveReception(id) {
+  /**
+   * Archiva una recepción, marcándola como archivada y registrando la acción en el historial.
+   * @param {number} id - El ID de la recepción a archivar.
+   * @param {number} user_id - El ID del usuario que realiza la acción.
+   * @returns {Promise<boolean>} Una promesa que resuelve a true si la operación fue exitosa.
+   */
+  static async archiveReception(id, user_id) {
     const reception = await Reception.getById(id);
     if (!reception) throw new Error("Recepcion no encontrada");
-    try {
-      await db("reception_history").insert({
-        reception_id: reception.id,
-        client_id: reception.client_idNumber,
-        device_id: reception.device_id,
-        reception_date: reception.created_at,
-        status: reception.status,
-        action: "ARCHIVED",
-        event_timestamp: db.fn.now(),
-      });
-    } catch (err) {
-      throw new Error("Error al archivar recepcion");
-    }
+
+    await ReceptionHistory.log({
+      reception_id: reception.id,
+      client_id: reception.client_idNumber,
+      device_id: reception.device_id,
+      user_id: user_id,
+      reception_date: reception.created_at,
+      status: reception.status,
+      action: "ARCHIVED",
+    });
 
     await Reception.archive(id);
     return true;
   }
 
-  static async restoreReception(id) {
+  /**
+   * Restaura una recepción archivada, marcándola como activa y registrando la acción en el historial.
+   * @param {number} id - El ID de la recepción a restaurar.
+   * @param {number} user_id - El ID del usuario que realiza la acción.
+   * @returns {Promise<boolean>} Una promesa que resuelve a true si la operación fue exitosa.
+   */
+  static async restoreReception(id, user_id) {
     const reception = await Reception.getById(id);
     if (!reception) throw new Error("Recepción no encontrada");
+
+    await ReceptionHistory.log({
+      reception_id: reception.id,
+      client_id: reception.client_idNumber,
+      device_id: reception.device_id,
+      user_id: user_id,
+      reception_date: reception.created_at,
+      status: reception.status,
+      action: "RESTORED",
+    });
+
     return await Reception.restore(id);
   }
 
-  static async createReception(data) {
+  /**
+   * Crea una nueva recepción y registra la acción en el historial.
+   * Realiza un proceso transaccional que incluye la gestión del cliente y el equipo asociados.
+   * @param {Object} data - Objeto con los datos de la nueva recepción.
+   * @param {number} user_id - El ID del usuario que crea la recepción.
+   * @returns {Promise<Object>} Una promesa que resuelve con el objeto de la recepción creada.
+   */
+  static async createReception(data, user_id) {
     const trx = await db.transaction();
     try {
       if (!data || typeof data !== "object") {
@@ -78,14 +239,12 @@ export class ReceptionService {
       const { client_idNumber, client_name, client_phone } = data;
       if (!client_idNumber) throw new Error("create-reception: client_idNumber es requerido");
 
-     
       let client = await Client.getById(client_idNumber, trx);
       if (!client) {
         if (!client_name) throw new Error("create-reception: client_name es requerido para crear cliente");
         client = await Client.create({ idNumber: client_idNumber, name: client_name, phone: client_phone || null }, trx);
       }
 
-     
       let deviceId = data.device_id;
       let device = null;
 
@@ -109,7 +268,6 @@ export class ReceptionService {
 
       if (!deviceId) throw new Error("create-reception: no se pudo resolver device_id");
 
-    
       const snapshot = data.device_snapshot || {
         id: device.id,
         serial_number: device.serial_number,
@@ -133,6 +291,16 @@ export class ReceptionService {
       const [id] = await trx("reception").insert(payload);
       const created = await trx("reception").where({ id }).first();
 
+      await ReceptionHistory.log({
+        reception_id: created.id,
+        client_id: created.client_idNumber,
+        device_id: created.device_id,
+        user_id: user_id,
+        reception_date: created.created_at,
+        status: created.status,
+        action: "CREATED",
+      }, trx);
+
       await trx.commit();
 
       try {
@@ -148,20 +316,32 @@ export class ReceptionService {
     }
   }
 
-  static async updateReception(id, data) {
+  /**
+   * Actualiza una recepción existente y registra la acción en el historial.
+   * Realiza un proceso transaccional que incluye la posible actualización del cliente asociado.
+   * @param {number} id - El ID de la recepción a actualizar.
+   * @param {Object} data - Objeto con los datos a actualizar de la recepción.
+   * @param {number} user_id - El ID del usuario que realiza la actualización.
+   * @returns {Promise<Object>} Una promesa que resuelve con el objeto de la recepción actualizada.
+   */
+  static async updateReception(id, data, user_id) {
     const trx = await db.transaction();
     try {
       const receptionId = Number(id);
       if (!receptionId || isNaN(receptionId)) throw new Error("update-reception: id inválido");
       if (!data || typeof data !== "object") throw new Error("update-reception: datos inválidos");
 
-    
+      const originalReception = await Reception.getById(receptionId, trx);
+      if (!originalReception) throw new Error("Recepción no encontrada para actualizar");
+
       if (data.client_idNumber && (data.client_name || data.client_phone)) {
         const update = {};
         if (data.client_name) update.name = data.client_name;
         if (data.client_phone) update.phone = data.client_phone;
 
-        await trx("client").where({ idNumber: data.client_idNumber }).update(update);
+        if (Object.keys(update).length > 0) {
+          await trx("client").where({ idNumber: data.client_idNumber }).update(update);
+        }
       }
 
       const snapshot = data.device_snapshot
@@ -183,6 +363,16 @@ export class ReceptionService {
       await trx("reception").where({ id: receptionId }).update(updatePayload);
       const updated = await trx("reception").where({ id: receptionId }).first();
 
+      await ReceptionHistory.log({
+        reception_id: updated.id,
+        client_id: updated.client_idNumber,
+        device_id: updated.device_id,
+        user_id: user_id,
+        reception_date: originalReception.created_at,
+        status: updated.status,
+        action: "UPDATED",
+      }, trx);
+
       await trx.commit();
 
       try {
@@ -198,7 +388,32 @@ export class ReceptionService {
     }
   }
 
-  static async deleteReception(id) {
+  /**
+   * Elimina una recepción por su ID, registrando la acción en el historial.
+   * Requiere rol de administrador.
+   * @param {number} id - El ID de la recepción a eliminar.
+   * @param {number} user_id - El ID del usuario que realiza la acción.
+   * @param {string} user_role - El rol del usuario que realiza la acción ('admin' requerido).
+   * @returns {Promise<boolean>} Una promesa que resuelve a true si la eliminación fue exitosa.
+   */
+  static async deleteReception(id, user_id, user_role) {
+    if (user_role !== 'admin') {
+      throw new Error("Permiso denegado: Solo administradores pueden eliminar recepciones.");
+    }
+
+    const reception = await Reception.getById(id);
+    if (!reception) throw new Error("Recepción no encontrada");
+
+    await ReceptionHistory.log({
+      reception_id: reception.id,
+      client_id: reception.client_idNumber,
+      device_id: reception.device_id,
+      user_id: user_id,
+      reception_date: reception.created_at,
+      status: reception.status,
+      action: "DELETED",
+    });
+
     return await Reception.delete(id);
   }
 }

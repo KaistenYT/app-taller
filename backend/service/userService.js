@@ -1,6 +1,11 @@
 import { User } from "../model/user.js";
 
 export class UserService {
+  /**
+   * Registra un nuevo usuario en el sistema.
+   * @param {Object} userData - Objeto con los datos del usuario (username, password).
+   * @returns {Promise<Object>} Una promesa que resuelve con el objeto del usuario creado.
+   */
   static async registerUser(userData) {
     try {
       if (!userData?.username || !userData?.password) {
@@ -17,6 +22,12 @@ export class UserService {
     }
   }
 
+  /**
+   * Autentica a un usuario.
+   * @param {string} username - El nombre de usuario.
+   * @param {string} password - La contraseña del usuario.
+   * @returns {Promise<Object>} Una promesa que resuelve con un objeto de usuario simplificado si las credenciales son válidas.
+   */
   static async login(username, password) {
     try {
       if (!username || !password) {
@@ -29,12 +40,18 @@ export class UserService {
       return {
         id: user.id,
         username: user.username,
+        role: user.role, // Added role
       };
     } catch (error) {
       throw error;
     }
   }
 
+  /**
+   * Obtiene un usuario por su ID único.
+   * @param {number} id - El ID único del usuario.
+   * @returns {Promise<Object|null>} Una promesa que resuelve con el objeto usuario o null si no se encuentra.
+   */
   static async getByUserId(id) {
     try {
       if (!id) {
@@ -46,6 +63,12 @@ export class UserService {
     }
   }
 
+  /**
+   * Restablece la contraseña de un usuario.
+   * @param {string} username - El nombre de usuario cuya contraseña se va a restablecer.
+   * @param {string} newPassword - La nueva contraseña.
+   * @returns {Promise<Object>} Una promesa que resuelve con el objeto del usuario actualizado.
+   */
   static async resetPassword(username, newPassword) {
     try {
       if (!username || !newPassword) {
@@ -60,7 +83,7 @@ export class UserService {
       // If not, we would need to import a hashing utility here.
       // Assuming User.update method exists and can update password
       const updatedUser = await User.update(user.id, { password: newPassword });
-      
+
       return updatedUser;
     } catch (error) {
       console.error("Error in UserService.resetPassword:", error);
