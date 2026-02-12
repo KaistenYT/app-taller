@@ -215,21 +215,21 @@ const registerHandlers = () => {
       );
       return await ReceptionHistoryService.countHistory(filters || {});
     },
-
-    // User password reset
-    "reset-user-password": async (event, { username, newPassword }) => {
-      if (!username || !newPassword) {
-        throw new Error("reset-user-password: username and newPassword are required");
+    "show-message-box": async (event, options) => {
+      console.log(
+        "main.js: Received show-message-box request with options:",
+        options,
+      );
+      const browserWindow = BrowserWindow.fromWebContents(event.sender);
+      if (!browserWindow) {
+        console.error(
+          "main.js: Could not find BrowserWindow for event sender.",
+        );
+        return { response: -1, checkboxChecked: false };
       }
-      try {
-        await UserService.resetPassword(username, newPassword);
-        return { success: true };
-      } catch (error) {
-        console.error("Error resetting user password:", error);
-        return { success: false, message: error.message };
-      }
+      console.log("main.js: Target BrowserWindow:", browserWindow.getTitle());
+      return await dialog.showMessageBox(browserWindow, options);
     },
-
   };
 
   // Registrar manejadores estándar
