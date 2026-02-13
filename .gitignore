@@ -39,3 +39,5 @@ Thumbs.db
 IMPROVEMENTS.md
 PERFORMANCE.md
 PRD_frontend_svelte_refactored.md
+/dist
+/frontend/react/app-taller/dist

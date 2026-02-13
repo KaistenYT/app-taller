@@ -1,40 +1,26 @@
 {
   "name": "nanologic-app",
+  "productName": "NanoLogic",
   "version": "1.0.0",
+  "description": "Sistema de gestión de taller técnico - NanoLogic",
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
     "start": "electron .",
     "dev": "concurrently \"npm run dev --prefix frontend/react/app-taller\" \"cross-env DEV=true npm start\"",
     "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "build:frontend": "npm run build --prefix frontend/react/app-taller",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "build": "npm run build:frontend && npm run make"
   },
   "keywords": [],
-  "author": "",
+  "author": "NanoLogic",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "knex": "^3.1.0",
     "sqlite3": "^5.0.2"
-  },
-  "config": {
-    "forge": {
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin",
-            "linux"
-          ]
-        }
-      ]
-    }
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",

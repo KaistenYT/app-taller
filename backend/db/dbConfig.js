@@ -7,14 +7,32 @@ import { ReceptionHistory } from "../model/receptionHistory.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-if (!fs.existsSync(__dirname)) {
-  fs.mkdirSync(__dirname, { recursive: true });
+// En producción (empaquetado), la DB va en userData para que sea escribible.
+// En desarrollo, se usa la carpeta local del proyecto.
+let dbDir;
+try {
+  const { app } = await import("electron");
+  const isPackaged = app.isPackaged;
+  if (isPackaged) {
+    dbDir = path.join(app.getPath("userData"), "data");
+  } else {
+    dbDir = __dirname;
+  }
+} catch {
+  // Fallback (tests, entorno sin Electron)
+  dbDir = __dirname;
 }
+
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const dbPath = path.join(dbDir, "db.sqlite");
 
 const db = knexLib({
   client: "sqlite3",
   connection: {
-    filename: path.join(__dirname, "db.sqlite"),
+    filename: dbPath,
   },
   useNullAsDefault: true,
   pool: {

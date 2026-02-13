@@ -30,7 +30,7 @@ const createWindow = () => {
     win.loadURL("http://localhost:5173");
   } else {
     win.loadFile(
-      path.join(__dirname, "../frontend/react/app-taller/index.html"),
+      path.join(__dirname, "../frontend/react/app-taller/dist/index.html"),
     );
   }
 };
@@ -181,7 +181,7 @@ const registerHandlers = () => {
         } else {
           const filePath = path.join(
             __dirname,
-            "../frontend/react/app-taller/index.html",
+            "../frontend/react/app-taller/dist/index.html",
           );
           await win.loadFile(filePath, { hash: `/report/${reportId}` });
         }
