@@ -53,7 +53,8 @@ export class Device {
         return await q("device").where({ id }).first();
       }
     } catch (err) {
-      throw new Error("Error al upsert dispositivo");
+      console.error("Error detailed in upsertBySerial:", err);
+      throw new Error(`Error al upsert dispositivo: ${err.message}`);
     }
   }
 

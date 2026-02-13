@@ -6,13 +6,12 @@ import { ReceptionService } from "../backend/service/receptionService.js";
 import { ClientService } from "../backend/service/clientService.js";
 import { ReportService } from "../backend/service/reportService.js";
 import { UserService } from "../backend/service/userService.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const isDev = process.env.DEV === "true";
 
-/**
- * Crea la ventana principal de la aplicación Electron.
- * Configura las webPreferences, incluyendo el script de precarga (preload.cjs) para la comunicación IPC.
- */
+// Configura la ventana principal
 const createWindow = () => {
   const win = new BrowserWindow({
     width: 1200,
@@ -24,179 +23,145 @@ const createWindow = () => {
       sandbox: false,
     },
   });
-  win.removeMenu(); // Elimina el menú predeterminado de Electron
 
-  win.loadFile(path.join(__dirname, "../frontend/views/login.html")); // Carga la página de inicio de sesión
+  win.removeMenu();
+
+  if (isDev) {
+    win.loadURL("http://localhost:5173");
+  } else {
+    win.loadFile(
+      path.join(__dirname, "../frontend/react/app-taller/index.html"),
+    );
+  }
 };
 
-// Eventos del ciclo de vida de la aplicación Electron
 app.whenReady().then(() => {
-  createWindow(); // Crea la ventana cuando la aplicación está lista
+  createWindow();
   app.on("activate", () => {
-    // Recrea la ventana si la aplicación está activa y no hay ventanas abiertas (ej. al hacer clic en el icono del dock en macOS)
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on("window-all-closed", () => {
-  // Cierra la aplicación cuando todas las ventanas están cerradas, excepto en macOS donde es común que la aplicación siga ejecutándose en segundo plano
   if (process.platform !== "darwin") app.quit();
 });
 
-/**
- * Wrapper para manejadores IPC que añade un bloque try-catch para manejar errores de forma segura.
- * Esto evita que los errores en los manejadores IPC bloqueen el proceso principal de Electron.
- * @param {Function} fn - La función del manejador IPC original.
- * @returns {Function} Una función manejadora envuelta con manejo de errores.
- */
+// Wrapper para manejo de errores en IPC
 const safeHandler =
   (fn) =>
   async (event, ...args) => {
     try {
       return await fn(event, ...args);
     } catch (err) {
-      // Los errores se propagan de vuelta al proceso de renderizado que invocó el IPC
       throw err;
     }
   };
 
-/**
- * Registra todos los manejadores de comunicación IPC (Inter-Process Communication) entre el proceso de renderizado (frontend)
- * y el proceso principal (backend de Electron).
- * Cada manejador se asocia a un canal específico y llama a un método del servicio correspondiente.
- */
+// Registro de manejadores IPC
 const registerHandlers = () => {
   const handlers = {
-    // Manejadores IPC para servicios de Dispositivos
+    // Dispositivos
     "list-devices": () => DeviceService.listDevices(),
     "get-device": (event, id) => {
-      if (!id) throw new Error("get-device: id es requerido");
+      if (!id) throw new Error("ID requerido");
       return DeviceService.getDevice(id);
     },
     "get-device-by-serial": (event, serial) => {
-      if (!serial) throw new Error("get-device-by-serial: serial es requerido");
+      if (!serial) throw new Error("Serial requerido");
       return DeviceService.getDeviceBySerial(serial);
     },
     "create-device": (event, data) => {
-      if (!data || typeof data !== "object")
-        throw new Error("create-device: datos de dispositivo son requeridos");
+      if (!data) throw new Error("Datos requeridos");
       return DeviceService.createDevice(data);
     },
     "upsert-device-by-serial": (event, data) => {
-      if (!data || typeof data !== "object")
-        throw new Error("upsert-device-by-serial: datos de dispositivo son requeridos");
+      if (!data) throw new Error("Datos requeridos");
       return DeviceService.upsertDeviceBySerial(data);
     },
     "update-device": (event, id, data) => {
-      if (!id || !data || typeof data !== "object")
-        throw new Error("update-device: id y datos de dispositivo son requeridos");
+      if (!id || !data) throw new Error("ID y datos requeridos");
       return DeviceService.updateDevice(id, data);
     },
     "delete-device": (event, id) => {
-      if (!id) throw new Error("delete-device: id es requerido");
+      if (!id) throw new Error("ID requerido");
       return DeviceService.deleteDevice(id);
     },
 
-    // Manejadores IPC para servicios de Clientes
+    // Clientes
     "list-clients": () => ClientService.listClients(),
     "get-client": (event, id) => {
-      if (!id) throw new Error("get-client: id es requerido");
+      if (!id) throw new Error("ID requerido");
       return ClientService.getClient(id);
     },
     "create-client": (event, data) => {
-      if (!data || typeof data !== "object")
-        throw new Error("create-client: datos de cliente son requeridos");
+      if (!data) throw new Error("Datos requeridos");
       return ClientService.createClient(data);
     },
     "update-client": (event, id, data) => {
-      if (!id || !data || typeof data !== "object")
-        throw new Error("update-client: id y datos de cliente son requeridos");
+      if (!id || !data) throw new Error("ID y datos requeridos");
       return ClientService.updateClient(id, data);
     },
     "delete-client": (event, id) => {
-      if (!id) throw new Error("delete-client: id es requerido");
+      if (!id) throw new Error("ID requerido");
       return ClientService.deleteClient(id);
     },
 
-    // Manejadores IPC para servicios de Recepciones
+    // Recepciones
     "list-receptions": (event, filters) =>
       ReceptionService.listReceptions(filters),
     "count-receptions": (event, filters) =>
       ReceptionService.countReceptions(filters),
     "list-archived-receptions": () => ReceptionService.listArchivedReceptions(),
     "get-reception": (event, id) => {
-      if (!id) throw new Error("get-reception: id es requerido");
+      if (!id) throw new Error("ID requerido");
       return ReceptionService.getReception(id);
     },
     "create-reception": async (event, { data, user_id }) => {
-      console.log("create-reception:", data, "by user:", user_id);
-      const result = await ReceptionService.createReception(data, user_id);
-      console.log("reception created:", result);
-      return result;
+      return await ReceptionService.createReception(data, user_id);
     },
     "update-reception": async (event, { id, data, user_id }) => {
-      console.log("update-reception:", { id, data }, "by user:", user_id);
-      const result = await ReceptionService.updateReception(id, data, user_id);
-      console.log("reception updated:", result);
-      return result;
+      return await ReceptionService.updateReception(id, data, user_id);
     },
     "delete-reception": async (event, { id, user_id, user_role }) => {
-      if (!id) throw new Error("delete-reception: id es requerido");
-      if (!user_id || !user_role)
-        throw new Error("delete-reception: user_id y user_role son requeridos");
-      console.log(
-        "delete-reception:",
-        id,
-        "by user:",
-        user_id,
-        "con rol:",
-        user_role,
-      );
+      if (!id || !user_id) throw new Error("ID y usuario requeridos");
       return await ReceptionService.deleteReception(id, user_id, user_role);
     },
     "archive-reception": async (event, { id, user_id }) => {
-      if (!id) throw new Error("archive-reception: id es requerido");
-      if (!user_id) throw new Error("archive-reception: user_id es requerido");
-      console.log("archive-reception:", id, "by user:", user_id);
+      if (!id) throw new Error("ID requerido");
       return await ReceptionService.archiveReception(id, user_id);
     },
     "restore-reception": async (event, { id, user_id }) => {
-      if (!id) throw new Error("restore-reception: id es requerido");
-      if (!user_id) throw new Error("restore-reception: user_id es requerido");
-      console.log("restore-reception:", id, "by user:", user_id);
+      if (!id) throw new Error("ID requerido");
       return await ReceptionService.restoreReception(id, user_id);
     },
     "reception-details": (event, id) => {
-      if (!id) throw new Error("reception-details: id es requerido");
+      if (!id) throw new Error("ID requerido");
       return ReceptionService.getReceptionDetails(id);
     },
 
-    // Manejadores IPC para servicios de Reportes
+    // Reportes
     "list-reports": () => ReportService.listReports(),
     "get-report": (event, id) => {
-      if (!id) throw new Error("get-report: id es requerido");
+      if (!id) throw new Error("ID requerido");
       return ReportService.getReport(id);
     },
     "create-report": (event, data) => {
-      if (!data || typeof data !== "object")
-        throw new Error("create-report: datos de reporte son requeridos");
+      if (!data) throw new Error("Datos requeridos");
       return ReportService.createReport(data);
     },
     "update-report": (event, id, data) => {
-      if (!id || !data || typeof data !== "object")
-        throw new Error("update-report: id y datos de reporte son requeridos");
+      if (!id || !data) throw new Error("ID y datos requeridos");
       return ReportService.updateReport(id, data);
     },
     "delete-report": (event, id) => {
-      if (!id) throw new Error("delete-report: id es requerido");
+      if (!id) throw new Error("ID requerido");
       return ReportService.deleteReport(id);
     },
     "get-report-by-reception": async (event, receptionId) => {
       return await ReportService.getReportsByReception(receptionId);
     },
     "open-report-window": async (event, reportId) => {
-      if (!reportId)
-        throw new Error("open-report-window: reportId es requerido");
+      if (!reportId) throw new Error("Reporte ID requerido");
       try {
         const win = new BrowserWindow({
           width: 900,
@@ -209,33 +174,43 @@ const registerHandlers = () => {
           },
         });
         win.removeMenu();
-        const filePath = path.join(__dirname, "../frontend/views/report.html");
-        await win.loadFile(filePath, { query: { id: String(reportId) } });
+
+        if (isDev) {
+          const url = `http://localhost:5173/#/report/${reportId}`;
+          await win.loadURL(url);
+        } else {
+          const filePath = path.join(
+            __dirname,
+            "../frontend/react/app-taller/index.html",
+          );
+          await win.loadFile(filePath, { hash: `/report/${reportId}` });
+        }
         win.show();
         return { ok: true };
       } catch (err) {
-        console.error("Fallo al abrir ventana de reporte:", err);
         throw err;
       }
     },
     "create-report-from-reception": async (event, receptionId) => {
-      if (!receptionId)
-        throw new Error(
-          "create-report-from-reception: receptionId es requerido",
-        );
+      if (!receptionId) throw new Error("ID requerido");
       return await ReportService.createReportFromReception(receptionId);
     },
 
-    // Manejadores IPC para servicios de Usuario
+    // Usuarios
     "login-user": (event, username, password) => {
       return UserService.login(username, password);
     },
     "register-user": async (event, userData) => {
-      if (!userData || !userData.username || !userData.password)
-        throw new Error("register-user: username y password son requeridos");
+      if (!userData?.username || !userData?.password)
+        throw new Error("Datos incompletos");
       return await UserService.registerUser(userData);
     },
-    // Manejadores IPC para el historial de recepciones (auditoría)
+    "reset-user-password": async (event, { username, newPassword }) => {
+      if (!username || !newPassword) throw new Error("Datos incompletos");
+      return await UserService.resetPassword(username, newPassword);
+    },
+
+    // Historial
     "list-reception-history": async (event, filters) => {
       const { ReceptionHistoryService } = await import(
         "../backend/service/receptionHistoryService.js"
@@ -250,19 +225,9 @@ const registerHandlers = () => {
     },
   };
 
-  // Registrar manejadores estándar
   for (const [channel, handler] of Object.entries(handlers)) {
     ipcMain.handle(channel, safeHandler(handler));
   }
-
-  // Registrar manejador específico para listar reportes con prefijo
-  ipcMain.handle(
-    "report:list-reports",
-    safeHandler(async () => {
-      return await ReportService.listReports();
-    }),
-  );
 };
 
-// Se llama para iniciar el registro de todos los manejadores IPC
 registerHandlers();

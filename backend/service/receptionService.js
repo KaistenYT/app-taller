@@ -5,7 +5,6 @@ import { Reception } from "../model/reception.js";
 import { ReceptionHistory } from "../model/receptionHistory.js"; // New Import
 import { User } from "../model/user.js"; // New Import
 
-
 export class ReceptionService {
   /**
    * Lista las recepciones, aplicando filtros, ordenamiento y paginación.
@@ -30,7 +29,7 @@ export class ReceptionService {
         "c.name as client_name",
         "c.phone as client_phone",
         "d.serial_number as device_serial",
-        "d.description as device_description"
+        "d.description as device_description",
       );
 
     if (filters.general) {
@@ -47,19 +46,20 @@ export class ReceptionService {
       q.where("r.created_at", ">=", filters.dateFrom);
     }
     if (filters.dateTo) {
-        // To include the entire day, add ' 23:59:59' to the date
-        q.where("r.created_at", "<=", filters.dateTo + ' 23:59:59');
+      // To include the entire day, add ' 23:59:59' to the date
+      q.where("r.created_at", "<=", filters.dateTo + " 23:59:59");
     }
 
-    if (typeof filters.archived === 'boolean') {
-        q.where('r.archived', filters.archived);
+    if (typeof filters.archived === "boolean") {
+      q.where("r.archived", filters.archived);
     } else {
-        // Default to not showing archived if no specific filter is set
-        q.where('r.archived', false);
+      // Default to not showing archived if no specific filter is set
+      q.where("r.archived", false);
     }
 
     if (filters.orderBy && filters.orderDirection) {
-      const orderByColumn = filters.orderBy === "created_at" ? "r.created_at" : filters.orderBy;
+      const orderByColumn =
+        filters.orderBy === "created_at" ? "r.created_at" : filters.orderBy;
       q.orderBy(orderByColumn, filters.orderDirection);
     } else {
       q.orderBy("r.created_at", "desc"); // Default order
@@ -108,19 +108,20 @@ export class ReceptionService {
       q.where("r.created_at", ">=", filters.dateFrom);
     }
     if (filters.dateTo) {
-        // To include the entire day, add ' 23:59:59' to the date
-        q.where("r.created_at", "<=", filters.dateTo + ' 23:59:59');
+      // To include the entire day, add ' 23:59:59' to the date
+      q.where("r.created_at", "<=", filters.dateTo + " 23:59:59");
     }
 
-    if (typeof filters.archived === 'boolean') {
-        q.where('r.archived', filters.archived);
+    if (typeof filters.archived === "boolean") {
+      q.where("r.archived", filters.archived);
     } else {
-        // Default to not showing archived if no specific filter is set
-        q.where('r.archived', false);
+      // Default to not showing archived if no specific filter is set
+      q.where("r.archived", false);
     }
 
     if (filters.orderBy && filters.orderDirection) {
-      const orderByColumn = filters.orderBy === "created_at" ? "r.created_at" : filters.orderBy;
+      const orderByColumn =
+        filters.orderBy === "created_at" ? "r.created_at" : filters.orderBy;
       q.orderBy(orderByColumn, filters.orderDirection);
     } else {
       q.orderBy("r.created_at", "desc"); // Default order
@@ -237,28 +238,46 @@ export class ReceptionService {
       }
 
       const { client_idNumber, client_name, client_phone } = data;
-      if (!client_idNumber) throw new Error("create-reception: client_idNumber es requerido");
+      if (!client_idNumber)
+        throw new Error("create-reception: client_idNumber es requerido");
 
       let client = await Client.getById(client_idNumber, trx);
       if (!client) {
-        if (!client_name) throw new Error("create-reception: client_name es requerido para crear cliente");
-        client = await Client.create({ idNumber: client_idNumber, name: client_name, phone: client_phone || null }, trx);
+        if (!client_name)
+          throw new Error(
+            "create-reception: client_name es requerido para crear cliente",
+          );
+        client = await Client.create(
+          {
+            idNumber: client_idNumber,
+            name: client_name,
+            phone: client_phone || null,
+          },
+          trx,
+        );
       }
 
       let deviceId = data.device_id;
       let device = null;
 
       if (!deviceId) {
-        const info = data.device || (data.device_serial ? { serial_number: data.device_serial } : null);
-        if (!info?.serial_number) throw new Error("create-reception: serial del equipo es requerido");
+        const info =
+          data.device ||
+          (data.device_serial ? { serial_number: data.device_serial } : null);
+        if (!info?.serial_number)
+          throw new Error("create-reception: serial del equipo es requerido");
 
         device = await Device.getBySerial(info.serial_number, trx);
         if (!device) {
-          device = await Device.upsertBySerial({
-            serial_number: info.serial_number,
-            description: info.description || null,
-            features: info.features || null,
-          }, trx);
+          device = await Device.upsertBySerial(
+            {
+              serial_number: info.serial_number,
+              description: info.description || null,
+              features: info.features || null,
+              // Removed: brand, model, type (not in schema)
+            },
+            trx,
+          );
         }
 
         deviceId = device.id;
@@ -266,7 +285,8 @@ export class ReceptionService {
         device = await Device.getById(deviceId, trx);
       }
 
-      if (!deviceId) throw new Error("create-reception: no se pudo resolver device_id");
+      if (!deviceId)
+        throw new Error("create-reception: no se pudo resolver device_id");
 
       const snapshot = data.device_snapshot || {
         id: device.id,
@@ -291,15 +311,18 @@ export class ReceptionService {
       const [id] = await trx("reception").insert(payload);
       const created = await trx("reception").where({ id }).first();
 
-      await ReceptionHistory.log({
-        reception_id: created.id,
-        client_id: created.client_idNumber,
-        device_id: created.device_id,
-        user_id: user_id,
-        reception_date: created.created_at,
-        status: created.status,
-        action: "CREATED",
-      }, trx);
+      await ReceptionHistory.log(
+        {
+          reception_id: created.id,
+          client_id: created.client_idNumber,
+          device_id: created.device_id,
+          user_id: user_id,
+          reception_date: created.created_at,
+          status: created.status,
+          action: "CREATED",
+        },
+        trx,
+      );
 
       await trx.commit();
 
@@ -328,11 +351,14 @@ export class ReceptionService {
     const trx = await db.transaction();
     try {
       const receptionId = Number(id);
-      if (!receptionId || isNaN(receptionId)) throw new Error("update-reception: id inválido");
-      if (!data || typeof data !== "object") throw new Error("update-reception: datos inválidos");
+      if (!receptionId || isNaN(receptionId))
+        throw new Error("update-reception: id inválido");
+      if (!data || typeof data !== "object")
+        throw new Error("update-reception: datos inválidos");
 
       const originalReception = await Reception.getById(receptionId, trx);
-      if (!originalReception) throw new Error("Recepción no encontrada para actualizar");
+      if (!originalReception)
+        throw new Error("Recepción no encontrada para actualizar");
 
       if (data.client_idNumber && (data.client_name || data.client_phone)) {
         const update = {};
@@ -340,7 +366,9 @@ export class ReceptionService {
         if (data.client_phone) update.phone = data.client_phone;
 
         if (Object.keys(update).length > 0) {
-          await trx("client").where({ idNumber: data.client_idNumber }).update(update);
+          await trx("client")
+            .where({ idNumber: data.client_idNumber })
+            .update(update);
         }
       }
 
@@ -363,20 +391,25 @@ export class ReceptionService {
       await trx("reception").where({ id: receptionId }).update(updatePayload);
       const updated = await trx("reception").where({ id: receptionId }).first();
 
-      await ReceptionHistory.log({
-        reception_id: updated.id,
-        client_id: updated.client_idNumber,
-        device_id: updated.device_id,
-        user_id: user_id,
-        reception_date: originalReception.created_at,
-        status: updated.status,
-        action: "UPDATED",
-      }, trx);
+      await ReceptionHistory.log(
+        {
+          reception_id: updated.id,
+          client_id: updated.client_idNumber,
+          device_id: updated.device_id,
+          user_id: user_id,
+          reception_date: originalReception.created_at,
+          status: updated.status,
+          action: "UPDATED",
+        },
+        trx,
+      );
 
       await trx.commit();
 
       try {
-        updated.device_snapshot = updated.device_snapshot ? JSON.parse(updated.device_snapshot) : null;
+        updated.device_snapshot = updated.device_snapshot
+          ? JSON.parse(updated.device_snapshot)
+          : null;
       } catch {
         updated.device_snapshot = null;
       }
@@ -397,8 +430,10 @@ export class ReceptionService {
    * @returns {Promise<boolean>} Una promesa que resuelve a true si la eliminación fue exitosa.
    */
   static async deleteReception(id, user_id, user_role) {
-    if (user_role !== 'admin') {
-      throw new Error("Permiso denegado: Solo administradores pueden eliminar recepciones.");
+    if (user_role !== "admin") {
+      throw new Error(
+        "Permiso denegado: Solo administradores pueden eliminar recepciones.",
+      );
     }
 
     const reception = await Reception.getById(id);

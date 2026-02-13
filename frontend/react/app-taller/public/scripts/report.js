@@ -50,7 +50,7 @@ window.addEventListener("DOMContentLoaded", () => {
         reception = await apiCall("get-reception", report.reception_id);
       }
     } catch (e) {
-      throw e;
+      // Ignore
     }
 
     async function resolveClientInfo(rec) {
@@ -74,7 +74,7 @@ window.addEventListener("DOMContentLoaded", () => {
             phone = clientObj.phone || phone;
           }
         } catch (e) {
-          throw e;
+          // Ignore
         }
       }
 
@@ -90,6 +90,21 @@ window.addEventListener("DOMContentLoaded", () => {
       "—";
     const status = reception?.status || "—";
     const created = reception?.created_at || report?.created_at || "—";
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str).replace(
+        /[&<>"']/g,
+        (ch) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          })[ch],
+      );
+    }
 
     setContainerHTML(`
       <div class="report">
@@ -130,7 +145,7 @@ window.addEventListener("DOMContentLoaded", () => {
         </div>
 
         <div class="report-body">
-          ${report.description}
+          ${report.description || ""}
         </div>
       </div>
     `);
@@ -143,19 +158,5 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 function regresar() {
-  window.location.href = "index.html";
-}
-
-function escapeHtml(str) {
-  if (str === null || str === undefined) return "";
-  return String(str).replace(
-    /[&<>\"]/g,
-    (ch) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-      })[ch],
-  );
+  window.history.back();
 }

@@ -1,3 +1,4 @@
+/* App.css — Direct copy of vanilla styles/style.css */
 .table-fixed-row {
   white-space: nowrap;
   overflow: hidden;
@@ -76,7 +77,7 @@
   }
 }
 
-#history-table .table tbody tr:hover td {
+.history-table .table tbody tr:hover td {
   background-color: #c7cace;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -120,11 +121,11 @@
   }
 }
 
-#history-table .table tbody tr {
+.history-table .table tbody tr {
   animation: fadeIn 0.3s ease;
 }
 
-#active-filters {
+.active-filters {
   animation: slideDown 0.3s ease;
 }
 
@@ -139,7 +140,7 @@
   }
 }
 
-#filter-badges .badge {
+.filter-badges .badge {
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
@@ -147,12 +148,12 @@
   gap: 0.25rem;
 }
 
-#filter-badges .badge:hover {
+.filter-badges .badge:hover {
   transform: scale(1.05);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-#filter-badges .btn-close {
+.filter-badges .btn-close {
   background: transparent;
   opacity: 0.7;
   padding: 0;
@@ -160,7 +161,7 @@
   height: 0.75em;
 }
 
-#filter-badges .btn-close:hover {
+.filter-badges .btn-close:hover {
   opacity: 1;
   transform: scale(1.2);
 }
@@ -253,7 +254,7 @@
     font-size: 0.7rem;
   }
 
-  #filter-badges .badge {
+  .filter-badges .badge {
     font-size: 0.75rem;
     padding: 0.25em 0.5em;
   }

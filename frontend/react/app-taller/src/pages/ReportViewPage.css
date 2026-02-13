@@ -1,0 +1,28 @@
+.report-container {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  background-color: white;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.report-container h4 {
+  margin-bottom: 1rem;
+}
+
+.report-container p {
+  margin: 0.5rem 0;
+}
+
+@media print {
+  body { background: #fff; }
+  .report-container { box-shadow: none !important; }
+  .no-print { display: none !important; }
+}
+
+.report-header h3 { font-size: 1.1rem; }
+.report-card { background: #fbfbfb; border: 1px solid #eee; }
+.report-body { margin-top: 1rem; }
+.report-meta span { margin-right: .5rem; }
