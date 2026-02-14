@@ -1,4 +1,3 @@
-// src/components/layout/Navbar.jsx
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -52,6 +51,13 @@ export default function Navbar() {
                 <i className="bi bi-file-earmark-text me-1"></i>Reportes
               </Link>
             </li>
+            {user?.role === "admin" && (
+              <li className="nav-item">
+                <Link className={`nav-link ${isActive("/users")}`} to="/users">
+                  <i className="bi bi-people me-1"></i>Usuarios
+                </Link>
+              </li>
+            )}
           </ul>
           <div className="d-flex align-items-center">
             <span className="text-light me-3">

@@ -1,4 +1,3 @@
-// src/components/dashboard/ReceptionTable.jsx
 import ReceptionRow from "./ReceptionRow";
 
 export default function ReceptionTable({

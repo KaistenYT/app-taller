@@ -231,14 +231,16 @@ export default function DashboardPage() {
           <span className="text-muted">Gestión de recepciones del taller</span>
         </div>
         <div className="d-flex gap-2">
-          <button
-            className="btn btn-outline-secondary btn-sm"
-            onClick={handleSeedData}
-            disabled={seedingData}
-          >
-            <i className="bi bi-database-add me-1"></i>
-            {seedingData ? "Creando..." : "Datos de Prueba"}
-          </button>
+          {import.meta.env.DEV && (
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={handleSeedData}
+              disabled={seedingData}
+            >
+              <i className="bi bi-database-add me-1"></i>
+              {seedingData ? "Creando..." : "Datos de Prueba"}
+            </button>
+          )}
           <button
             className="btn btn-outline-primary btn-sm"
             onClick={loadReceptions}

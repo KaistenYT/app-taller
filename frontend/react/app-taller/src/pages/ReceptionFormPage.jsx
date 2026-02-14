@@ -1,4 +1,3 @@
-// src/pages/ReceptionFormPage.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -16,6 +15,7 @@ import {
 } from "../api/electronApi";
 import useDebounce from "../hooks/useDebounce";
 import Toast from "../components/shared/Toast";
+import { toLocalISOString } from "../utils/helpers";
 
 export default function ReceptionFormPage() {
   const { id: paramId } = useParams();
@@ -25,7 +25,6 @@ export default function ReceptionFormPage() {
 
   const isEdit = paramId && paramId !== "new";
 
-  // Form fields
   const [clientIdPrefix, setClientIdPrefix] = useState("V");
   const [clientIdNum, setClientIdNum] = useState("");
   const [clientName, setClientName] = useState("");
@@ -49,14 +48,13 @@ export default function ReceptionFormPage() {
     [],
   );
 
-  // ── getClientId ──
   const getClientId = () => {
     const prefix = clientIdPrefix.trim();
     const num = clientIdNum.trim();
     return prefix && num ? `${prefix}${num}`.toUpperCase() : "";
   };
 
-  // ── Client search (debounced) ──
+  // Busca cliente por cédula (debounced) para autocompletar nombre/teléfono
   const searchClient = useDebounce(async () => {
     const idNumber = getClientId();
     if (!idNumber || idNumber.length < 3) {
@@ -81,12 +79,11 @@ export default function ReceptionFormPage() {
     }
   }, 500);
 
-  // Trigger searches on prefix/num changes
   useEffect(() => {
     if (!isEdit) searchClient();
   }, [clientIdPrefix, clientIdNum]);
 
-  // ── Load reception for editing ──
+  // Carga datos existentes al editar una recepción
   useEffect(() => {
     if (!isEdit) return;
 
@@ -100,7 +97,6 @@ export default function ReceptionFormPage() {
         const rec = await getReception(paramId);
         if (!rec) throw new Error("Recepción no encontrada");
 
-        // Client
         if (rec.client_idNumber) {
           const prefix = rec.client_idNumber.charAt(0).toUpperCase();
           const num = rec.client_idNumber.substring(1);
@@ -119,7 +115,6 @@ export default function ReceptionFormPage() {
           }
         }
 
-        // Device
         let snapshot = rec.device_snapshot;
         if (typeof snapshot === "string") {
           try {
@@ -144,7 +139,6 @@ export default function ReceptionFormPage() {
           } catch {}
         }
 
-        // Reception fields
         setDefect(rec.defect || "");
         setStatus(rec.status || "PENDIENTE");
         setRepair(rec.repair || "");
@@ -161,13 +155,11 @@ export default function ReceptionFormPage() {
     })();
   }, [paramId, isEdit]);
 
-  // ── extractDeviceId helper ──
   function extractDeviceId(device) {
     if (!device) return null;
     return device.id || device.deviceId || device.device_id || null;
   }
 
-  // ── Save ──
   async function handleSubmit(e) {
     e.preventDefault();
     if (formRef.current && !formRef.current.checkValidity()) {
@@ -206,7 +198,6 @@ export default function ReceptionFormPage() {
     };
 
     try {
-      // Client
       let cliente;
       try {
         cliente = await getClient(clientData.idNumber);
@@ -228,7 +219,6 @@ export default function ReceptionFormPage() {
         throw new Error("No se pudo guardar la información del cliente.");
       }
 
-      // Device
       let equipo;
       try {
         if (deviceData.serial_number) {
@@ -250,7 +240,7 @@ export default function ReceptionFormPage() {
           equipo?.serial_number || deviceData.serial_number || null,
         description: equipo?.description || deviceData.description || null,
         features: equipo?.features || deviceData.features || null,
-        captured_at: new Date().toISOString(),
+        captured_at: toLocalISOString(),
       };
 
       const finalReception = {
@@ -289,7 +279,6 @@ export default function ReceptionFormPage() {
     }
   }
 
-  // ── Format phone on input ──
   function handlePhoneInput(value) {
     const digits = value.replace(/\D/g, "").slice(0, 11);
     if (digits.length >= 4) {

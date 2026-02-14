@@ -1,7 +1,6 @@
-// src/pages/LoginPage.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { loginUser, resetUserPassword } from "../api/electronApi";
+import { loginUser } from "../api/electronApi";
 import { useAuth } from "../context/AuthContext";
 import { getFriendlyErrorMessage } from "../utils/helpers";
 
@@ -17,14 +16,6 @@ export default function LoginPage() {
   const [alertMessage, setAlertMessage] = useState("");
   const [alertClass, setAlertClass] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  // Forgot password modal state
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [fpUsername, setFpUsername] = useState("");
-  const [fpNewPassword, setFpNewPassword] = useState("");
-  const [fpConfirmPassword, setFpConfirmPassword] = useState("");
-  const [fpLoading, setFpLoading] = useState(false);
-  const [fpAlert, setFpAlert] = useState({ message: "", type: "" });
 
   useEffect(() => {
     if (isAuthenticated) navigate("/dashboard", { replace: true });
@@ -60,56 +51,6 @@ export default function LoginPage() {
       setAlertMessage(getFriendlyErrorMessage(err));
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleForgotPassword(e) {
-    e.preventDefault();
-    if (!fpUsername.trim()) {
-      setFpAlert({ message: "Ingrese el nombre de usuario", type: "danger" });
-      return;
-    }
-    if (fpNewPassword.length < 4) {
-      setFpAlert({
-        message: "La contraseña debe tener al menos 4 caracteres",
-        type: "danger",
-      });
-      return;
-    }
-    if (fpNewPassword !== fpConfirmPassword) {
-      setFpAlert({ message: "Las contraseñas no coinciden", type: "danger" });
-      return;
-    }
-
-    setFpLoading(true);
-    try {
-      const result = await resetUserPassword({
-        username: fpUsername.trim(),
-        newPassword: fpNewPassword,
-      });
-      if (result && result.success !== false) {
-        setFpAlert({
-          message:
-            "Contraseña restablecida correctamente inicie sesión con la nueva contraseña",
-          type: "success",
-        });
-        setTimeout(() => {
-          setShowForgotModal(false);
-          setFpAlert({ message: "", type: "" });
-        }, 2000);
-      } else {
-        setFpAlert({
-          message: result?.message || "No se pudo restablecer la contraseña",
-          type: "danger",
-        });
-      }
-    } catch (err) {
-      setFpAlert({
-        message: getFriendlyErrorMessage(err),
-        type: "danger",
-      });
-    } finally {
-      setFpLoading(false);
     }
   }
 
@@ -215,20 +156,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="text-center mt-3">
-            <button
-              className="btn btn-link btn-sm text-decoration-none"
-              onClick={() => {
-                setShowForgotModal(true);
-                setFpUsername("");
-                setFpNewPassword("");
-                setFpConfirmPassword("");
-                setFpAlert({ message: "", type: "" });
-              }}
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-          </div>
           <div className="text-center mt-2">
             <span className="text-muted">¿No tienes cuenta? </span>
             <Link to="/register" className="text-decoration-none">
@@ -237,80 +164,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* Forgot Password Modal */}
-      {showForgotModal && (
-        <div
-          className="modal show d-block"
-          tabIndex="-1"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Restablecer Contraseña</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowForgotModal(false)}
-                ></button>
-              </div>
-              <form onSubmit={handleForgotPassword}>
-                <div className="modal-body">
-                  {fpAlert.message && (
-                    <div className={`alert alert-${fpAlert.type} small`}>
-                      {fpAlert.message}
-                    </div>
-                  )}
-                  <div className="mb-3">
-                    <label className="form-label">Usuario</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={fpUsername}
-                      onChange={(e) => setFpUsername(e.target.value)}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Nueva Contraseña</label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      value={fpNewPassword}
-                      onChange={(e) => setFpNewPassword(e.target.value)}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Confirmar Contraseña</label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      value={fpConfirmPassword}
-                      onChange={(e) => setFpConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowForgotModal(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={fpLoading}
-                  >
-                    {fpLoading ? "Restableciendo..." : "Restablecer Contraseña"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

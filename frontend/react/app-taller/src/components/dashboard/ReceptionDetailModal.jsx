@@ -1,4 +1,3 @@
-// src/components/dashboard/ReceptionDetailModal.jsx
 import { useState, useEffect } from "react";
 import { receptionDetails, getClient } from "../../api/electronApi";
 import { escapeHtml, formatPhoneNumber } from "../../utils/helpers";
@@ -47,7 +46,7 @@ export default function ReceptionDetailModal({
           return;
         }
 
-        // Parse device_snapshot if string
+        // device_snapshot puede venir como JSON string desde SQLite
         if (found && typeof found.device_snapshot === "string") {
           try {
             found.device_snapshot = JSON.parse(found.device_snapshot);
@@ -58,7 +57,6 @@ export default function ReceptionDetailModal({
 
         setRec(found);
 
-        // Get client phone
         let phone = found.client_phone || found.client?.phone || "";
         if (!phone && found.client_idNumber) {
           try {

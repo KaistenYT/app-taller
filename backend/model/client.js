@@ -1,5 +1,5 @@
 import db from "../db/dbConfig.js";
-//Operaciones CRUD para la tabla client
+
 export class Client {
   static async getAll() {
     try {

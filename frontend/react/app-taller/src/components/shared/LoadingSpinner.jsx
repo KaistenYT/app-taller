@@ -1,4 +1,3 @@
-// src/components/shared/LoadingSpinner.jsx
 export default function LoadingSpinner({ text = "Cargando..." }) {
   return (
     <div className="text-center my-5 py-5">

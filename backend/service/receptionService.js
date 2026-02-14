@@ -1,18 +1,43 @@
-import db from "../db/dbConfig.js";
+import db, { localNow } from "../db/dbConfig.js";
 import { Device } from "../model/device.js";
 import { Client } from "../model/client.js";
 import { Reception } from "../model/reception.js";
-import { ReceptionHistory } from "../model/receptionHistory.js"; // New Import
-import { User } from "../model/user.js"; // New Import
+import { ReceptionHistory } from "../model/receptionHistory.js";
+import { User } from "../model/user.js";
+import { receptionSchema } from "../validation/schemas.js";
 
 export class ReceptionService {
-  /**
-   * Lista las recepciones, aplicando filtros, ordenamiento y paginación.
-   * @param {Object} filters - Objeto con los filtros a aplicar (ej. general, dateFrom, dateTo, orderBy, orderDirection, archived, limit, offset).
-   * @returns {Promise<Array<Object>>} Una promesa que resuelve con un array de objetos recepción.
-   */
+  // Helper privado para aplicar filtros comunes
+  static _applyFilters(query, filters) {
+    if (filters.general) {
+      const searchTerm = `%${filters.general}%`;
+      query.andWhere(function () {
+        this.where("c.name", "like", searchTerm)
+          .orWhere("d.serial_number", "like", searchTerm)
+          .orWhere("d.description", "like", searchTerm)
+          .orWhere("r.defect", "like", searchTerm);
+      });
+    }
+
+    if (filters.dateFrom) {
+      query.where("r.created_at", ">=", filters.dateFrom);
+    }
+    if (filters.dateTo) {
+      query.where("r.created_at", "<=", filters.dateTo + " 23:59:59");
+    }
+
+    if (typeof filters.archived === "boolean") {
+      query.where("r.archived", filters.archived);
+    } else {
+      query.where("r.archived", false);
+    }
+
+    return query;
+  }
+
+  // Filtros, ordenamiento y paginación server-side con JOINs a client y device
   static async listReceptions(filters = {}) {
-    const q = db("reception as r")
+    let q = db("reception as r")
       .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
       .leftJoin("device as d", "r.device_id", "d.id")
       .select(
@@ -32,40 +57,16 @@ export class ReceptionService {
         "d.description as device_description",
       );
 
-    if (filters.general) {
-      const searchTerm = `%${filters.general}%`;
-      q.andWhere(function () {
-        this.where("c.name", "like", searchTerm)
-          .orWhere("d.serial_number", "like", searchTerm)
-          .orWhere("d.description", "like", searchTerm)
-          .orWhere("r.defect", "like", searchTerm);
-      });
-    }
-
-    if (filters.dateFrom) {
-      q.where("r.created_at", ">=", filters.dateFrom);
-    }
-    if (filters.dateTo) {
-      // To include the entire day, add ' 23:59:59' to the date
-      q.where("r.created_at", "<=", filters.dateTo + " 23:59:59");
-    }
-
-    if (typeof filters.archived === "boolean") {
-      q.where("r.archived", filters.archived);
-    } else {
-      // Default to not showing archived if no specific filter is set
-      q.where("r.archived", false);
-    }
+    q = ReceptionService._applyFilters(q, filters);
 
     if (filters.orderBy && filters.orderDirection) {
       const orderByColumn =
         filters.orderBy === "created_at" ? "r.created_at" : filters.orderBy;
       q.orderBy(orderByColumn, filters.orderDirection);
     } else {
-      q.orderBy("r.created_at", "desc"); // Default order
+      q.orderBy("r.created_at", "desc");
     }
 
-    // Apply pagination
     const limit = Number(filters.limit) || 10;
     const offset = Number(filters.offset) || 0;
     q.limit(limit).offset(offset);
@@ -83,76 +84,27 @@ export class ReceptionService {
     });
   }
 
-  /**
-   * Cuenta el número total de recepciones que coinciden con los filtros dados.
-   * @param {Object} filters - Objeto con los filtros a aplicar.
-   * @returns {Promise<number>} Una promesa que resuelve con el número total de recepciones.
-   */
+  // Misma lógica de filtros que listReceptions, retorna solo el conteo
   static async countReceptions(filters = {}) {
-    const q = db("reception as r")
+    let q = db("reception as r")
       .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
       .leftJoin("device as d", "r.device_id", "d.id")
-      .count({ count: "*" }); // Select count of all matching rows
+      .count({ count: "*" });
 
-    if (filters.general) {
-      const searchTerm = `%${filters.general}%`;
-      q.andWhere(function () {
-        this.where("c.name", "like", searchTerm)
-          .orWhere("d.serial_number", "like", searchTerm)
-          .orWhere("d.description", "like", searchTerm)
-          .orWhere("r.defect", "like", searchTerm);
-      });
-    }
-
-    if (filters.dateFrom) {
-      q.where("r.created_at", ">=", filters.dateFrom);
-    }
-    if (filters.dateTo) {
-      // To include the entire day, add ' 23:59:59' to the date
-      q.where("r.created_at", "<=", filters.dateTo + " 23:59:59");
-    }
-
-    if (typeof filters.archived === "boolean") {
-      q.where("r.archived", filters.archived);
-    } else {
-      // Default to not showing archived if no specific filter is set
-      q.where("r.archived", false);
-    }
-
-    if (filters.orderBy && filters.orderDirection) {
-      const orderByColumn =
-        filters.orderBy === "created_at" ? "r.created_at" : filters.orderBy;
-      q.orderBy(orderByColumn, filters.orderDirection);
-    } else {
-      q.orderBy("r.created_at", "desc"); // Default order
-    }
+    q = ReceptionService._applyFilters(q, filters);
 
     const result = await q.first();
     return result ? result.count : 0;
   }
 
-  /**
-   * Lista todas las recepciones archivadas.
-   * @returns {Promise<Array<Object>>} Una promesa que resuelve con un array de objetos recepción archivados.
-   */
   static async listArchivedReceptions() {
     return await Reception.getAllArchived();
   }
 
-  /**
-   * Obtiene una recepción específica por su ID.
-   * @param {number} id - El ID único de la recepción.
-   * @returns {Promise<Object|null>} Una promesa que resuelve con el objeto recepción o null si no se encuentra.
-   */
   static async getReception(id) {
     return await Reception.getById(id);
   }
 
-  /**
-   * Obtiene los detalles completos de una recepción, incluyendo información de cliente y equipo.
-   * @param {number} id - El ID único de la recepción.
-   * @returns {Promise<Object>} Una promesa que resuelve con un objeto detallado de la recepción.
-   */
   static async getReceptionDetails(id) {
     try {
       const reception = await Reception.getById(id);
@@ -176,12 +128,6 @@ export class ReceptionService {
     }
   }
 
-  /**
-   * Archiva una recepción, marcándola como archivada y registrando la acción en el historial.
-   * @param {number} id - El ID de la recepción a archivar.
-   * @param {number} user_id - El ID del usuario que realiza la acción.
-   * @returns {Promise<boolean>} Una promesa que resuelve a true si la operación fue exitosa.
-   */
   static async archiveReception(id, user_id) {
     const reception = await Reception.getById(id);
     if (!reception) throw new Error("Recepcion no encontrada");
@@ -200,12 +146,6 @@ export class ReceptionService {
     return true;
   }
 
-  /**
-   * Restaura una recepción archivada, marcándola como activa y registrando la acción en el historial.
-   * @param {number} id - El ID de la recepción a restaurar.
-   * @param {number} user_id - El ID del usuario que realiza la acción.
-   * @returns {Promise<boolean>} Una promesa que resuelve a true si la operación fue exitosa.
-   */
   static async restoreReception(id, user_id) {
     const reception = await Reception.getById(id);
     if (!reception) throw new Error("Recepción no encontrada");
@@ -223,23 +163,20 @@ export class ReceptionService {
     return await Reception.restore(id);
   }
 
-  /**
-   * Crea una nueva recepción y registra la acción en el historial.
-   * Realiza un proceso transaccional que incluye la gestión del cliente y el equipo asociados.
-   * @param {Object} data - Objeto con los datos de la nueva recepción.
-   * @param {number} user_id - El ID del usuario que crea la recepción.
-   * @returns {Promise<Object>} Una promesa que resuelve con el objeto de la recepción creada.
-   */
+  // Transacción atómica: crea cliente si no existe, resuelve/crea equipo,
+  // captura snapshot del equipo al momento del ingreso, inserta recepción
+  // y registra en historial. Rollback completo ante cualquier fallo.
   static async createReception(data, user_id) {
+    // Validar datos de entrada
+    const { error, value } = receptionSchema.create.validate(data);
+    if (error) {
+      throw new Error(`Validación fallida: ${error.details[0].message}`);
+    }
+
     const trx = await db.transaction();
     try {
-      if (!data || typeof data !== "object") {
-        throw new Error("create-reception: datos inválidos");
-      }
-
-      const { client_idNumber, client_name, client_phone } = data;
-      if (!client_idNumber)
-        throw new Error("create-reception: client_idNumber es requerido");
+      // Usar 'value' que ya está validado y limpio
+      const { client_idNumber, client_name, client_phone } = value;
 
       let client = await Client.getById(client_idNumber, trx);
       if (!client) {
@@ -257,13 +194,13 @@ export class ReceptionService {
         );
       }
 
-      let deviceId = data.device_id;
+      let deviceId = value.device_id;
       let device = null;
 
       if (!deviceId) {
         const info =
-          data.device ||
-          (data.device_serial ? { serial_number: data.device_serial } : null);
+          value.device ||
+          (value.device_serial ? { serial_number: value.device_serial } : null);
         if (!info?.serial_number)
           throw new Error("create-reception: serial del equipo es requerido");
 
@@ -274,7 +211,6 @@ export class ReceptionService {
               serial_number: info.serial_number,
               description: info.description || null,
               features: info.features || null,
-              // Removed: brand, model, type (not in schema)
             },
             trx,
           );
@@ -288,24 +224,30 @@ export class ReceptionService {
       if (!deviceId)
         throw new Error("create-reception: no se pudo resolver device_id");
 
-      const snapshot = data.device_snapshot || {
+      // Snapshot: captura estado actual del equipo para conservar historial
+      // incluso si el equipo se edita después
+      const snapshot = value.device_snapshot || {
         id: device.id,
         serial_number: device.serial_number,
         description: device.description,
         features: device.features,
-        captured_at: new Date().toISOString(),
+        captured_at: (() => {
+          const d = new Date();
+          const p = (n) => String(n).padStart(2, "0");
+          return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+        })(),
       };
 
       const payload = {
         client_idNumber,
         device_id: deviceId,
-        defect: data.defect || null,
-        status: data.status || "PENDIENTE",
-        repair: data.repair || null,
+        defect: value.defect || null,
+        status: value.status || "PENDIENTE",
+        repair: value.repair || null,
         device_snapshot: JSON.stringify(snapshot),
-        created_at: data.created_at || db.fn.now(),
-        updated_at: db.fn.now(),
-        archived: !!data.archived,
+        created_at: value.created_at || localNow(),
+        updated_at: localNow(),
+        archived: !!value.archived,
       };
 
       const [id] = await trx("reception").insert(payload);
@@ -339,56 +281,60 @@ export class ReceptionService {
     }
   }
 
-  /**
-   * Actualiza una recepción existente y registra la acción en el historial.
-   * Realiza un proceso transaccional que incluye la posible actualización del cliente asociado.
-   * @param {number} id - El ID de la recepción a actualizar.
-   * @param {Object} data - Objeto con los datos a actualizar de la recepción.
-   * @param {number} user_id - El ID del usuario que realiza la actualización.
-   * @returns {Promise<Object>} Una promesa que resuelve con el objeto de la recepción actualizada.
-   */
+  // Transacción: actualiza recepción + datos del cliente si cambiaron.
+  // Registra en historial con el created_at original (no el updated_at).
   static async updateReception(id, data, user_id) {
     const trx = await db.transaction();
     try {
       const receptionId = Number(id);
       if (!receptionId || isNaN(receptionId))
         throw new Error("update-reception: id inválido");
-      if (!data || typeof data !== "object")
-        throw new Error("update-reception: datos inválidos");
+
+      // Validar datos de actualización
+      const { error, value } = receptionSchema.update.validate(data);
+      if (error) {
+        throw new Error(`Validación fallida: ${error.details[0].message}`);
+      }
 
       const originalReception = await Reception.getById(receptionId, trx);
       if (!originalReception)
         throw new Error("Recepción no encontrada para actualizar");
 
-      if (data.client_idNumber && (data.client_name || data.client_phone)) {
+      if (value.client_idNumber && (value.client_name || value.client_phone)) {
         const update = {};
-        if (data.client_name) update.name = data.client_name;
-        if (data.client_phone) update.phone = data.client_phone;
+        if (value.client_name) update.name = value.client_name;
+        if (value.client_phone) update.phone = value.client_phone;
 
         if (Object.keys(update).length > 0) {
           await trx("client")
-            .where({ idNumber: data.client_idNumber })
+            .where({ idNumber: value.client_idNumber })
             .update(update);
         }
       }
 
-      const snapshot = data.device_snapshot
-        ? typeof data.device_snapshot === "object"
-          ? JSON.stringify(data.device_snapshot)
-          : data.device_snapshot
+      const snapshot = value.device_snapshot
+        ? typeof value.device_snapshot === "object"
+          ? JSON.stringify(value.device_snapshot)
+          : value.device_snapshot
         : null;
 
       const updatePayload = {
-        client_idNumber: data.client_idNumber,
-        device_id: data.device_id,
-        defect: data.defect,
-        status: data.status,
-        repair: data.repair,
+        client_idNumber: value.client_idNumber,
+        device_id: value.device_id,
+        defect: value.defect,
+        status: value.status,
+        repair: value.repair,
         device_snapshot: snapshot,
-        updated_at: db.fn.now(),
+        updated_at: localNow(),
       };
 
+      // Eliminar claves undefined para no sobreescribir con null a menos que sea explícito
+      Object.keys(updatePayload).forEach(
+        (key) => updatePayload[key] === undefined && delete updatePayload[key],
+      );
+
       await trx("reception").where({ id: receptionId }).update(updatePayload);
+
       const updated = await trx("reception").where({ id: receptionId }).first();
 
       await ReceptionHistory.log(
@@ -421,14 +367,7 @@ export class ReceptionService {
     }
   }
 
-  /**
-   * Elimina una recepción por su ID, registrando la acción en el historial.
-   * Requiere rol de administrador.
-   * @param {number} id - El ID de la recepción a eliminar.
-   * @param {number} user_id - El ID del usuario que realiza la acción.
-   * @param {string} user_role - El rol del usuario que realiza la acción ('admin' requerido).
-   * @returns {Promise<boolean>} Una promesa que resuelve a true si la eliminación fue exitosa.
-   */
+  // Solo administradores pueden eliminar recepciones
   static async deleteReception(id, user_id, user_role) {
     if (user_role !== "admin") {
       throw new Error(

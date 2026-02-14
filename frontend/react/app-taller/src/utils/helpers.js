@@ -1,4 +1,15 @@
-// Escapa caracteres HTML
+// Genera timestamp ISO 8601 en hora LOCAL, no UTC.
+// new Date().toISOString() usa UTC, lo que desplaza la fecha en zonas horarias negativas.
+export function toLocalISOString(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}` +
+    `.${String(d.getMilliseconds()).padStart(3, "0")}`
+  );
+}
+
 export function escapeHtml(str) {
   if (!str) return "";
   const map = {
@@ -11,11 +22,11 @@ export function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (m) => map[m]);
 }
 
-// Formatea fecha a DD/MM/YYYY
 export function formatDate(iso) {
   if (!iso) return "N/A";
   try {
     const d = new Date(iso);
+    if (isNaN(d.getTime())) return "N/A";
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const year = d.getFullYear();
@@ -25,7 +36,6 @@ export function formatDate(iso) {
   }
 }
 
-// Formatea fecha y hora
 export function formatDateTime(iso) {
   if (!iso) return "N/A";
   try {
@@ -42,7 +52,6 @@ export function formatDateTime(iso) {
   }
 }
 
-// Formatea teléfono
 export function formatPhoneNumber(phone) {
   if (!phone) return "";
   const digits = phone.replace(/\D/g, "");
@@ -52,7 +61,6 @@ export function formatPhoneNumber(phone) {
   return phone;
 }
 
-// Función debounce
 export function debounce(fn, wait = 300) {
   let timer;
   return (...args) => {
@@ -61,7 +69,7 @@ export function debounce(fn, wait = 300) {
   };
 }
 
-// Obtiene mensaje de error amigable para el usuario
+// Mapea errores técnicos del backend a mensajes amigables para el usuario
 export function getFriendlyErrorMessage(err) {
   if (!err) return "Ha ocurrido un error inesperado.";
   const msg = (typeof err === "string" ? err : err.message || "").toLowerCase();

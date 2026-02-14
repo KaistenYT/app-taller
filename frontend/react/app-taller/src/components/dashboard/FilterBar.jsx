@@ -1,4 +1,3 @@
-// src/components/dashboard/FilterBar.jsx
 import { useCallback } from "react";
 import useDebounce from "../../hooks/useDebounce";
 import useReceptions from "../../hooks/useReceptions";
@@ -24,11 +23,10 @@ export default function FilterBar() {
 
   const activeFilterEntries = Object.entries(filters).filter(([key, value]) => {
     if (value === "" || value === null || value === undefined) return false;
-    if (key === "archived" && value === false) return false; // Default state
+    if (key === "archived" && value === false) return false;
     return true;
   });
 
-  // Helper to handle archived select
   const handleArchivedChange = (e) => {
     const val = e.target.value;
     let archived = false;
@@ -37,7 +35,6 @@ export default function FilterBar() {
     setFilters({ archived });
   };
 
-  // Helper to get archived string value
   const getArchivedValue = () => {
     if (filters.archived === true) return "archivadas";
     if (filters.archived === null) return "todas";

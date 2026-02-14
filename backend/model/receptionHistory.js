@@ -1,4 +1,5 @@
-//TRIGGER PARA LA TABLA RECEPTION_HISTORY
+// Registra auditoría de acciones sobre recepciones (crear, editar, archivar, eliminar).
+// Se inicializa manualmente con la instancia de Knex porque se importa antes que dbConfig termine.
 export class ReceptionHistory {
   static async init(db) {
     ReceptionHistory.db = db;
@@ -31,7 +32,7 @@ export class ReceptionHistory {
         reception_date,
         status,
         action,
-        event_timestamp: knexInstance.fn.now(),
+        event_timestamp: knexInstance.raw("datetime('now','localtime')"),
       });
     } catch (err) {
       console.error("ReceptionHistory.log error:", err);

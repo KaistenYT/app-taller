@@ -1,4 +1,3 @@
-// src/hooks/useDebounce.js
 import { useRef, useCallback, useEffect } from "react";
 
 export default function useDebounce(fn, delay = 300) {

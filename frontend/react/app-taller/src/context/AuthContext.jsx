@@ -3,7 +3,8 @@ import { createContext, useContext, useState, useCallback } from "react";
 const STORAGE_KEY = "app_user";
 const AuthContext = createContext(null);
 
-// Recupera usuario inicial de storage
+// Intenta recuperar sesión de sessionStorage primero, luego localStorage.
+// Si la sesión expiró (solo aplica con "Recordarme"), la descarta.
 function getInitialUser() {
   let sessionRaw = null;
   try {
@@ -39,10 +40,10 @@ function getInitialUser() {
   return null;
 }
 
-// Proveedor de autenticación
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser);
 
+  // "Recordarme" → localStorage con expiración de 30 días; sino → sessionStorage
   const login = useCallback((userData, rememberMe = false) => {
     const currentUser = {
       id: userData.id,
@@ -84,7 +85,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Hook para usar el contexto de autenticación
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

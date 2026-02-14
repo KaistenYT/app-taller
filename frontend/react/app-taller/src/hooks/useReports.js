@@ -1,4 +1,3 @@
-// src/hooks/useReports.js
 import { create } from "zustand";
 import { listReports, deleteReport as apiDelete } from "../api/electronApi";
 

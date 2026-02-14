@@ -1,4 +1,3 @@
-// src/components/reports/ReportCard.jsx
 import { formatDate } from "../../utils/helpers";
 
 const STATUS_COLORS = {

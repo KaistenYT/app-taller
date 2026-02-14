@@ -1,4 +1,3 @@
-// src/components/shared/ConfirmModal.jsx
 export default function ConfirmModal({
   show,
   title = "Confirmación",

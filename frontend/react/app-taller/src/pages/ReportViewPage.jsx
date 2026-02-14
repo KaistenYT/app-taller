@@ -18,12 +18,12 @@ export default function ReportViewPage() {
       try {
         if (!id) throw new Error("No report ID provided");
 
-        // 1. Get Report
+        // 1. Obtener reporte
         const reportData = await getReport(Number(id));
         if (!reportData) throw new Error("Reporte no encontrado");
         setReport(reportData);
 
-        // 2. Get Reception (optional)
+        // 2. Obtener recepción asociada (si existe)
         let receptionData = null;
         if (reportData.reception_id) {
           try {
@@ -34,7 +34,7 @@ export default function ReportViewPage() {
           }
         }
 
-        // 3. Resolve Client
+        // 3. Resolver datos del cliente desde múltiples fuentes
         let clientData = { name: "—", phone: "—", idNumber: "" };
         const idNumber =
           receptionData?.client_idNumber ||
@@ -46,21 +46,21 @@ export default function ReportViewPage() {
           receptionData?.client?.name ||
           receptionData?.client_name ||
           receptionData?.client?.fullName ||
-          // fallback to ID if no name
+          // Fallback: usar ID como nombre si no hay nombre disponible
           idNumber ||
           "—";
 
         let resolvedPhone =
           receptionData?.client?.phone || receptionData?.client_phone || "";
 
-        // If we have ID but missing name/phone, fetch client directly
+        // Si tenemos ID pero falta nombre/teléfono, consultar cliente directamente
         if ((!resolvedPhone || resolvedPhone === "") && idNumber) {
           try {
             const c = await getClient(idNumber);
             if (c) {
               resolvedName = c.name || resolvedName;
               resolvedPhone = c.phone || resolvedPhone;
-              // Also update client object if found
+
               clientData = { ...c, idNumber };
             }
           } catch (e) {
@@ -68,7 +68,6 @@ export default function ReportViewPage() {
           }
         }
 
-        // Finalize client data
         setClient({
           name: resolvedName,
           phone: resolvedPhone || "—",
@@ -90,12 +89,10 @@ export default function ReportViewPage() {
   };
 
   const handleBack = () => {
-    // If opened in new window with history, go back.
-    // If alone, maybe close window? But for now navigate back if possible.
+    // Si se abrió como ventana popup, intentar cerrarla; sino, navegar hacia atrás
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      // Trying to close if it's a popup
       window.close();
     }
   };

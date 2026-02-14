@@ -1,5 +1,5 @@
-import db from "../db/dbConfig.js";
-//Operaciones CRUD para la tabla report
+import db, { localNow } from "../db/dbConfig.js";
+
 export class Reports {
   static async getAll(trx = null) {
     const q = trx || db;
@@ -66,7 +66,7 @@ export class Reports {
       const [id] = await q("report").insert({
         reception_id,
         description,
-        created_at: db.fn.now(),
+        created_at: localNow(),
       });
       return { id };
     } catch (err) {
@@ -79,7 +79,7 @@ export class Reports {
     try {
       await q("report").where({ id }).update({
         description,
-        created_at: db.fn.now(),
+        created_at: localNow(),
       });
     } catch (err) {
       throw new Error("Failed to update report");

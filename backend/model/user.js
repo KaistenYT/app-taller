@@ -1,7 +1,8 @@
 import db from "../db/dbConfig.js";
 import bcrypt from "bcrypt";
-//Operaciones CRUD para la tabla user
+
 export class User {
+  // El hash se genera aquí; nunca se almacena la contraseña en texto plano
   static async create(userData) {
     try {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
@@ -41,6 +42,23 @@ export class User {
     }
   }
 
+  static async getAll() {
+    try {
+      return await db("user").select("id", "username", "role");
+    } catch (error) {
+      throw new Error("Error al obtener usuarios");
+    }
+  }
+
+  static async delete(id) {
+    try {
+      return await db("user").where({ id }).del();
+    } catch (error) {
+      throw new Error("Error al eliminar usuario");
+    }
+  }
+
+  // Re-hashea la contraseña si viene en los datos de actualización
   static async update(id, data) {
     try {
       if (!id || !data) {

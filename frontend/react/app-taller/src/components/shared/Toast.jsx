@@ -1,4 +1,3 @@
-// src/components/shared/Toast.jsx
 import { useEffect } from "react";
 
 export default function Toast({

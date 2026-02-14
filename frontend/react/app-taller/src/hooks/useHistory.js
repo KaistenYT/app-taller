@@ -1,4 +1,3 @@
-// src/hooks/useHistory.js
 import { create } from "zustand";
 import {
   listReceptionHistory,
@@ -60,12 +59,7 @@ const useHistory = create((set, get) => ({
         offset: (pagination.currentPage - 1) * pagination.perPage,
       };
 
-      // Ensure empty strings are not sent if not needed, or backend handles empty strings?
-      // Vanilla history.js sends them if they are truthy.
-      // filters.build() in local/vanilla history.js:
-      // if (value) filters[key] = value;
-      // So I should filtering empty values.
-
+      // Filtra valores vacíos para no enviar parámetros innecesarios al backend
       const cleanParams = {};
       Object.entries(params).forEach(([key, val]) => {
         if (val !== "" && val !== null && val !== undefined)

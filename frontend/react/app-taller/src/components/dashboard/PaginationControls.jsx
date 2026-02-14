@@ -1,4 +1,3 @@
-// src/components/dashboard/PaginationControls.jsx
 import useReceptions from "../../hooks/useReceptions";
 
 export default function PaginationControls() {

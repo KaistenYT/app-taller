@@ -18,7 +18,6 @@ const ACTION_COLORS = {
   ARCHIVADA: "warning text-dark",
   RESTAURADA: "primary",
   ELIMINADA: "danger",
-  // English variants
   CREATE: "success",
   CREATED: "success",
   UPDATE: "info",
@@ -37,7 +36,6 @@ const ACTION_ICONS = {
   ARCHIVADA: "bi-archive",
   RESTAURADA: "bi-arrow-counterclockwise",
   ELIMINADA: "bi-trash",
-  // English
   CREATED: "bi-plus-circle",
   UPDATED: "bi-pencil-square",
   ARCHIVED: "bi-archive",
@@ -72,7 +70,6 @@ export default function HistoryPage() {
   const end = Math.min(totalPages, pagination.currentPage + 2);
   for (let i = start; i <= end; i++) pages.push(i);
 
-  // CSV Export
   const handleExport = useCallback(() => {
     if (!entries.length) return;
     const headers = [
@@ -143,7 +140,6 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="card mb-4 shadow-sm">
         <div className="card-header bg-white py-3">
           <h5 className="mb-0">
@@ -259,7 +255,6 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="card history-table shadow-sm">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
@@ -400,7 +395,7 @@ export default function HistoryPage() {
             </tbody>
           </table>
         </div>
-        {/* Pagination */}
+
         {totalCount > 0 && (
           <div className="d-flex justify-content-between align-items-center px-3 py-2 border-top">
             <span className="text-muted small">

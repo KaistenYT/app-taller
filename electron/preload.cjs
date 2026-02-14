@@ -1,8 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-// Expone métodos seguros para comunicación IPC
+// Puente seguro entre renderer y main process (contextIsolation activo)
 contextBridge.exposeInMainWorld("api", {
-  // Dispositivos
   listDevices: () => ipcRenderer.invoke("list-devices"),
   getDevice: (id) => ipcRenderer.invoke("get-device", id),
   getDeviceBySerial: (serial) =>
@@ -13,14 +12,12 @@ contextBridge.exposeInMainWorld("api", {
   updateDevice: (id, data) => ipcRenderer.invoke("update-device", id, data),
   deleteDevice: (id) => ipcRenderer.invoke("delete-device", id),
 
-  // Clientes
   listClients: () => ipcRenderer.invoke("list-clients"),
   getClient: (id) => ipcRenderer.invoke("get-client", id),
   createClient: (data) => ipcRenderer.invoke("create-client", data),
   updateClient: (id, data) => ipcRenderer.invoke("update-client", id, data),
   deleteClient: (id) => ipcRenderer.invoke("delete-client", id),
 
-  // Recepciones
   listReceptions: (filters) => ipcRenderer.invoke("list-receptions", filters),
   countReceptions: (filters) => ipcRenderer.invoke("count-receptions", filters),
   listArchivedReceptions: () => ipcRenderer.invoke("list-archived-receptions"),
@@ -37,13 +34,14 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("delete-reception", { id, user_id, user_role }),
   receptionDetails: (id) => ipcRenderer.invoke("reception-details", id),
 
-  // Usuarios
   loginUser: (username, password) =>
     ipcRenderer.invoke("login-user", username, password),
   registerUser: (userData) => ipcRenderer.invoke("register-user", userData),
   resetUserPassword: (data) => ipcRenderer.invoke("reset-user-password", data),
+  listUsers: (data) => ipcRenderer.invoke("list-users", data),
+  updateUser: (data) => ipcRenderer.invoke("update-user", data),
+  deleteUser: (data) => ipcRenderer.invoke("delete-user", data),
 
-  // Reportes
   listReports: () => ipcRenderer.invoke("list-reports"),
   getReport: (id) => ipcRenderer.invoke("get-report", id),
   getReportByReception: (receptionId) =>
@@ -53,13 +51,11 @@ contextBridge.exposeInMainWorld("api", {
   deleteReport: (id) => ipcRenderer.invoke("delete-report", id),
   openReport: (reportPath) => ipcRenderer.invoke("open-report", reportPath),
 
-  // Historial
   listReceptionHistory: (filters) =>
     ipcRenderer.invoke("list-reception-history", filters),
   countReceptionHistory: (filters) =>
     ipcRenderer.invoke("count-reception-history", filters),
 
-  // Utilidades
   seedData: () => ipcRenderer.invoke("seed-data"),
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
 });

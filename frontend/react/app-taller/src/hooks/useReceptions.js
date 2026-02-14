@@ -1,4 +1,3 @@
-// src/hooks/useReceptions.js
 import { create } from "zustand";
 import {
   listReceptions,
@@ -16,12 +15,12 @@ const useReceptions = create((set, get) => ({
     general: "",
     dateFrom: "",
     dateTo: "",
-    archived: false, // Default: false (activas). true=archivadas, null=todas
+    archived: false,
   },
   pagination: {
     currentPage: 1,
     perPage: 4,
-    sort: "desc", // orderDirection
+    sort: "desc",
     orderBy: "created_at",
   },
 
@@ -69,11 +68,10 @@ const useReceptions = create((set, get) => ({
         orderDirection: pagination.sort,
       };
 
-      // Ensure undefined/null values are not sent if empty strings
       if (!queryParams.general) delete queryParams.general;
       if (!queryParams.dateFrom) delete queryParams.dateFrom;
       if (!queryParams.dateTo) delete queryParams.dateTo;
-      if (queryParams.archived === null) delete queryParams.archived; // For "todas"
+      if (queryParams.archived === null) delete queryParams.archived;
 
       const [receptions, total] = await Promise.all([
         listReceptions(queryParams),

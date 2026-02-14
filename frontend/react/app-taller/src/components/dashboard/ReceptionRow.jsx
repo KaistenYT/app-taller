@@ -1,4 +1,3 @@
-// src/components/dashboard/ReceptionRow.jsx
 import { escapeHtml } from "../../utils/helpers";
 
 const STATUS_COLORS = {

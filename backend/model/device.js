@@ -1,5 +1,5 @@
 import db from "../db/dbConfig.js";
-//Operaciones CRUD para la tabla device
+
 export class Device {
   static async getAll(trx = null) {
     const q = trx || db;
@@ -38,6 +38,7 @@ export class Device {
     }
   }
 
+  // Inserta o actualiza un equipo según su serial_number (idempotente)
   static async upsertBySerial(deviceData, trx = null) {
     const q = trx || db;
     try {

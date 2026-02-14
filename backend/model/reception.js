@@ -1,5 +1,5 @@
-import db from "../db/dbConfig.js";
-//Operaciones CRUD para la tabla reception
+import db, { localNow } from "../db/dbConfig.js";
+
 export class Reception {
   static async getAll() {
     try {
@@ -65,6 +65,7 @@ export class Reception {
     }
   }
 
+  // Retorna recepción con datos enriquecidos de cliente, equipo y reportes asociados
   static async getDetailedById(id) {
     try {
       const rec = await db("reception as r")
@@ -124,6 +125,7 @@ export class Reception {
     }
   }
 
+  // Usa transacción propia — device_snapshot se serializa a JSON para almacenamiento
   static async create(data) {
     const trx = await db.transaction();
     try {
@@ -136,8 +138,8 @@ export class Reception {
         payload.device_snapshot = JSON.stringify(payload.device_snapshot);
       }
 
-      payload.created_at = payload.created_at || db.fn.now();
-      payload.updated_at = db.fn.now();
+      payload.created_at = payload.created_at || localNow();
+      payload.updated_at = localNow();
 
       const [id] = await trx("reception").insert(payload);
       const created = await trx("reception").where({ id }).first();
@@ -171,7 +173,7 @@ export class Reception {
         payload.device_snapshot = JSON.stringify(payload.device_snapshot);
       }
 
-      payload.updated_at = db.fn.now();
+      payload.updated_at = localNow();
 
       await trx("reception").where({ id }).update(payload);
       const updated = await trx("reception").where({ id }).first();
@@ -197,7 +199,7 @@ export class Reception {
     try {
       return await db("reception")
         .where({ id })
-        .update({ archived: true, updated_at: db.fn.now() });
+        .update({ archived: true, updated_at: localNow() });
     } catch (error) {
       throw new Error("Error al archivar recepción");
     }
@@ -207,7 +209,7 @@ export class Reception {
     try {
       return await db("reception")
         .where({ id })
-        .update({ archived: false, updated_at: db.fn.now() });
+        .update({ archived: false, updated_at: localNow() });
     } catch (error) {
       throw new Error("Error al restaurar recepción");
     }

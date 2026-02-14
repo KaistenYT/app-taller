@@ -19,7 +19,6 @@ try {
     dbDir = __dirname;
   }
 } catch {
-  // Fallback (tests, entorno sin Electron)
   dbDir = __dirname;
 }
 
@@ -35,6 +34,9 @@ const db = knexLib({
     filename: dbPath,
   },
   useNullAsDefault: true,
+  migrations: {
+    directory: path.join(__dirname, "migrations"),
+  },
   pool: {
     afterCreate: (conn, done) => {
       conn.run("PRAGMA foreign_keys = ON", done);
@@ -42,120 +44,18 @@ const db = knexLib({
   },
 });
 
-const tables = [
-  {
-    name: "device",
-    build: (table) => {
-      table.increments("id").primary();
-      table.string("description").notNullable();
-      table.string("features");
-      table.string("serial_number").unique();
-      table.timestamp("created_at").defaultTo(db.fn.now());
-      table.timestamp("updated_at").defaultTo(db.fn.now());
-      table.index(["serial_number"]);
-    },
-  },
-  {
-    name: "client",
-    build: (table) => {
-      table.string("idNumber").primary().notNullable();
-      table.string("name").notNullable();
-      table.string("phone").notNullable();
-    },
-  },
-  {
-    name: "reception",
-    build: (table) => {
-      table.increments("id").primary();
-      table.string("client_idNumber").notNullable();
-      table.integer("device_id").notNullable().unsigned();
-      table.string("defect").notNullable();
-      table.string("status").notNullable().defaultTo("PENDIENTE");
-      table.string("repair");
-      table.json("device_snapshot");
-      table.timestamp("created_at").defaultTo(db.fn.now());
-      table.timestamp("updated_at").defaultTo(db.fn.now());
-      table.boolean("archived").defaultTo(false);
-      table
-        .foreign("client_idNumber")
-        .references("client.idNumber")
-        .onDelete("RESTRICT")
-        .onUpdate("CASCADE");
-      table
-        .foreign("device_id")
-        .references("device.id")
-        .onDelete("RESTRICT")
-        .onUpdate("CASCADE");
-      table.index(["client_idNumber"]);
-      table.index(["device_id"]);
-    },
-  },
-  {
-    name: "report",
-    build: (table) => {
-      table.increments("id").primary();
-      table.integer("reception_id").notNullable().unsigned();
-      table.string("description").notNullable();
-      table.timestamp("created_at").defaultTo(db.fn.now());
-      table
-        .foreign("reception_id")
-        .references("reception.id")
-        .onDelete("CASCADE")
-        .onUpdate("CASCADE");
-      table.index(["reception_id"]);
-    },
-  },
-  {
-    name: "reception_history",
-    build: (table) => {
-      table.increments("id").primary();
-      table.integer("reception_id").notNullable().unsigned();
-      table.string("client_id").notNullable();
-      table.integer("device_id").notNullable().unsigned();
-      table.integer("user_id").notNullable().unsigned();
-      table.timestamp("reception_date").notNullable();
-      table.string("status").notNullable();
-      table.string("action").notNullable();
-      table.timestamp("event_timestamp").defaultTo(db.fn.now());
-      table.index(["reception_id"]);
-      table.index(["user_id"]);
-      table
-        .foreign("user_id")
-        .references("user.id")
-        .onDelete("RESTRICT")
-        .onUpdate("CASCADE");
-    },
-  },
-
-  {
-    name: "user",
-    build: (table) => {
-      table.increments("id").primary().unique();
-      table.string("username").notNullable().unique();
-      table.string("password").notNullable();
-      table.string("role").notNullable().defaultTo("user");
-    },
-  },
-];
-
-async function createTables() {
-  try {
-    for (const { name, build } of tables) {
-      const exists = await db.schema.hasTable(name);
-      if (!exists) {
-        await db.schema.createTable(name, build);
-        console.log(`Tabla "${name}" creada`);
-      } else {
-        console.log(`Tabla "${name}" ya existe`);
-      }
-    }
-    console.log("Todas las tablas iniciales listas");
-  } catch (err) {
-    console.error("Error al crear tablas:", err);
-  }
+// SQLite datetime('now') devuelve UTC; esta función fuerza hora local.
+// Usar en INSERT/UPDATE. Los defaults de schema ya incluyen localtime.
+export function localNow() {
+  return db.raw("datetime('now','localtime')");
 }
 
-await createTables();
+try {
+  await db.migrate.latest();
+  console.log("[dbConfig] Migraciones completadas");
+} catch (err) {
+  console.error("[dbConfig] Error en migraciones:", err);
+}
 
 await ReceptionHistory.init(db);
 console.log("[dbConfig] ReceptionHistory.init completed");

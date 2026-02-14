@@ -1,93 +1,131 @@
 import { User } from "../model/user.js";
+import { userSchema } from "../validation/schemas.js";
 
 export class UserService {
-  /**
-   * Registra un nuevo usuario en el sistema.
-   * @param {Object} userData - Objeto con los datos del usuario (username, password).
-   * @returns {Promise<Object>} Una promesa que resuelve con el objeto del usuario creado.
-   */
   static async registerUser(userData) {
-    try {
-      if (!userData?.username || !userData?.password) {
-        throw new Error("registerUser: username y password son requeridos");
-      }
-
-      const existingUser = await User.getByUsername(userData.username);
-      if (existingUser) {
-        throw new Error("registerUser: el nombre de usuario ya existe");
-      }
-      return await User.create(userData);
-    } catch (error) {
-      throw error;
+    const { error, value } = userSchema.register.validate(userData);
+    if (error) {
+      throw new Error(`Validación fallida: ${error.details[0].message}`);
     }
+
+    const { username, password, role } = value;
+    const existingUser = await User.getByUsername(username);
+    if (existingUser) {
+      throw new Error("El nombre de usuario ya existe");
+    }
+    return await User.create({ username, password, role });
   }
 
-  /**
-   * Autentica a un usuario.
-   * @param {string} username - El nombre de usuario.
-   * @param {string} password - La contraseña del usuario.
-   * @returns {Promise<Object>} Una promesa que resuelve con un objeto de usuario simplificado si las credenciales son válidas.
-   */
   static async login(username, password) {
-    try {
-      if (!username || !password) {
-        throw new Error("login: username y password son requeridos");
-      }
-      const user = await User.getByUsername(username);
-      if (!user) throw new Error("login: usuario no encontrado");
-      const isValid = await User.validatePassword(username, password);
-      if (!isValid) throw new Error("login: credenciales inválidas");
-      return {
-        id: user.id,
-        username: user.username,
-        role: user.role, // Added role
-      };
-    } catch (error) {
-      throw error;
+    if (!username || !password) {
+      throw new Error("Usuario y contraseña requeridos");
     }
+    const user = await User.getByUsername(username);
+    if (!user) {
+      throw new Error("Credenciales inválidas");
+    }
+    const isValid = await User.validatePassword(username, password);
+    if (!isValid) {
+      throw new Error("Credenciales inválidas");
+    }
+    // Retornamos info segura (sin password)
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+    };
   }
 
-  /**
-   * Obtiene un usuario por su ID único.
-   * @param {number} id - El ID único del usuario.
-   * @returns {Promise<Object|null>} Una promesa que resuelve con el objeto usuario o null si no se encuentra.
-   */
   static async getByUserId(id) {
-    try {
-      if (!id) {
-        throw new Error("getByUserId: id es requerido");
-      }
-      return await User.getById(id);
-    } catch (error) {
-      throw error;
-    }
+    const user = await User.getById(id);
+    if (!user) return null;
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+    };
   }
 
-  /**
-   * Restablece la contraseña de un usuario.
-   * @param {string} username - El nombre de usuario cuya contraseña se va a restablecer.
-   * @param {string} newPassword - La nueva contraseña.
-   * @returns {Promise<Object>} Una promesa que resuelve con el objeto del usuario actualizado.
-   */
-  static async resetPassword(username, newPassword) {
+  // Solo administradores pueden restablecer contraseñas de otros usuarios
+  static async resetPassword(username, newPassword, requestingUserRole) {
     try {
+      if (requestingUserRole !== "admin") {
+        throw new Error("Solo administradores pueden restablecer contraseñas");
+      }
       if (!username || !newPassword) {
         throw new Error("resetPassword: username and newPassword are required");
       }
+      // Validación básica de longitud, aunque schemas podría usarse si se define un esquema solo para password
+      if (newPassword.length < 4) {
+        throw new Error("La contraseña debe tener al menos 4 caracteres");
+      }
+
       const user = await User.getByUsername(username);
       if (!user) {
         throw new Error("resetPassword: Usuario no encontrado");
       }
 
-      // Assuming User.updatePassword handles hashing the new password
-      // If not, we would need to import a hashing utility here.
-      // Assuming User.update method exists and can update password
       const updatedUser = await User.update(user.id, { password: newPassword });
-
       return updatedUser;
     } catch (error) {
       console.error("Error in UserService.resetPassword:", error);
       throw error;
     }
+  }
+
+  static async listUsers(requestingRole) {
+    if (requestingRole !== "admin") {
+      throw new Error("Solo administradores pueden listar usuarios");
+    }
+    return await User.getAll();
+  }
+
+  // Permite cambiar username y/o role (no contraseña — usar resetPassword)
+  static async updateUser(id, data, requestingRole) {
+    if (requestingRole !== "admin") {
+      throw new Error("Solo administradores pueden editar usuarios");
+    }
+
+    // Validación con Joi (permitiendo campos parciales)
+    const { error, value } = userSchema.update.validate(data);
+    if (error) {
+      throw new Error(`Validación fallida: ${error.details[0].message}`);
+    }
+
+    if (!id) {
+      throw new Error("updateUser: id es requerido");
+    }
+
+    const { username, role } = value;
+    const updatePayload = {};
+    if (username) updatePayload.username = username;
+    if (role) updatePayload.role = role;
+
+    if (Object.keys(updatePayload).length === 0) {
+      throw new Error("updateUser: nada que actualizar");
+    }
+
+    if (username) {
+      const existing = await User.getByUsername(username);
+      if (existing && existing.id !== Number(id)) {
+        throw new Error("El nombre de usuario ya está en uso");
+      }
+    }
+
+    return await User.update(id, updatePayload);
+  }
+
+  static async deleteUser(id, requestingUserId, requestingRole) {
+    if (requestingRole !== "admin") {
+      throw new Error("Solo administradores pueden eliminar usuarios");
+    }
+    if (Number(id) === Number(requestingUserId)) {
+      throw new Error("No puedes eliminar tu propia cuenta");
+    }
+    const user = await User.getById(id);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+    return await User.delete(id);
   }
 }

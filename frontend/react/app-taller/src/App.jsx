@@ -9,18 +9,19 @@ import ReceptionFormPage from "./pages/ReceptionFormPage";
 import HistoryPage from "./pages/HistoryPage";
 import ReportListPage from "./pages/ReportListPage";
 import ReportViewPage from "./pages/ReportViewPage";
+import UserManagementPage from "./pages/UserManagementPage";
 
 export default function App() {
   return (
     <HashRouter>
       <AuthProvider>
         <Routes>
-          {/* Public routes */}
+          {/* Rutas públicas */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/report/:id" element={<ReportViewPage />} />
 
-          {/* Protected routes */}
+          {/* Rutas protegidas */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<DashboardPage />} />
@@ -34,10 +35,11 @@ export default function App() {
               />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/reports" element={<ReportListPage />} />
+              <Route path="/users" element={<UserManagementPage />} />
             </Route>
           </Route>
 
-          {/* Catch-all */}
+          {/* Ruta por defecto */}
           <Route path="*" element={<LoginPage />} />
         </Routes>
       </AuthProvider>

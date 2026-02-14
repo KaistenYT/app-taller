@@ -1,17 +1,19 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import fs from "fs";
+import crypto from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
+import db from "../backend/db/dbConfig.js";
 import { DeviceService } from "../backend/service/deviceService.js";
 import { ReceptionService } from "../backend/service/receptionService.js";
 import { ClientService } from "../backend/service/clientService.js";
 import { ReportService } from "../backend/service/reportService.js";
 import { UserService } from "../backend/service/userService.js";
-
+import { ReceptionHistoryService } from "../backend/service/receptionHistoryService.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.DEV === "true";
 
-// Configura la ventana principal
 const createWindow = () => {
   const win = new BrowserWindow({
     width: 1200,
@@ -35,7 +37,53 @@ const createWindow = () => {
   }
 };
 
-app.whenReady().then(() => {
+// Primer arranque: crea un admin con contraseña aleatoria y la muestra al usuario.
+// Si ya existen usuarios en la DB, no hace nada.
+async function adminUserGen() {
+  try {
+    const result = await db("user").count({ count: "*" }).first();
+    if (result && result.count > 0) return;
+
+    const generatedPassword = crypto.randomBytes(6).toString("hex");
+    await UserService.registerUser({
+      username: "Admin",
+      password: generatedPassword,
+      role: "admin",
+    });
+
+    console.log("[adminUserGen] Admin inicial creado");
+
+    // Guardar credenciales en el escritorio
+    const desktopPath = app.getPath("desktop");
+    const credentialsPath = path.join(
+      desktopPath,
+      "NanoLogic_Credenciales.txt",
+    );
+    const content = `CREDENCIALES DE ADMINISTRADOR - NANOLOGIC\n\nUsuario: Admin\nContraseña: ${generatedPassword}\n\nGuarde este archivo en un lugar seguro y borrelo de aquí.`;
+
+    try {
+      fs.writeFileSync(credentialsPath, content);
+    } catch (fsErr) {
+      console.error("Error escribiendo credenciales en escritorio:", fsErr);
+    }
+
+    dialog.showMessageBoxSync({
+      type: "info",
+      title: "Primer inicio — Credenciales de administrador",
+      message:
+        `Se ha creado el usuario administrador inicial.\n\n` +
+        `Usuario: Admin\n` +
+        `Contraseña: ${generatedPassword}\n\n` +
+        `IMPORTANTE: Se ha guardado un archivo "NanoLogic_Credenciales.txt" en su Escritorio con esta información.`,
+      buttons: ["Entendido"],
+    });
+  } catch (error) {
+    console.error("[adminUserGen] Error:", error.message);
+  }
+}
+
+app.whenReady().then(async () => {
+  await adminUserGen();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -46,21 +94,22 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-// Wrapper para manejo de errores en IPC
+// Envuelve cada handler IPC para capturar y propagar errores uniformemente
 const safeHandler =
   (fn) =>
   async (event, ...args) => {
     try {
       return await fn(event, ...args);
     } catch (err) {
+      console.error("[IPC Error]", err.message);
+      if (err.stack) console.error(err.stack);
       throw err;
     }
   };
 
-// Registro de manejadores IPC
+// Mapa centralizado de canales IPC → funciones de servicio
 const registerHandlers = () => {
   const handlers = {
-    // Dispositivos
     "list-devices": () => DeviceService.listDevices(),
     "get-device": (event, id) => {
       if (!id) throw new Error("ID requerido");
@@ -87,7 +136,6 @@ const registerHandlers = () => {
       return DeviceService.deleteDevice(id);
     },
 
-    // Clientes
     "list-clients": () => ClientService.listClients(),
     "get-client": (event, id) => {
       if (!id) throw new Error("ID requerido");
@@ -106,7 +154,6 @@ const registerHandlers = () => {
       return ClientService.deleteClient(id);
     },
 
-    // Recepciones
     "list-receptions": (event, filters) =>
       ReceptionService.listReceptions(filters),
     "count-receptions": (event, filters) =>
@@ -139,7 +186,6 @@ const registerHandlers = () => {
       return ReceptionService.getReceptionDetails(id);
     },
 
-    // Reportes
     "list-reports": () => ReportService.listReports(),
     "get-report": (event, id) => {
       if (!id) throw new Error("ID requerido");
@@ -196,7 +242,6 @@ const registerHandlers = () => {
       return await ReportService.createReportFromReception(receptionId);
     },
 
-    // Usuarios
     "login-user": (event, username, password) => {
       return UserService.login(username, password);
     },
@@ -205,23 +250,38 @@ const registerHandlers = () => {
         throw new Error("Datos incompletos");
       return await UserService.registerUser(userData);
     },
-    "reset-user-password": async (event, { username, newPassword }) => {
+    "reset-user-password": async (
+      event,
+      { username, newPassword, user_role },
+    ) => {
       if (!username || !newPassword) throw new Error("Datos incompletos");
-      return await UserService.resetPassword(username, newPassword);
+      return await UserService.resetPassword(username, newPassword, user_role);
+    },
+    "list-users": async (event, { user_role }) => {
+      return await UserService.listUsers(user_role);
+    },
+    "update-user": async (event, { id, data, user_role }) => {
+      if (!id || !data) throw new Error("Datos incompletos");
+      return await UserService.updateUser(id, data, user_role);
+    },
+    "delete-user": async (event, { id, user_id, user_role }) => {
+      if (!id) throw new Error("ID requerido");
+      return await UserService.deleteUser(id, user_id, user_role);
     },
 
-    // Historial
     "list-reception-history": async (event, filters) => {
-      const { ReceptionHistoryService } = await import(
-        "../backend/service/receptionHistoryService.js"
-      );
-      return await ReceptionHistoryService.listHistory(filters || {});
+      try {
+        return await ReceptionHistoryService.listHistory(filters || {});
+      } catch (error) {
+        throw error;
+      }
     },
     "count-reception-history": async (event, filters) => {
-      const { ReceptionHistoryService } = await import(
-        "../backend/service/receptionHistoryService.js"
-      );
-      return await ReceptionHistoryService.countHistory(filters || {});
+      try {
+        return await ReceptionHistoryService.countHistory(filters || {});
+      } catch (error) {
+        throw error;
+      }
     },
   };
 

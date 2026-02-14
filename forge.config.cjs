@@ -2,7 +2,9 @@ module.exports = {
   packagerConfig: {
     name: "NanoLogic",
     executableName: "NanoLogic",
-    asar: true,
+    asar: {
+      unpack: "**/backend/db/migrations/**",
+    },
     // Incluir solo los archivos necesarios para producción
     ignore: [
       // Carpetas de desarrollo del frontend (el build ya está en dist/)
