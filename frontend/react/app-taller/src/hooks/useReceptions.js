@@ -19,7 +19,7 @@ const useReceptions = create((set, get) => ({
   },
   pagination: {
     currentPage: 1,
-    perPage: 4,
+    perPage: 8,
     sort: "desc",
     orderBy: "created_at",
   },

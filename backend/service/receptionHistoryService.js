@@ -42,7 +42,12 @@ export class ReceptionHistoryService {
 
     const limit = Number(filters.limit) || 50;
     const offset = Number(filters.offset) || 0;
-    q.limit(limit).offset(offset);
+
+    if (limit === -1) {
+      // Sin límite (para exportación)
+    } else {
+      q.limit(limit).offset(offset);
+    }
 
     const rows = await q;
     return rows;
