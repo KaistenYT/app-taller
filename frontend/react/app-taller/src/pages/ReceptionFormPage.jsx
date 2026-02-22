@@ -206,8 +206,7 @@ export default function ReceptionFormPage() {
             cliente.name !== clientData.name ||
             cliente.phone !== clientData.phone
           ) {
-            cliente = await updateClient({
-              ...cliente,
+            await updateClient(clientData.idNumber, {
               name: clientData.name,
               phone: clientData.phone,
             });
@@ -346,7 +345,7 @@ export default function ReceptionFormPage() {
                   className="form-select"
                   value={clientIdPrefix}
                   onChange={(e) => setClientIdPrefix(e.target.value)}
-                  disabled={isEdit}
+                  disabled={isEdit || clientLocked}
                 >
                   <option value="V">V</option>
                   <option value="E">E</option>
@@ -367,11 +366,20 @@ export default function ReceptionFormPage() {
                   placeholder="12345678"
                   value={clientIdNum}
                   onChange={(e) => setClientIdNum(e.target.value)}
-                  disabled={isEdit}
+                  disabled={isEdit || clientLocked}
                 />
                 <div className="invalid-feedback">
                   Ingrese el número de cédula/RIF
                 </div>
+                {clientLocked && (
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 mt-1"
+                    onClick={() => setClientLocked(false)}
+                  >
+                    <i className="bi bi-unlock me-1"></i>Desbloquear
+                  </button>
+                )}
               </div>
               <div className="col-md-3">
                 <label htmlFor="client_name" className="form-label">
@@ -385,20 +393,10 @@ export default function ReceptionFormPage() {
                   placeholder="Nombre del cliente"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  disabled={clientLocked}
                 />
                 <div className="invalid-feedback">
                   Ingrese el nombre del cliente
                 </div>
-                {clientLocked && (
-                  <button
-                    type="button"
-                    className="btn btn-link btn-sm p-0 mt-1"
-                    onClick={() => setClientLocked(false)}
-                  >
-                    <i className="bi bi-unlock me-1"></i>Desbloquear
-                  </button>
-                )}
               </div>
               <div className="col-md-3">
                 <label htmlFor="client_phone" className="form-label">
@@ -411,7 +409,6 @@ export default function ReceptionFormPage() {
                   placeholder="0414-123-4567"
                   value={clientPhone}
                   onChange={(e) => handlePhoneInput(e.target.value)}
-                  disabled={clientLocked}
                 />
               </div>
             </div>

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import useHistory from "../hooks/useHistory";
 import useDebounce from "../hooks/useDebounce";
 import { formatDateTime, formatDate, escapeHtml } from "../utils/helpers";
@@ -64,53 +64,71 @@ export default function HistoryPage() {
     300,
   );
 
+  const [exporting, setExporting] = useState(false);
+
   const totalPages = Math.ceil(totalCount / pagination.perPage) || 1;
   const pages = [];
   const start = Math.max(1, pagination.currentPage - 2);
   const end = Math.min(totalPages, pagination.currentPage + 2);
   for (let i = start; i <= end; i++) pages.push(i);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     if (!entries.length) return;
-    const headers = [
-      "ID",
-      "Recepción ID",
-      "Cliente Name",
-      "Cliente ID",
-      "Equipo Desc",
-      "Equipo Serial",
-      "Estado",
-      "Acción",
-      "Usuario",
-      "Fecha Ingreso",
-      "Fecha Evento",
-    ];
-    const rows = entries.map((e) =>
-      [
-        e.id || "",
-        e.reception_id || "",
-        e.client_name || "",
-        e.client_id || "",
-        e.device_description || "",
-        e.device_serial || "",
-        e.status || "",
-        e.action || "",
-        e.user_name || e.username || "",
-        formatDate(e.reception_date),
-        formatDateTime(e.event_timestamp),
-      ].map((v) => `"${String(v).replace(/"/g, '""')}"`),
-    );
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob(["\ufeff" + csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `historial_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [entries]);
+    setExporting(true);
+    try {
+      // Obtener TODOS los registros filtrados (limit: -1)
+      const allEntries = await loadHistory(true); // true indica modo exportación
+      if (!allEntries || !allEntries.length) {
+        setExporting(false);
+        return;
+      }
+
+      const headers = [
+        "ID",
+        "Recepción ID",
+        "Cliente Name",
+        "Cliente ID",
+        "Equipo Desc",
+        "Equipo Serial",
+        "Estado",
+        "Acción",
+        "Usuario",
+        "Fecha Ingreso",
+        "Fecha Evento",
+      ];
+      const rows = allEntries.map((e) =>
+        [
+          e.id || "",
+          e.reception_id || "",
+          e.client_name || "",
+          e.client_id || "",
+          e.device_description || "",
+          e.device_serial || "",
+          e.status || "",
+          e.action || "",
+          e.user_name || e.username || "",
+          formatDate(e.reception_date),
+          formatDateTime(e.event_timestamp),
+        ].map((v) => `"${String(v).replace(/"/g, '""')}"`),
+      );
+      const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join(
+        "\n",
+      );
+      const blob = new Blob(["\ufeff" + csv], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `historial_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exportando CSV:", error);
+    } finally {
+      setExporting(false);
+    }
+  }, [entries, loadHistory]);
 
   return (
     <div className="container-fluid py-4">
@@ -127,9 +145,14 @@ export default function HistoryPage() {
           <button
             className="btn btn-outline-success btn-sm"
             onClick={handleExport}
-            disabled={!entries.length}
+            disabled={!entries.length || exporting}
           >
-            <i className="bi bi-file-earmark-csv me-1"></i>Exportar CSV
+            {exporting ? (
+              <span className="spinner-border spinner-border-sm me-1"></span>
+            ) : (
+              <i className="bi bi-file-earmark-csv me-1"></i>
+            )}
+            Exportar CSV
           </button>
           <button
             className="btn btn-outline-primary btn-sm"

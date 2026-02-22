@@ -18,7 +18,7 @@ const useHistory = create((set, get) => ({
   },
   pagination: {
     currentPage: 1,
-    perPage: 4,
+    perPage: 8,
   },
 
   setFilters: (newFilters) => {
@@ -49,14 +49,16 @@ const useHistory = create((set, get) => ({
     get().loadHistory();
   },
 
-  loadHistory: async () => {
-    set({ loading: true });
+  loadHistory: async (isExport = false) => {
+    if (!isExport) set({ loading: true });
     try {
       const { filters, pagination } = get();
       const params = {
         ...filters,
-        limit: pagination.perPage,
-        offset: (pagination.currentPage - 1) * pagination.perPage,
+        limit: isExport ? -1 : pagination.perPage,
+        offset: isExport
+          ? 0
+          : (pagination.currentPage - 1) * pagination.perPage,
       };
 
       // Filtra valores vacíos para no enviar parámetros innecesarios al backend
@@ -66,6 +68,11 @@ const useHistory = create((set, get) => ({
           cleanParams[key] = val;
       });
 
+      if (isExport) {
+        const entries = await listReceptionHistory(cleanParams);
+        return entries;
+      }
+
       const [entries, total] = await Promise.all([
         listReceptionHistory(cleanParams),
         countReceptionHistory(cleanParams),
@@ -73,7 +80,8 @@ const useHistory = create((set, get) => ({
       set({ entries: entries || [], totalCount: total || 0, loading: false });
     } catch (err) {
       console.error("Failed to load history:", err);
-      set({ entries: [], totalCount: 0, loading: false });
+      if (!isExport) set({ entries: [], totalCount: 0, loading: false });
+      if (isExport) return [];
     }
   },
 }));

@@ -302,21 +302,21 @@ export default function UserManagementPage() {
                     <td className="text-end">
                       <div className="btn-group btn-group-sm">
                         <button
-                          className="btn btn-outline-primary"
+                          className="btn btn-outline-primary mx-2"
                           title="Editar"
                           onClick={() => openEditModal(u)}
                         >
                           <i className="bi bi-pencil"></i>
                         </button>
                         <button
-                          className="btn btn-outline-warning"
+                          className="btn btn-outline-warning mx-2"
                           title="Restablecer contraseña"
                           onClick={() => openResetModal(u)}
                         >
                           <i className="bi bi-key"></i>
                         </button>
                         <button
-                          className="btn btn-outline-danger"
+                          className="btn btn-outline-danger mx-2"
                           title="Eliminar"
                           onClick={() => handleDelete(u)}
                           disabled={u.id === user.id}
