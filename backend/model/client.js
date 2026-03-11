@@ -21,7 +21,7 @@ export class Client {
   static async create(clientData, trx = null) {
     const query = trx || db;
     try {
-      const [id] = await query("client").insert(clientData);
+      await query("client").insert(clientData);
       return await query("client")
         .where({ idNumber: clientData.idNumber })
         .first();

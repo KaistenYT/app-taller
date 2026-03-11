@@ -1,0 +1,206 @@
+/* ── Pantalla ──────────────────────────────────────── */
+.bv-page {
+  background: #e8e8e8;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: 'Georgia', serif;
+}
+
+.bv-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto 16px;
+}
+
+.bv-btn-primary {
+  background: #1a56db;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.bv-btn-primary:hover { background: #1343b8; }
+
+.bv-btn-secondary {
+  background: white;
+  color: #555;
+  border: 1px solid #ccc;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.bv-btn-secondary:hover { background: #f3f3f3; }
+
+/* ── Documento A4 ──────────────────────────────────── */
+.bv-document {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  padding: 40px 48px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  min-height: 1050px;
+}
+
+/* Encabezado */
+.bv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.bv-company-name {
+  font-size: 26px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #111;
+}
+.bv-company-sub { font-size: 13px; color: #666; }
+
+.bv-title-block { text-align: right; }
+.bv-doc-title { font-size: 22px; font-weight: bold; color: #1a3a6b; }
+.bv-doc-number { font-size: 14px; color: #444; }
+.bv-doc-date { font-size: 13px; color: #666; margin-top: 2px; }
+
+/* Badge de estado */
+.bv-status-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.bv-status-borrador { background: #dde; color: #446; }
+.bv-status-aprobado { background: #d4edda; color: #155724; }
+.bv-status-rechazado { background: #f8d7da; color: #721c24; }
+
+/* Divisor */
+.bv-divider {
+  border-top: 2px solid #1a3a6b;
+  margin: 16px 0;
+}
+
+/* Grid cliente / equipo */
+.bv-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.bv-section-label {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #1a3a6b;
+  border-bottom: 1px solid #dde;
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+/* Tabla de ítems */
+.bv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.bv-table th {
+  background: #1a3a6b;
+  color: white;
+  padding: 8px 10px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+.bv-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #eee;
+}
+.bv-table tbody tr:nth-child(even) { background: #f7f8fc; }
+.bv-table tfoot td {
+  border-top: 2px solid #1a3a6b;
+  border-bottom: none;
+  padding-top: 10px;
+}
+.bv-td-desc { text-align: left; width: 50%; }
+.bv-td-qty  { text-align: center; width: 12%; }
+.bv-td-price { text-align: right; width: 19%; }
+.bv-td-sub  { text-align: right; width: 19%; }
+
+/* Notas */
+.bv-notes {
+  border: 1px solid #dde;
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 13px;
+  margin-bottom: 24px;
+  background: #fafafa;
+}
+.bv-notes p { margin: 0; }
+
+/* Firmas */
+.bv-signature-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-top: 40px;
+}
+.bv-signature-line {
+  border-bottom: 1px solid #444;
+  margin-bottom: 6px;
+  height: 40px;
+}
+.bv-signature-label {
+  font-size: 12px;
+  text-align: center;
+  color: #444;
+}
+.bv-signature-id {
+  font-size: 11px;
+  text-align: center;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* Pie */
+.bv-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #999;
+  margin-top: 32px;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+/* ── Impresión A4 ───────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm 14mm;
+  }
+
+  body, html { background: white !important; }
+
+  .no-print, .bv-toolbar { display: none !important; }
+
+  .bv-page { background: white; padding: 0; }
+
+  .bv-document {
+    box-shadow: none;
+    padding: 0;
+    max-width: 100%;
+    min-height: unset;
+  }
+
+  .bv-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

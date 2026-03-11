@@ -7,6 +7,7 @@ import { ClientService } from "../backend/service/clientService.js";
 import { ReportService } from "../backend/service/reportService.js";
 import { UserService } from "../backend/service/userService.js";
 import { ReceptionHistoryService } from "../backend/service/receptionHistoryService.js";
+import { BudgetService } from "../backend/service/budgetService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -199,6 +200,54 @@ export const registerHandlers = () => {
       } catch (error) {
         throw error;
       }
+    },
+
+    // ── Presupuestos ────────────────────────────────────────
+    "create-budget": async (event, { reception_id, user_id }) => {
+      if (!reception_id || !user_id) throw new Error("Datos requeridos");
+      return await BudgetService.createBudget(reception_id, user_id);
+    },
+    "get-budget-by-reception": async (event, reception_id) => {
+      if (!reception_id) throw new Error("ID requerido");
+      return await BudgetService.getBudgetByReception(reception_id);
+    },
+    "get-budget-details": async (event, id) => {
+      if (!id) throw new Error("ID requerido");
+      return await BudgetService.getBudgetWithDetails(id);
+    },
+    "update-budget": async (event, { id, data, user_id }) => {
+      if (!id || !data || !user_id) throw new Error("Datos requeridos");
+      return await BudgetService.updateBudget(id, data, user_id);
+    },
+    "delete-budget": async (event, { id, user_id }) => {
+      if (!id || !user_id) throw new Error("Datos requeridos");
+      return await BudgetService.deleteBudget(id, user_id);
+    },
+    "get-budget-log": async (event, budget_id) => {
+      if (!budget_id) throw new Error("ID requerido");
+      return await BudgetService.getBudgetLog(budget_id);
+    },
+    "open-budget-window": async (event, budgetId) => {
+      if (!budgetId) throw new Error("Budget ID requerido");
+      const win = new BrowserWindow({
+        width: 900,
+        height: 800,
+        webPreferences: {
+          preload: path.join(__dirname, "preload.cjs"),
+          nodeIntegration: false,
+          contextIsolation: true,
+          sandbox: false,
+        },
+      });
+      win.removeMenu();
+      if (isDev) {
+        await win.loadURL(`http://localhost:5173/#/budget/${budgetId}`);
+      } else {
+        const filePath = path.join(__dirname, "../frontend/react/app-taller/dist/index.html");
+        await win.loadFile(filePath, { hash: `/budget/${budgetId}` });
+      }
+      win.show();
+      return { ok: true };
     },
   };
 

@@ -1,22 +1,30 @@
+import "dotenv/config";
+
 export default {
   development: {
-    client: "sqlite3",
+    client: "pg",
     connection: {
-      filename: "./backend/db/db.sqlite",
+      host: process.env.DB_HOST || "127.0.0.1",
+      port: Number(process.env.DB_PORT) || 5432,
+      user: process.env.DB_USER || "postgres",
+      password: process.env.DB_PASSWORD || "",
+      database: process.env.DB_NAME || "TALLER_DB",
     },
-    useNullAsDefault: true,
     migrations: {
-      directory: "./backend/db/migrations",
+      directory: "./backend/db/migrations/pg",
     },
   },
   production: {
-    client: "sqlite3",
+    client: "pg",
     connection: {
-      filename: "./backend/db/db.sqlite",
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT) || 5432,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
     },
-    useNullAsDefault: true,
     migrations: {
-      directory: "./backend/db/migrations",
+      directory: "./backend/db/migrations/pg",
     },
   },
 };

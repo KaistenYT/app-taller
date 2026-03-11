@@ -5,10 +5,11 @@
   "description": "Sistema de gestión de taller técnico - NanoLogic",
   "main": "electron/main.js",
   "type": "module",
- 
   "scripts": {
     "start": "electron .",
+    "server": "node backend/server.js",
     "dev": "concurrently \"npm run dev --prefix frontend/react/app-taller\" \"cross-env DEV=true npm start\"",
+    "dev:web": "concurrently \"npm run dev --prefix frontend/react/app-taller\" \"npm run server\"",
     "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
     "build:frontend": "npm run build --prefix frontend/react/app-taller",
     "package": "electron-forge package",
@@ -19,10 +20,16 @@
   "author": "NanoLogic",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.13.6",
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^4.22.1",
+    "express-async-errors": "^3.1.1",
     "joi": "^18.0.2",
+    "jsonwebtoken": "^9.0.3",
     "knex": "^3.1.0",
-    "sqlite3": "^5.0.2"
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",

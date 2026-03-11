@@ -8,7 +8,8 @@ export class User {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       const role = userData.role || "user";
       const payload = { ...userData, password: hashedPassword, role: role };
-      const [newUserId] = await db("user").insert(payload);
+      const [row] = await db("user").insert(payload).returning("id");
+      const newUserId = row.id ?? row;
       return await db("user").where({ id: newUserId }).first();
     } catch (error) {
       console.error("Error creating user:", error);

@@ -5,7 +5,7 @@ import ReportCard from "../components/reports/ReportCard";
 import ConfirmModal from "../components/shared/ConfirmModal";
 import Toast from "../components/shared/Toast";
 import LoadingSpinner from "../components/shared/LoadingSpinner";
-import { invoke } from "../api/electronApi";
+import { openReport } from "../api/httpApi";
 
 export default function ReportListPage() {
   const loading = useReports((s) => s.loading);
@@ -33,7 +33,7 @@ export default function ReportListPage() {
 
   const handleOpen = useCallback(async (report) => {
     try {
-      await invoke("open-report-window", Number(report.id));
+      await openReport(report.id);
     } catch (err) {
       console.error("Error opening report:", err);
       setToast({ message: "Error al abrir el reporte", type: "danger" });

@@ -10,16 +10,19 @@ import HistoryPage from "./pages/HistoryPage";
 import ReportListPage from "./pages/ReportListPage";
 import ReportViewPage from "./pages/ReportViewPage";
 import UserManagementPage from "./pages/UserManagementPage";
+import BudgetFormPage from "./pages/BudgetFormPage";
+import BudgetViewPage from "./pages/BudgetViewPage";
+import BudgetListPage from "./pages/BudgetListPage";
 
 export default function App() {
   return (
-    <HashRouter>
-      <AuthProvider>
+    <AuthProvider>
+      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Rutas públicas */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
           <Route path="/report/:id" element={<ReportViewPage />} />
+          <Route path="/budget/:id" element={<BudgetViewPage />} />
 
           {/* Rutas protegidas */}
           <Route element={<ProtectedRoute />}>
@@ -35,14 +38,16 @@ export default function App() {
               />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/reports" element={<ReportListPage />} />
+              <Route path="/budgets" element={<BudgetListPage />} />
               <Route path="/users" element={<UserManagementPage />} />
+              <Route path="/reception/:id/budget" element={<BudgetFormPage />} />
             </Route>
           </Route>
 
           {/* Ruta por defecto */}
           <Route path="*" element={<LoginPage />} />
         </Routes>
-      </AuthProvider>
-    </HashRouter>
+      </HashRouter>
+    </AuthProvider>
   );
 }

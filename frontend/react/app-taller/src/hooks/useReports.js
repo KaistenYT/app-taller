@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { listReports, deleteReport as apiDelete } from "../api/electronApi";
+import { listReports, deleteReport as apiDelete } from "../api/httpApi";
 
 const useReports = create((set, get) => ({
   reports: [],

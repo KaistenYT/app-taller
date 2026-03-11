@@ -32,7 +32,7 @@ export class ReceptionHistory {
         reception_date,
         status,
         action,
-        event_timestamp: knexInstance.raw("datetime('now','localtime')"),
+        event_timestamp: knexInstance.fn.now(),
       });
     } catch (err) {
       console.error("ReceptionHistory.log error:", err);

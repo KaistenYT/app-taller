@@ -30,6 +30,7 @@ export default function ReceptionRow({
   onArchive,
   onDelete,
   onPrint,
+  onBudget,
 }) {
   const r = reception;
 
@@ -89,9 +90,16 @@ export default function ReceptionRow({
           <button
             className="btn btn-sm btn-outline-warning action-small mx-1"
             onClick={() => onEdit(r.id)}
-            title="Editar"
+            title="Editar Recepción"
           >
             <i className="bi bi-pencil"></i>
+          </button>
+          <button
+            className="btn btn-sm btn-outline-success action-small mx-1"
+            onClick={() => onBudget(r.id)}
+            title="Presupuesto"
+          >
+            <i className="bi bi-calculator"></i>
           </button>
           <button
             className="btn btn-sm btn-outline-secondary action-small mx-1"

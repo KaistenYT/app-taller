@@ -44,25 +44,32 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(getInitialUser);
 
   // "Recordarme" → localStorage con expiración de 30 días; sino → sessionStorage
-  const login = useCallback((userData, rememberMe = false) => {
+  const login = useCallback((loginResponse, rememberMe = false) => {
+    // loginResponse ahora trae { token, user: { id, username, role } }
+    const { token, user: userData } = loginResponse;
+
     const currentUser = {
       id: userData.id,
       username: userData.username,
       role: userData.role || "user",
     };
     setUser(currentUser);
-    const sessionObj = { ...userData };
+    
+    // Guardar token en storage de la app para httpApi
     if (rememberMe) {
+      localStorage.setItem("auth_token", token);
+      sessionStorage.removeItem("auth_token");
+      
+      const sessionObj = { ...userData };
       sessionObj.expires = Date.now() + 30 * 24 * 60 * 60 * 1000;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionObj));
-      try {
-        sessionStorage.removeItem(STORAGE_KEY);
-      } catch (_) {}
+      sessionStorage.removeItem(STORAGE_KEY);
     } else {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sessionObj));
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch (_) {}
+      sessionStorage.setItem("auth_token", token);
+      localStorage.removeItem("auth_token");
+      
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+      localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
@@ -70,9 +77,9 @@ export function AuthProvider({ children }) {
     setUser(null);
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch (_) {}
-    try {
+      localStorage.removeItem("auth_token");
       sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem("auth_token");
     } catch (_) {}
   }, []);
 

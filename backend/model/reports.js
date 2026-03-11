@@ -1,4 +1,4 @@
-import db, { localNow } from "../db/dbConfig.js";
+import db from "../db/dbConfig.js";
 
 export class Reports {
   static async getAll(trx = null) {
@@ -63,14 +63,16 @@ export class Reports {
   static async create({ reception_id, description }, trx = null) {
     const q = trx || db;
     try {
-      const [id] = await q("report").insert({
+      const [row] = await q("report").insert({
         reception_id,
         description,
-        created_at: localNow(),
-      });
+        created_at: q.fn.now(),
+      }).returning("id");
+      const id = row.id ?? row;
       return { id };
     } catch (err) {
-      throw new Error("Failed to create report");
+      console.error("[Reports.create] Real error:", err);
+      throw new Error(`Failed to create report: ${err.message}`);
     }
   }
 
@@ -79,7 +81,7 @@ export class Reports {
     try {
       await q("report").where({ id }).update({
         description,
-        created_at: localNow(),
+        created_at: q.fn.now(),
       });
     } catch (err) {
       throw new Error("Failed to update report");

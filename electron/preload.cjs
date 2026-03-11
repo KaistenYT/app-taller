@@ -56,6 +56,16 @@ contextBridge.exposeInMainWorld("api", {
   countReceptionHistory: (filters) =>
     ipcRenderer.invoke("count-reception-history", filters),
 
+  // Presupuestos
+  createBudget: (data) => ipcRenderer.invoke("create-budget", data),
+  getBudgetByReception: (reception_id) =>
+    ipcRenderer.invoke("get-budget-by-reception", reception_id),
+  getBudgetDetails: (id) => ipcRenderer.invoke("get-budget-details", id),
+  updateBudget: (data) => ipcRenderer.invoke("update-budget", data),
+  deleteBudget: (data) => ipcRenderer.invoke("delete-budget", data),
+  getBudgetLog: (budget_id) => ipcRenderer.invoke("get-budget-log", budget_id),
+  openBudgetWindow: (budgetId) => ipcRenderer.invoke("open-budget-window", budgetId),
+
   seedData: () => ipcRenderer.invoke("seed-data"),
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
 });

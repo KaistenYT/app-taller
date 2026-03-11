@@ -1,53 +1,33 @@
+import "dotenv/config";
 import knexLib from "knex";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from "fs";
 import { ReceptionHistory } from "../model/receptionHistory.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// En producción (empaquetado), la DB va en userData para que sea escribible.
-// En desarrollo, se usa la carpeta local del proyecto.
-let dbDir;
-try {
-  const { app } = await import("electron");
-  const isPackaged = app.isPackaged;
-  if (isPackaged) {
-    dbDir = path.join(app.getPath("userData"), "data");
-  } else {
-    dbDir = __dirname;
-  }
-} catch {
-  dbDir = __dirname;
-}
-
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-
-const dbPath = path.join(dbDir, "db.sqlite");
-
 const db = knexLib({
-  client: "sqlite3",
+  client: "pg",
   connection: {
-    filename: dbPath,
+    host: process.env.DB_HOST || "127.0.0.1",
+    port: Number(process.env.DB_PORT) || 5432,
+    user: process.env.DB_USER || "postgres",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "nanologic_dev",
   },
-  useNullAsDefault: true,
   migrations: {
-    directory: path.join(__dirname, "migrations"),
-  },
-  pool: {
-    afterCreate: (conn, done) => {
-      conn.run("PRAGMA foreign_keys = ON", done);
-    },
+    directory: path.join(__dirname, "migrations", "pg"),
   },
 });
 
-// SQLite datetime('now') devuelve UTC; esta función fuerza hora local.
-// Usar en INSERT/UPDATE. Los defaults de schema ya incluyen localtime.
+/**
+ * Retorna la expresión SQL para la hora actual en PostgreSQL.
+ * Equivalente al antiguo datetime('now','localtime') de SQLite.
+ * Usar en INSERT/UPDATE cuando se necesite estampar la hora actual.
+ */
 export function localNow() {
-  return db.raw("datetime('now','localtime')");
+  return db.fn.now();
 }
 
 try {

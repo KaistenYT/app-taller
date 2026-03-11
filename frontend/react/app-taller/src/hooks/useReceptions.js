@@ -5,7 +5,7 @@ import {
   archiveReception as apiArchive,
   restoreReception as apiRestore,
   deleteReception as apiDelete,
-} from "../api/electronApi";
+} from "../api/httpApi";
 
 const useReceptions = create((set, get) => ({
   receptions: [],

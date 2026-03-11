@@ -12,7 +12,7 @@ import {
   getReception,
   createReception,
   updateReception,
-} from "../api/electronApi";
+} from "../api/httpApi";
 import useDebounce from "../hooks/useDebounce";
 import Toast from "../components/shared/Toast";
 import { toLocalISOString } from "../utils/helpers";
@@ -542,6 +542,15 @@ export default function ReceptionFormPage() {
           >
             Cancelar
           </button>
+          {isEdit && (
+            <button
+              type="button"
+              className="btn btn-outline-warning"
+              onClick={() => navigate(`/reception/${paramId}/budget`)}
+            >
+              <i className="bi bi-calculator me-1"></i>💰 Presupuesto
+            </button>
+          )}
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? (
               <>

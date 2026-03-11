@@ -11,8 +11,9 @@ import {
   createDevice,
   createReception,
   getReportByReception,
-  invoke,
-} from "../api/electronApi";
+  createReportFromReception,
+  openReport,
+} from "../api/httpApi";
 import { getFriendlyErrorMessage } from "../utils/helpers";
 import FilterBar from "../components/dashboard/FilterBar";
 import ReceptionTable from "../components/dashboard/ReceptionTable";
@@ -58,6 +59,10 @@ export default function DashboardPage() {
 
   function handleEdit(id) {
     navigate(`/reception/${id}`);
+  }
+
+  function handleBudget(id) {
+    navigate(`/reception/${id}/budget`);
   }
 
   function handleArchive(id, isArchived) {
@@ -107,16 +112,13 @@ export default function DashboardPage() {
       if (reports && reports.length > 0) {
         reportId = reports[0].id;
       } else {
-        const newReport = await invoke(
-          "create-report-from-reception",
-          Number(id),
-        );
+        const newReport = await createReportFromReception(Number(id));
         if (!newReport || !newReport.id)
           throw new Error("Could not create report");
         reportId = newReport.id;
       }
 
-      await invoke("open-report-window", Number(reportId));
+      await openReport(reportId); // Changed from invoke("open-report-window", Number(reportId))
     } catch (err) {
       console.error("Print failed:", err);
       showToast(getFriendlyErrorMessage(err), "danger");
@@ -278,6 +280,7 @@ export default function DashboardPage() {
           onArchive={handleArchive}
           onDelete={handleDelete}
           onPrint={handlePrint}
+          onBudget={handleBudget}
           onClearFilters={clearFilters}
           onCreateNew={() => navigate("/reception/new")}
         />

@@ -4,9 +4,9 @@ import {
   listUsers,
   registerUser,
   updateUser,
-  deleteUser,
   resetUserPassword,
-} from "../api/electronApi";
+  deleteUser,
+} from "../api/httpApi";
 import { getFriendlyErrorMessage } from "../utils/helpers";
 import ConfirmModal from "../components/shared/ConfirmModal";
 import Toast from "../components/shared/Toast";

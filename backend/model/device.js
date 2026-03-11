@@ -31,7 +31,8 @@ export class Device {
   static async create(deviceData, trx = null) {
     const q = trx || db;
     try {
-      const [id] = await q("device").insert(deviceData);
+      const [row] = await q("device").insert(deviceData).returning("id");
+      const id = row.id ?? row;
       return await q("device").where({ id }).first();
     } catch (err) {
       throw new Error("Error al crear dispositivo");
@@ -50,7 +51,8 @@ export class Device {
         await q("device").where({ id: existing.id }).update(deviceData);
         return await q("device").where({ id: existing.id }).first();
       } else {
-        const [id] = await q("device").insert(deviceData);
+        const [row] = await q("device").insert(deviceData).returning("id");
+        const id = row.id ?? row;
         return await q("device").where({ id }).first();
       }
     } catch (err) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getReport, getReception, getClient } from "../api/electronApi";
+import { getReport, getReception, getClient } from "../api/httpApi";
 import LoadingSpinner from "../components/shared/LoadingSpinner";
 import "./ReportViewPage.css";
 
@@ -12,6 +12,7 @@ export default function ReportViewPage() {
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -134,18 +135,60 @@ export default function ReportViewPage() {
         <div>
           <h4 className="mb-0">📄 Reporte</h4>
         </div>
-        <div>
+        <div className="d-flex gap-2">
           <button
-            className="btn btn-sm btn-outline-secondary me-2"
+            className="btn btn-sm btn-outline-secondary"
             onClick={handleBack}
           >
             Regresar
+          </button>
+          <button
+            className={`btn btn-sm ${showPreview ? "btn-warning" : "btn-outline-dark"}`}
+            onClick={() => setShowPreview((v) => !v)}
+          >
+            <i className="bi bi-receipt me-1"></i>
+            {showPreview ? "Ocultar preview" : "👁 Vista previa ticket"}
           </button>
           <button className="btn btn-sm btn-primary" onClick={handlePrint}>
             <i className="bi bi-printer me-1"></i> Imprimir
           </button>
         </div>
       </div>
+
+      {/* Panel de vista previa de ticket 80mm */}
+      {showPreview && (
+        <div className="ticket-preview-wrapper no-print">
+          <div className="ticket-preview">
+            <div className="ticket-title">NANOLOGIC</div>
+            <div className="ticket-subtitle">Recibo de Recepción #{report.reception_id || report.id}</div>
+            <div className="ticket-divider">{'─'.repeat(32)}</div>
+
+            <div className="ticket-section">CLIENTE</div>
+            <div className="ticket-row"><span>Nombre:</span> {client?.name || '—'}</div>
+            <div className="ticket-row"><span>C.I./RIF:</span> {client?.idNumber || '—'}</div>
+            <div className="ticket-row"><span>Teléfono:</span> {client?.phone || '—'}</div>
+            <div className="ticket-divider">{'─'.repeat(32)}</div>
+
+            <div className="ticket-section">EQUIPO</div>
+            <div className="ticket-row"><span>Serial:</span> {deviceSerial}</div>
+            <div className="ticket-row"><span>Estado:</span> {status}</div>
+            <div className="ticket-divider">{'─'.repeat(32)}</div>
+
+            <div className="ticket-section">INFORME TÉCNICO</div>
+            <div className="ticket-row"><span>Falla:</span> {reception?.defect || '—'}</div>
+            <div className="ticket-row"><span>Reparación:</span> {reception?.repair || 'Pendiente'}</div>
+            <div className="ticket-divider">{'─'.repeat(32)}</div>
+
+            <div className="ticket-date">
+              Fecha: {new Date(created).toLocaleString() !== 'Invalid Date'
+                ? new Date(created).toLocaleString()
+                : created}
+            </div>
+            <div className="ticket-footer">¡Gracias por su preferencia!</div>
+            <div className="ticket-cut">✂ - - - - - - - - - - - - - - - -</div>
+          </div>
+        </div>
+      )}
 
       <div className="report-header d-flex justify-content-between align-items-start mb-3">
         <div>

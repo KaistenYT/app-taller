@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { loginUser } from "../api/electronApi";
+import { loginUser } from "../api/httpApi";
 import { useAuth } from "../context/AuthContext";
 import { getFriendlyErrorMessage } from "../utils/helpers";
 
@@ -39,7 +39,8 @@ export default function LoginPage() {
     setAlertMessage("");
     try {
       const res = await loginUser(username.trim(), password);
-      if (res && res.id) {
+      // loginUser devuelve { token, user: { id, username, role } }
+      if (res && res.token && res.user) {
         login(res, rememberMe);
         navigate("/dashboard", { replace: true });
       } else {

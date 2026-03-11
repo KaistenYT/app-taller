@@ -71,17 +71,8 @@ export class ReceptionService {
     const offset = Number(filters.offset) || 0;
     q.limit(limit).offset(offset);
 
-    const rows = await q;
-    return rows.map((r) => {
-      try {
-        r.device_snapshot = r.device_snapshot
-          ? JSON.parse(r.device_snapshot)
-          : null;
-      } catch {
-        r.device_snapshot = null;
-      }
-      return r;
-    });
+    // Con jsonb (PostgreSQL) el driver pg deserializa device_snapshot automáticamente.
+    return await q;
   }
 
   // Misma lógica de filtros que listReceptions, retorna solo el conteo
@@ -244,14 +235,14 @@ export class ReceptionService {
         defect: value.defect || null,
         status: value.status || "PENDIENTE",
         repair: value.repair || null,
-        device_snapshot: JSON.stringify(snapshot),
+        device_snapshot: snapshot, // jsonb: el driver pg serializa el objeto automáticamente
         created_at: value.created_at || localNow(),
         updated_at: localNow(),
         archived: !!value.archived,
       };
 
-      const [id] = await trx("reception").insert(payload);
-      const created = await trx("reception").where({ id }).first();
+      const [idRow] = await trx("reception").insert(payload).returning("id");
+      const created = await trx("reception").where({ id: idRow.id ?? idRow }).first();
 
       await ReceptionHistory.log(
         {
@@ -267,13 +258,6 @@ export class ReceptionService {
       );
 
       await trx.commit();
-
-      try {
-        created.device_snapshot = JSON.parse(created.device_snapshot);
-      } catch {
-        created.device_snapshot = null;
-      }
-
       return created;
     } catch (err) {
       await trx.rollback();
@@ -351,15 +335,6 @@ export class ReceptionService {
       );
 
       await trx.commit();
-
-      try {
-        updated.device_snapshot = updated.device_snapshot
-          ? JSON.parse(updated.device_snapshot)
-          : null;
-      } catch {
-        updated.device_snapshot = null;
-      }
-
       return updated;
     } catch (err) {
       await trx.rollback();

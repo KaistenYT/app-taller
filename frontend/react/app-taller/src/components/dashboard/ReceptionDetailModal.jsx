@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { receptionDetails, getClient } from "../../api/electronApi";
+import { receptionDetails, getClient } from "../../api/httpApi";
 import { escapeHtml, formatPhoneNumber } from "../../utils/helpers";
 
 const STATUS_COLORS = {

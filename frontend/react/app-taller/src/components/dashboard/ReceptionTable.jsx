@@ -9,6 +9,7 @@ export default function ReceptionTable({
   onArchive,
   onDelete,
   onPrint,
+  onBudget,
   onClearFilters,
   onCreateNew,
 }) {
@@ -114,6 +115,7 @@ export default function ReceptionTable({
               onArchive={onArchive}
               onDelete={onDelete}
               onPrint={onPrint}
+              onBudget={onBudget}
             />
           ))}
         </tbody>

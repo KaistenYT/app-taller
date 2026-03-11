@@ -51,6 +51,14 @@ export default function Navbar() {
                 <i className="bi bi-file-earmark-text me-1"></i>Reportes
               </Link>
             </li>
+            <li className="nav-item">
+              <Link
+                className={`nav-link ${isActive("/budgets")}`}
+                to="/budgets"
+              >
+                <i className="bi bi-calculator me-1"></i>Presupuestos
+              </Link>
+            </li>
             {user?.role === "admin" && (
               <li className="nav-item">
                 <Link className={`nav-link ${isActive("/users")}`} to="/users">

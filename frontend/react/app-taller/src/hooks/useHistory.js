@@ -2,7 +2,7 @@ import { create } from "zustand";
 import {
   listReceptionHistory,
   countReceptionHistory,
-} from "../api/electronApi";
+} from "../api/httpApi";
 
 const useHistory = create((set, get) => ({
   entries: [],

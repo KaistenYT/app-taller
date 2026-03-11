@@ -18,16 +18,8 @@ export class Reception {
           "r.created_at",
           "r.archived",
         );
-      return rows.map((r) => {
-        try {
-          r.device_snapshot = r.device_snapshot
-            ? JSON.parse(r.device_snapshot)
-            : null;
-        } catch {
-          r.device_snapshot = null;
-        }
-        return r;
-      });
+      // Con jsonb (PostgreSQL) el driver pg deserializa device_snapshot automáticamente.
+      return rows;
     } catch (error) {
       throw new Error("Error al obtener recepciones");
     }
@@ -50,16 +42,7 @@ export class Reception {
           "r.created_at",
           "r.archived",
         );
-      return rows.map((r) => {
-        try {
-          r.device_snapshot = r.device_snapshot
-            ? JSON.parse(r.device_snapshot)
-            : null;
-        } catch {
-          r.device_snapshot = null;
-        }
-        return r;
-      });
+      return rows;
     } catch (error) {
       throw new Error("Error al obtener recepciones archivadas");
     }
@@ -84,14 +67,6 @@ export class Reception {
 
       if (!rec) return null;
 
-      try {
-        rec.device_snapshot = rec.device_snapshot
-          ? JSON.parse(rec.device_snapshot)
-          : null;
-      } catch {
-        rec.device_snapshot = null;
-      }
-
       const reports = await db("report")
         .where("reception_id", id)
         .select("id", "description", "created_at");
@@ -109,51 +84,25 @@ export class Reception {
     try {
       const knexInstance = transaction || db;
       const rec = await knexInstance("reception").where({ id }).first();
-      if (!rec) return null;
-
-      try {
-        rec.device_snapshot = rec.device_snapshot
-          ? JSON.parse(rec.device_snapshot)
-          : null;
-      } catch {
-        rec.device_snapshot = null;
-      }
-
-      return rec;
+      return rec || null;
     } catch (error) {
       throw new Error("Error al obtener recepción");
     }
   }
 
-  // Usa transacción propia — device_snapshot se serializa a JSON para almacenamiento
+  // Usa transacción propia — device_snapshot se pasa como objeto (jsonb lo serializa el driver)
   static async create(data) {
     const trx = await db.transaction();
     try {
       const payload = { ...data };
 
-      if (
-        payload.device_snapshot &&
-        typeof payload.device_snapshot === "object"
-      ) {
-        payload.device_snapshot = JSON.stringify(payload.device_snapshot);
-      }
-
       payload.created_at = payload.created_at || localNow();
       payload.updated_at = localNow();
 
-      const [id] = await trx("reception").insert(payload);
-      const created = await trx("reception").where({ id }).first();
+      const [id] = await trx("reception").insert(payload).returning("id");
+      const created = await trx("reception").where({ id: id.id ?? id }).first();
 
       await trx.commit();
-
-      try {
-        created.device_snapshot = created.device_snapshot
-          ? JSON.parse(created.device_snapshot)
-          : null;
-      } catch {
-        created.device_snapshot = null;
-      }
-
       return created;
     } catch (error) {
       await trx.rollback();
@@ -165,29 +114,12 @@ export class Reception {
     const trx = await db.transaction();
     try {
       const payload = { ...data };
-
-      if (
-        payload.device_snapshot &&
-        typeof payload.device_snapshot === "object"
-      ) {
-        payload.device_snapshot = JSON.stringify(payload.device_snapshot);
-      }
-
       payload.updated_at = localNow();
 
       await trx("reception").where({ id }).update(payload);
       const updated = await trx("reception").where({ id }).first();
 
       await trx.commit();
-
-      try {
-        updated.device_snapshot = updated.device_snapshot
-          ? JSON.parse(updated.device_snapshot)
-          : null;
-      } catch {
-        updated.device_snapshot = null;
-      }
-
       return updated;
     } catch (error) {
       await trx.rollback();
