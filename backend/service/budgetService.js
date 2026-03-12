@@ -4,22 +4,20 @@ import { ReceptionService } from "./receptionService.js";
 
 export class BudgetService {
   /**
-   * Crea un presupuesto vacío vinculado a una recepción.
+   * Crea un nuevo presupuesto con datos.
    * Registra la acción en budget_log.
    */
-  static async createBudget(reception_id, user_id) {
+  static async createBudget(data, user_id) {
     const trx = await db.transaction();
     try {
-      const existing = await Budget.getByReceptionId(reception_id);
-      if (existing) {
-        await trx.rollback();
-        return existing;
-      }
+      const payload = {
+        reception_id: data.reception_id,
+        items: data.items || [],
+        notes: data.notes || "",
+        status: data.status || "BORRADOR"
+      };
 
-      const budget = await Budget.create(
-        { reception_id, items: [], notes: "", status: "BORRADOR" },
-        trx
-      );
+      const budget = await Budget.create(payload, trx);
 
       await Budget.log(
         { budget_id: budget.id, user_id, action: "CREATED", snapshot: budget },
@@ -47,6 +45,11 @@ export class BudgetService {
   /** Recupera el historial de auditoría de un presupuesto. */
   static async getBudgetLog(budget_id) {
     return await Budget.getLogs(budget_id);
+  }
+
+  /** Recupera TODO el historial de auditoría. */
+  static async getAllBudgetLogs() {
+    return await Budget.getAllLogs();
   }
 
   /**
@@ -87,13 +90,12 @@ export class BudgetService {
    * Elimina un presupuesto. Registra DELETED con snapshot antes de borrar.
    * El budget_log se elimina en cascada por FK.
    */
-  static async deleteBudget(id, user_id) {
+  static async deleteBudget(id, user_id, reason) {
     const trx = await db.transaction();
     try {
       const current = await Budget.getById(id, trx);
       if (!current) throw new Error("Presupuesto no encontrado");
 
-      // Log antes de borrar (el cascade se encarga del budget_log al borrar budget)
       await Budget.log(
         {
           budget_id: id,
@@ -101,6 +103,7 @@ export class BudgetService {
           action: "DELETED",
           previous_status: current.status,
           snapshot: current,
+          reason: reason || null,
         },
         trx
       );

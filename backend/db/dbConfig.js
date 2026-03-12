@@ -2,6 +2,7 @@ import "dotenv/config";
 import knexLib from "knex";
 import path from "path";
 import { fileURLToPath } from "url";
+import bcrypt from "bcrypt";
 import { ReceptionHistory } from "../model/receptionHistory.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,8 +34,21 @@ export function localNow() {
 try {
   await db.migrate.latest();
   console.log("[dbConfig] Migraciones completadas");
+
+  // Seed default admin si no existen usuarios
+  const hasUsers = await db('user').first();
+  if (!hasUsers) {
+    const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
+    const hashedPassword = await bcrypt.hash(defaultAdminPassword, 10);
+    await db('user').insert({
+      username: 'admin',
+      password: hashedPassword,
+      role: 'admin'
+    });
+    console.log("[dbConfig] Usuario administrador por defecto creado (admin)");
+  }
 } catch (err) {
-  console.error("[dbConfig] Error en migraciones:", err);
+  console.error("[dbConfig] Error en inicialización de DB:", err);
 }
 
 await ReceptionHistory.init(db);

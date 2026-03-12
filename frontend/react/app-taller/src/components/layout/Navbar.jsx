@@ -12,10 +12,11 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div className="container-fluid">
-        <Link className="navbar-brand" to="/dashboard">
-          <i className="bi bi-tools me-2"></i>App Taller
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+      <div className="container-fluid px-4">
+        <Link className="navbar-brand fw-bold d-flex align-items-center gap-2" to="/dashboard">
+          <i className="bi bi-tools fs-4"></i>
+          <span>App Taller</span>
         </Link>
         <button
           className="navbar-toggler"
@@ -26,54 +27,76 @@ export default function Navbar() {
           <span className="navbar-toggler-icon"></span>
         </button>
         <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav me-auto">
+          <ul className="navbar-nav me-auto fw-medium">
             <li className="nav-item">
               <Link
-                className={`nav-link ${isActive("/dashboard") || isActive("/")}`}
+                className={`nav-link px-3 ${isActive("/dashboard") || isActive("/")}`}
                 to="/dashboard"
               >
-                <i className="bi bi-house-door me-1"></i>Inicio
+                <i className="bi bi-house-door me-2"></i>Inicio
               </Link>
             </li>
+
             <li className="nav-item">
               <Link
-                className={`nav-link ${isActive("/history")}`}
-                to="/history"
-              >
-                <i className="bi bi-clock-history me-1"></i>Historial
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link
-                className={`nav-link ${isActive("/reports")}`}
+                className={`nav-link px-3 ${isActive("/reports")}`}
                 to="/reports"
               >
-                <i className="bi bi-file-earmark-text me-1"></i>Reportes
+                <i className="bi bi-file-earmark-text me-2"></i>Reportes
               </Link>
             </li>
             <li className="nav-item">
               <Link
-                className={`nav-link ${isActive("/budgets")}`}
+                className={`nav-link px-3 ${isActive("/budgets")}`}
                 to="/budgets"
               >
-                <i className="bi bi-calculator me-1"></i>Presupuestos
+                <i className="bi bi-calculator me-2"></i>Presupuestos
               </Link>
             </li>
+
+            {user?.role === "admin" && (
+              <li className="nav-item dropdown px-2">
+                <a
+                  className={`nav-link dropdown-toggle ${
+                    isActive("/history") || isActive("/budget-logs")
+                  }`}
+                  href="#"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i className="bi bi-shield-lock me-2"></i>Auditoría
+                </a>
+                <ul className="dropdown-menu dropdown-menu-dark shadow">
+                  <li>
+                    <Link className="dropdown-item" to="/history">
+                      <i className="bi bi-clock-history me-2"></i>Recepciones
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item" to="/budget-logs">
+                      <i className="bi bi-journal-text me-2"></i>Presupuestos
+                    </Link>
+                  </li>
+                </ul>
+              </li>
+            )}
             {user?.role === "admin" && (
               <li className="nav-item">
-                <Link className={`nav-link ${isActive("/users")}`} to="/users">
-                  <i className="bi bi-people me-1"></i>Usuarios
+                <Link className={`nav-link px-3 ${isActive("/users")}`} to="/users">
+                  <i className="bi bi-people me-2"></i>Usuarios
                 </Link>
               </li>
             )}
           </ul>
-          <div className="d-flex align-items-center">
-            <span className="text-light me-3">
-              <i className="bi bi-person-circle me-1"></i>
-              {user?.username || ""}
-            </span>
+          
+          <div className="d-flex align-items-center gap-3">
+            <div className="text-light d-flex align-items-center gap-2 bg-white bg-opacity-10 px-3 py-1 rounded-pill">
+              <i className="bi bi-person-circle"></i>
+              <span className="fw-semibold">{user?.username || ""}</span>
+            </div>
             <button
-              className="btn btn-outline-light btn-sm"
+              className="btn btn-light btn-sm fw-semibold shadow-sm"
               onClick={handleLogout}
             >
               <i className="bi bi-box-arrow-right me-1"></i>Salir

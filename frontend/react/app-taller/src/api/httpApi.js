@@ -51,8 +51,8 @@ export const receptionDetails = getReceptionDetails; // Alias por compatibilidad
 // El backend de recepción espera recibir directamente el objeto reception, no destructuring de { data } (porque saca user_id del jwt)
 export const createReception = (data) => request(api.post("/receptions", data.data || data)); 
 export const updateReception = ({ id, data }) => request(api.put(`/receptions/${id}`, data));
-export const deleteReception = ({ id }) => request(api.delete(`/receptions/${id}`));
-export const archiveReception = ({ id }) => request(api.post(`/receptions/${id}/archive`));
+export const deleteReception = ({ id, reason }) => request(api.delete(`/receptions/${id}`, { data: { reason } }));
+export const archiveReception = ({ id, reason }) => request(api.post(`/receptions/${id}/archive`, { reason }));
 export const restoreReception = ({ id }) => request(api.post(`/receptions/${id}/restore`));
 
 // --- Users (Auth) ---
@@ -80,12 +80,13 @@ export const countReceptionHistory = (filters) => request(api.get("/reception-hi
 
 // --- Budgets ---
 export const listBudgets = () => request(api.get("/budgets"));
-export const createBudget = ({ reception_id }) => request(api.post("/budgets", { reception_id }));
+export const createBudget = (data) => request(api.post("/budgets", data));
 export const getBudgetDetails = (id) => request(api.get(`/budgets/${id}`));
 export const getBudgetByReception = (receptionId) => request(api.get(`/budgets/reception/${receptionId}`));
 export const updateBudget = ({ id, data }) => request(api.put(`/budgets/${id}`, data));
-export const deleteBudget = ({ id }) => request(api.delete(`/budgets/${id}`));
+export const deleteBudget = ({ id, reason }) => request(api.delete(`/budgets/${id}`, { data: { reason } }));
 export const getBudgetLog = (budgetId) => request(api.get(`/budgets/${budgetId}/log`));
+export const getAllBudgetLogs = () => request(api.get(`/budgets/logs/all`));
 
 
 // --- Ventanas / Compatibilidad (Opcional, ahora la app manejará rutas web) ---

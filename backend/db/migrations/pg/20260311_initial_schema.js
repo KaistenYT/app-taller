@@ -1,18 +1,11 @@
 /**
- * Migración de esquema para PostgreSQL.
- * El archivo original SQLite (20240214_initial_schema.js) está en la carpeta padre como referencia.
- *
- * Diferencias con el schema SQLite:
- * - knex.fn.now() en lugar de datetime('now','localtime')
- * - jsonb en lugar de json para device_snapshot
- * - Orden corregido: 'user' se crea antes que 'reception_history' (tiene FK a user.id)
- * - Sin checks hasTable (la migración parte de una DB vacía)
+ * Migración consolidada del esquema para PostgreSQL.
  *
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
 export async function up(knex) {
-  // 1. user — creada primero porque reception_history referencia user.id
+  // 1. user
   await knex.schema.createTable("user", (table) => {
     table.increments("id").primary().unique();
     table.string("username").notNullable().unique();
@@ -46,20 +39,12 @@ export async function up(knex) {
     table.string("defect").notNullable();
     table.string("status").notNullable().defaultTo("PENDIENTE");
     table.string("repair");
-    table.jsonb("device_snapshot"); // jsonb: nativo en PostgreSQL, más eficiente que json
+    table.jsonb("device_snapshot");
     table.timestamp("created_at", { useTz: false }).defaultTo(knex.fn.now());
     table.timestamp("updated_at", { useTz: false }).defaultTo(knex.fn.now());
     table.boolean("archived").defaultTo(false);
-    table
-      .foreign("client_idNumber")
-      .references("client.idNumber")
-      .onDelete("RESTRICT")
-      .onUpdate("CASCADE");
-    table
-      .foreign("device_id")
-      .references("device.id")
-      .onDelete("RESTRICT")
-      .onUpdate("CASCADE");
+    table.foreign("client_idNumber").references("client.idNumber").onDelete("RESTRICT").onUpdate("CASCADE");
+    table.foreign("device_id").references("device.id").onDelete("RESTRICT").onUpdate("CASCADE");
     table.index(["client_idNumber"]);
     table.index(["device_id"]);
   });
@@ -68,17 +53,13 @@ export async function up(knex) {
   await knex.schema.createTable("report", (table) => {
     table.increments("id").primary();
     table.integer("reception_id").notNullable().unsigned();
-    table.text("description").notNullable();
+    table.text("description").notNullable(); // Cambiado a text para soporte HTML largo
     table.timestamp("created_at", { useTz: false }).defaultTo(knex.fn.now());
-    table
-      .foreign("reception_id")
-      .references("reception.id")
-      .onDelete("CASCADE")
-      .onUpdate("CASCADE");
+    table.foreign("reception_id").references("reception.id").onDelete("CASCADE").onUpdate("CASCADE");
     table.index(["reception_id"]);
   });
 
-  // 6. reception_history — va al final porque tiene FK a user.id
+  // 6. reception_history
   await knex.schema.createTable("reception_history", (table) => {
     table.increments("id").primary();
     table.integer("reception_id").notNullable().unsigned();
@@ -88,16 +69,38 @@ export async function up(knex) {
     table.timestamp("reception_date", { useTz: false }).notNullable();
     table.string("status").notNullable();
     table.string("action").notNullable();
-    table
-      .timestamp("event_timestamp", { useTz: false })
-      .defaultTo(knex.fn.now());
+    table.timestamp("event_timestamp", { useTz: false }).defaultTo(knex.fn.now());
     table.index(["reception_id"]);
     table.index(["user_id"]);
-    table
-      .foreign("user_id")
-      .references("user.id")
-      .onDelete("RESTRICT")
-      .onUpdate("CASCADE");
+    table.foreign("user_id").references("user.id").onDelete("RESTRICT").onUpdate("CASCADE");
+  });
+
+  // 7. budget
+  await knex.schema.createTable("budget", (table) => {
+    table.increments("id").primary();
+    table.integer("reception_id").notNullable().unsigned();
+    table.jsonb("items").defaultTo("[]");
+    table.text("notes");
+    table.string("status", 20).notNullable().defaultTo("BORRADOR");
+    table.timestamp("created_at", { useTz: false }).defaultTo(knex.fn.now());
+    table.timestamp("updated_at", { useTz: false }).defaultTo(knex.fn.now());
+    table.foreign("reception_id").references("reception.id").onDelete("CASCADE").onUpdate("CASCADE");
+    table.index(["reception_id"]);
+  });
+
+  // 8. budget_log
+  await knex.schema.createTable("budget_log", (table) => {
+    table.increments("id").primary();
+    table.integer("budget_id").notNullable().unsigned();
+    table.integer("user_id").notNullable().unsigned();
+    table.string("action", 30).notNullable();
+    table.string("previous_status", 20);
+    table.jsonb("snapshot");
+    table.timestamp("event_timestamp", { useTz: false }).defaultTo(knex.fn.now());
+    table.foreign("budget_id").references("budget.id").onDelete("CASCADE");
+    table.foreign("user_id").references("user.id").onDelete("RESTRICT");
+    table.index(["budget_id"]);
+    table.index(["user_id"]);
   });
 }
 
@@ -106,6 +109,8 @@ export async function up(knex) {
  * @returns { Promise<void> }
  */
 export async function down(knex) {
+  await knex.schema.dropTableIfExists("budget_log");
+  await knex.schema.dropTableIfExists("budget");
   await knex.schema.dropTableIfExists("reception_history");
   await knex.schema.dropTableIfExists("report");
   await knex.schema.dropTableIfExists("reception");

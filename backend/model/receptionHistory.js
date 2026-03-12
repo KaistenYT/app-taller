@@ -21,6 +21,7 @@ export class ReceptionHistory {
       reception_date = null,
       status = null,
       action = null,
+      reason = null,
     } = entry || {};
 
     try {
@@ -32,6 +33,7 @@ export class ReceptionHistory {
         reception_date,
         status,
         action,
+        reason,
         event_timestamp: knexInstance.fn.now(),
       });
     } catch (err) {

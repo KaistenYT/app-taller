@@ -89,9 +89,9 @@ const useReceptions = create((set, get) => ({
     }
   },
 
-  archiveReception: async (id, userId) => {
+  archiveReception: async (id, userId, reason) => {
     try {
-      await apiArchive(id, userId);
+      await apiArchive({ id, reason });
       await get().loadReceptions();
       return { success: true };
     } catch (error) {
@@ -101,7 +101,7 @@ const useReceptions = create((set, get) => ({
 
   restoreReception: async (id, userId) => {
     try {
-      await apiRestore(id, userId);
+      await apiRestore({ id });
       await get().loadReceptions();
       return { success: true };
     } catch (error) {
@@ -109,9 +109,9 @@ const useReceptions = create((set, get) => ({
     }
   },
 
-  removeReception: async (id, userId, userRole) => {
+  removeReception: async (id, userId, userRole, reason) => {
     try {
-      await apiDelete(id, userId, userRole);
+      await apiDelete({ id, reason });
       await get().loadReceptions();
       return { success: true };
     } catch (error) {

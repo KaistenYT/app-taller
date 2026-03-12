@@ -8,6 +8,8 @@ router.use(authenticate);
 
 router.get("/", budgetController.listBudgets);
 router.post("/", budgetController.createBudget);
+router.get("/logs/all", budgetController.getAllBudgetLogs);
+
 router.get("/:id", budgetController.getBudgetDetails);
 router.put("/:id", budgetController.updateBudget);
 router.delete("/:id", budgetController.deleteBudget);

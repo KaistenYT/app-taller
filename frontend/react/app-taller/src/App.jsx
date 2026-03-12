@@ -13,6 +13,7 @@ import UserManagementPage from "./pages/UserManagementPage";
 import BudgetFormPage from "./pages/BudgetFormPage";
 import BudgetViewPage from "./pages/BudgetViewPage";
 import BudgetListPage from "./pages/BudgetListPage";
+import BudgetLogPage from "./pages/BudgetLogPage";
 
 export default function App() {
   return (
@@ -39,8 +40,10 @@ export default function App() {
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/reports" element={<ReportListPage />} />
               <Route path="/budgets" element={<BudgetListPage />} />
+              <Route path="/budget-logs" element={<BudgetLogPage />} />
               <Route path="/users" element={<UserManagementPage />} />
-              <Route path="/reception/:id/budget" element={<BudgetFormPage />} />
+              <Route path="/receptions/:receptionId/budgets/new" element={<BudgetFormPage />} />
+              <Route path="/budgets/:budgetId/edit" element={<BudgetFormPage />} />
             </Route>
           </Route>
 

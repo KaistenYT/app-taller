@@ -119,7 +119,7 @@ export class ReceptionService {
     }
   }
 
-  static async archiveReception(id, user_id) {
+  static async archiveReception(id, user_id, reason) {
     const reception = await Reception.getById(id);
     if (!reception) throw new Error("Recepcion no encontrada");
 
@@ -131,6 +131,7 @@ export class ReceptionService {
       reception_date: reception.created_at,
       status: reception.status,
       action: "ARCHIVED",
+      reason: reason || null,
     });
 
     await Reception.archive(id);
@@ -343,7 +344,7 @@ export class ReceptionService {
   }
 
   // Solo administradores pueden eliminar recepciones
-  static async deleteReception(id, user_id, user_role) {
+  static async deleteReception(id, user_id, user_role, reason) {
     if (user_role !== "admin") {
       throw new Error(
         "Permiso denegado: Solo administradores pueden eliminar recepciones.",
@@ -361,6 +362,7 @@ export class ReceptionService {
       reception_date: reception.created_at,
       status: reception.status,
       action: "DELETED",
+      reason: reason || null,
     });
 
     return await Reception.delete(id);

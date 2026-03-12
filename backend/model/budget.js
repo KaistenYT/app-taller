@@ -43,7 +43,7 @@ export class Budget {
   }
 
   // ── Auditoría ────────────────────────────────────────────
-  static async log({ budget_id, user_id, action, previous_status = null, snapshot = null }, trx = null) {
+  static async log({ budget_id, user_id, action, previous_status = null, snapshot = null, reason = null }, trx = null) {
     const q = trx || db;
     await q("budget_log").insert({
       budget_id,
@@ -51,6 +51,7 @@ export class Budget {
       action,
       previous_status,
       snapshot: snapshot ? toJsonb(snapshot) : null,
+      reason,
       event_timestamp: q.fn.now(),
     });
   }
@@ -60,6 +61,13 @@ export class Budget {
       .leftJoin("user", "bl.user_id", "user.id")
       .select("bl.*", "user.username as performed_by")
       .where("bl.budget_id", budget_id)
+      .orderBy("bl.event_timestamp", "desc");
+  }
+
+  static async getAllLogs() {
+    return await db("budget_log as bl")
+      .leftJoin("user", "bl.user_id", "user.id")
+      .select("bl.*", "user.username as performed_by")
       .orderBy("bl.event_timestamp", "desc");
   }
 }

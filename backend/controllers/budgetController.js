@@ -1,8 +1,7 @@
 import { BudgetService } from "../service/budgetService.js";
 
 export const createBudget = async (req, res) => {
-  const { reception_id } = req.body;
-  const budget = await BudgetService.createBudget(reception_id, req.user.id);
+  const budget = await BudgetService.createBudget(req.body, req.user.id);
   res.status(201).json(budget);
 };
 
@@ -42,4 +41,9 @@ export const deleteBudget = async (req, res) => {
 export const getBudgetLog = async (req, res) => {
   const log = await BudgetService.getBudgetLog(req.params.id);
   res.json(log);
+};
+
+export const getAllBudgetLogs = async (req, res) => {
+  const logs = await BudgetService.getAllBudgetLogs();
+  res.json(logs);
 };

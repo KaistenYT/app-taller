@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getBudgetByReception, createBudget, updateBudget, openBudgetWindow, getBudgetLog } from "../api/httpApi";
+import { getBudgetDetails, createBudget, updateBudget, openBudgetWindow, getBudgetLog } from "../api/httpApi";
 import LoadingSpinner from "../components/shared/LoadingSpinner";
 
 const EMPTY_ITEM = { description: "", quantity: 1, unit_price: 0, subtotal: 0 };
@@ -13,7 +13,7 @@ const STATUS_LABELS = {
 };
 
 export default function BudgetFormPage() {
-  const { id: receptionId } = useParams(); // /reception/:id/budget
+  const { receptionId, budgetId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -33,17 +33,18 @@ export default function BudgetFormPage() {
   useEffect(() => {
     async function load() {
       try {
-        const recId = Number(receptionId);
-        let b = await getBudgetByReception(recId);
-
-        if (!b) {
-          b = await createBudget({ reception_id: recId, user_id: user.id });
+        if (budgetId) {
+          const b = await getBudgetDetails(budgetId);
+          setBudget(b);
+          setItems(b.items?.length ? b.items : [{ ...EMPTY_ITEM }]);
+          setNotes(b.notes || "");
+          setStatus(b.status || "BORRADOR");
+        } else if (receptionId) {
+          setBudget(null);
+          setItems([{ ...EMPTY_ITEM }]);
+          setNotes("");
+          setStatus("BORRADOR");
         }
-
-        setBudget(b);
-        setItems(b.items?.length ? b.items : [{ ...EMPTY_ITEM }]);
-        setNotes(b.notes || "");
-        setStatus(b.status || "BORRADOR");
       } catch (err) {
         setError("Error al cargar el presupuesto: " + err.message);
       } finally {
@@ -51,7 +52,7 @@ export default function BudgetFormPage() {
       }
     }
     load();
-  }, [receptionId, user.id]);
+  }, [budgetId, receptionId]);
 
   // ── Cálculo automático de subtotal por fila ────────────────
   const handleItemChange = (index, field, value) => {
@@ -78,12 +79,22 @@ export default function BudgetFormPage() {
     setError("");
     setSuccess("");
     try {
-      await updateBudget({
-        id: budget.id,
-        data: { items, notes, status },
-        user_id: user.id,
-      });
-      setSuccess("Presupuesto guardado correctamente.");
+      if (budget) {
+        await updateBudget({
+          id: budget.id,
+          data: { items, notes, status },
+        });
+        setSuccess("Presupuesto guardado correctamente.");
+      } else {
+        const newBudget = await createBudget({
+          reception_id: Number(receptionId),
+          items,
+          notes,
+          status,
+        });
+        setSuccess("Presupuesto creado correctamente.");
+        navigate(`/budgets/${newBudget.id}/edit`, { replace: true });
+      }
     } catch (err) {
       setError("Error al guardar: " + err.message);
     } finally {
@@ -121,9 +132,9 @@ export default function BudgetFormPage() {
         <div>
           <h3 className="mb-0 text-primary">
             <i className="bi bi-file-earmark-spreadsheet me-2"></i>
-            Presupuesto — Recepción #{receptionId}
+            {budget ? `Presupuesto #${budget.id}` : `Nuevo Presupuesto`}
           </h3>
-          <p className="text-muted mb-0">Gestiona los costos de reparación asociados</p>
+          <p className="text-muted mb-0">Recepción #{budget?.reception_id || receptionId}</p>
         </div>
         <div className="d-flex gap-2">
           <button className="btn btn-outline-secondary" onClick={() => navigate(-1)}>
@@ -183,7 +194,7 @@ export default function BudgetFormPage() {
                             type="number"
                             min={1}
                             className="form-control form-control-sm border-0 bg-light text-center"
-                            value={item.quantity}
+                            value={item.quantity == 0 ? "" : item.quantity}
                             onChange={(e) => handleItemChange(i, "quantity", e.target.value)}
                           />
                         </td>
@@ -195,7 +206,7 @@ export default function BudgetFormPage() {
                               min={0}
                               step="0.01"
                               className="form-control border-0 bg-light"
-                              value={item.unit_price}
+                              value={item.unit_price == 0 ? "" : item.unit_price}
                               onChange={(e) => handleItemChange(i, "unit_price", e.target.value)}
                             />
                           </div>

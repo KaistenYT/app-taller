@@ -49,13 +49,14 @@ export const deleteReception = async (req, res) => {
   await ReceptionService.deleteReception(
     req.params.id,
     req.user.id,
-    req.user.role
+    req.user.role,
+    req.body.reason
   );
   res.json({ ok: true });
 };
 
 export const archiveReception = async (req, res) => {
-  await ReceptionService.archiveReception(req.params.id, req.user.id);
+  await ReceptionService.archiveReception(req.params.id, req.user.id, req.body.reason);
   res.json({ ok: true });
 };
 

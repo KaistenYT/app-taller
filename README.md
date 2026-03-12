@@ -1,78 +1,107 @@
-# NanoLogic App (Taller)
+# App Taller (Sistema de Gestión Técnica)
 
-Sistema de gestión para taller técnico, desarrollado con **Electron**, **React**, y **SQLite**.
+Sistema integral de gestión para talleres de servicio técnico, desarrollado con **React**, **Node.js (Express)** y base de datos relacional (**PostgreSQL** con Knex).
 
 ## Características Principales
 
-- **Gestión de Recepciones**: Ciclo de vida completo (Recepción -> Diagnóstico -> Reparación -> Entrega).
-- **Base de Datos Local**: SQLite con **Knex.js** para migraciones y consultas seguras.
-- **Gestión de Usuarios**: Roles (Admin/User), seguridad con `bcrypt` y validación robusta con `Joi`.
-- **Historial de Auditoría**: Registro inmutable de todas las acciones sobre las recepciones.
-- **Reportes Técnicos**: Generación de informes para imprimir o guardar.
-- **Multi-plataforma**: Compatible con Windows (probado), Linux y macOS.
+- **Gestión de Recepciones:** Control completo del ciclo de vida de un equipo en el taller (Recepción, Diagnóstico, Reparación, Entrega).
+- **Gestión de Presupuestos:** Creación de presupuestos detallados asociados a las recepciones, con control de estados (Borrador, Aprobado, Rechazado).
+- **Historial y Auditoría Avanzada:** Registro automático e inmutable de cambios de estado, y auditoría estricta de eliminación/archivos con exigencia de "Motivos" (Reasons) tanto para recepciones como para presupuestos.
+- **Panel de Administración (Admin):** Vistas exclusivas para administradores que permiten gestionar usuarios, auditar quién borró qué (y por qué), y supervisar la actividad global.
+- **Gestión de Clientes y Dispositivos:** Catálogo de clientes y control de dispositivos por número de serie.
+- **Generación de Reportes:** Creación de reportes técnicos detallados y exportables.
+- **Seguridad y Autenticación:** Autenticación basada en **JWT (JSON Web Tokens)**, contraseñas encriptadas con `bcrypt`, y protección de rutas en el Frontend y Backend.
 
-## Tecnologías
+## Tecnologías Utilizadas
 
-- **Frontend**: React, Vite, Bootstrap 5.
-- **Backend (Main Process)**: Electron, Node.js.
-- **Persistencia**: SQLite3, Knex.js.
-- **Seguridad y Calidad**: Joi (Validación), Bcrypt (Hashing).
+- **Frontend:** React, Vite, Bootstrap 5, Zustand (Estado global), React Router DOM.
+- **Backend:** Node.js, Express.js.
+- **Base de Datos y ORM:** PostgreSQL, Knex.js (Migraciones y Query Builder).
+- **Seguridad:** JSON Web Tokens (JWT), Bcrypt.
 
 ## Requisitos Previos
 
-- Node.js 18+
-- npm
+- Node.js v18 o superior.
+- Base de datos PostgreSQL en funcionamiento (y las credenciales configuradas en tu entorno).
+- NPM o predeterminado.
 
-## Instalación y Ejecución
+## Instalación y Configuración
 
-1.  **Instalar dependencias:**
-    Desde la raíz del proyecto, ejecuta:
+1.  **Clonar el repositorio y entrar a la carpeta del proyecto:**
 
-    ```bash
-    npm install
-    # Esto instalará automáticamente las dependencias del frontend también (postinstall)
-    # Si falla, instala manualmente en backend y frontend:
-    # npm install
-    # cd frontend/react/app-taller && npm install
+2.  **Configurar Variables de Entorno (Backend):**
+    En la carpeta principal (donde se ubica el backend), crea un archivo `.env`:
+
+    ```env
+    PORT=3001
+    DB_CLIENT=pg
+    DB_HOST=localhost
+    DB_USER=tu_usuario
+    DB_PASSWORD=tu_password
+    DB_NAME=app_taller_db
+    DB_PORT=5432
+    JWT_SECRET=tu_secreto_super_seguro
     ```
 
-2.  **Modo Desarrollo (Recomendado):**
-    Ejecuta Front y Back simultáneamente con _Hot Reload_:
+3.  **Configurar Variables de Entorno (Frontend):**
+    En `frontend/react/app-taller/`, crea un archivo `.env`:
+
+    ```env
+    VITE_API_URL=http://localhost:3001/api
+    ```
+
+4.  **Instalación de Dependencias:**
+    Debes instalar las dependencias tanto en la raíz (Backend) como en el frontend.
+
+    ```bash
+    # En la raíz (Backend)
+    npm install
+
+    # En la carpeta del Frontend
+    cd frontend/react/app-taller
+    npm install
+    ```
+
+5.  **Migraciones de Base de Datos:**
+    Para crear las tablas necesarias en PostgreSQL, asegúrate de estar en la carpeta raíz/backend y ejecuta:
+    ```bash
+    npx knex migrate:latest
+    ```
+    _Nota: Al iniciar el sistema, si no hay usuarios creados, puedes añadir un script de `seed` o usar directamente el endpoint de registro para crear el primer "admin"._
+
+## Ejecución del Sistema
+
+### Modo Desarrollo
+
+1.  **Iniciar Backend:**
+    Desde la raíz del backend:
 
     ```bash
     npm run dev
     ```
 
-3.  **Construir para Producción:**
-    Genera el instalador/ejecutable en la carpeta `out/`:
+    (El servidor correrá en `http://localhost:3001` o el puerto que hayas definido).
+
+2.  **Iniciar Frontend:**
+    Desde la carpeta `frontend/react/app-taller`:
     ```bash
-    npm run build
+    npm run dev
     ```
-
-## Primer Uso
-
-Al iniciar la aplicación por primera vez, si la base de datos está vacía, el sistema generará automáticamente un **Usuario Administrador**.
-
-Se mostrará una ventana emergente con la contraseña temporal. Además, **se creará un archivo `NanoLogic_Credenciales.txt` en el Escritorio** con esta información para su seguridad.
-
-**Importante:** Guarde estas credenciales en un lugar seguro y elimine el archivo del escritorio.
-**Importante:** Cambie la contraseña del usuario administrador por una que recuerde una vez tenga acceso al sistema.
+    (Se abrirá el cliente web de React, generalmente en `http://localhost:5173`).
 
 ## Estructura del Proyecto
 
-- `electron/`: Proceso principal de Electron.
-  - `main.js`: Entrada de la app, IPC handlers, gestión de ventana.
-  - `preload.cjs`: Puente seguro (ContextBridge) entre Front y Back.
-- `backend/`: Lógica de negocio.
-  - `db/`: Configuración de SQLite y migraciones (`migrations/`).
-  - `service/`: Lógica de negocio y acceso a datos (Modelos).
-  - `validation/`: Esquemas de validación de datos (Joi).
-- `frontend/react/app-taller/`: Interfaz de usuario (React + Vite).
-
-## Base de Datos
-
-El sistema usa migraciones de Knex para gestionar el esquema de la base de datos.
-
-- Las migraciones se ejecutan automáticamente al iniciar la aplicación.
-- En desarrollo: `backend/db/db.sqlite`
-- En producción: `%APPDATA%/NanoLogic/data/db.sqlite`
+- `backend/`: Código fuente de la API Node.js/Express.
+  - `controllers/`: Lógica de cada endpoint HTTP.
+  - `middleware/`: Middlewares como autenticación JWT (`authMiddleware`).
+  - `model/`: Clases o funciones que interactúan con Knex.js.
+  - `routes/`: Definición de endpoints de la API REST.
+  - `service/`: Capa de lógica de negocio (intermediario entre controladores y base de datos).
+  - `db/migrations/`: Archivos para crear o modificar esquemas de DB en PostgreSQL.
+- `frontend/react/app-taller/`:
+  - `src/api/`: Servicios HTTP utilizando `axios` integrados con JWT auth.
+  - `src/components/`: Componentes reutilizables UI (Modales, Tablas, Layout, Navbar).
+  - `src/context/`: Contextos globales (ej. `AuthContext` para el estado de la sesión).
+  - `src/hooks/`: Custom hooks (Zustand para manejo de estado global de recepciones, presupuestos).
+  - `src/pages/`: Vistas completas de la aplicación (Dashboard, BudgetList, Auditorías, Login).
+  - `src/App.jsx`: Configuración del router y protección de rutas de React.

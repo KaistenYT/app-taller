@@ -19,6 +19,7 @@ import FilterBar from "../components/dashboard/FilterBar";
 import ReceptionTable from "../components/dashboard/ReceptionTable";
 import PaginationControls from "../components/dashboard/PaginationControls";
 import ReceptionDetailModal from "../components/dashboard/ReceptionDetailModal";
+import ReasonModal from "../components/shared/ReasonModal";
 import ConfirmModal from "../components/shared/ConfirmModal";
 import Toast from "../components/shared/Toast";
 
@@ -40,6 +41,7 @@ export default function DashboardPage() {
     title: "",
     message: "",
     action: null,
+    requiresReason: false,
   });
   const [toast, setToast] = useState({ message: "", type: "success" });
   const [seedingData, setSeedingData] = useState(false);
@@ -62,7 +64,7 @@ export default function DashboardPage() {
   }
 
   function handleBudget(id) {
-    navigate(`/reception/${id}/budget`);
+    navigate(`/receptions/${id}/budgets/new`);
   }
 
   function handleArchive(id, isArchived) {
@@ -71,6 +73,7 @@ export default function DashboardPage() {
         show: true,
         title: "Restaurar Recepción",
         message: `¿Estás seguro de restaurar la recepción #${id}?`,
+        requiresReason: false,
         action: async () => {
           const res = await restoreReception(id, user.id);
           if (res.success) showToast("Recepción restaurada");
@@ -82,8 +85,9 @@ export default function DashboardPage() {
         show: true,
         title: "Archivar Recepción",
         message: `¿Estás seguro de archivar la recepción #${id}?`,
-        action: async () => {
-          const res = await archiveReception(id, user.id);
+        requiresReason: true,
+        action: async (reason) => {
+          const res = await archiveReception(id, user.id, reason);
           if (res.success) showToast("Recepción archivada");
           else showToast(getFriendlyErrorMessage(res.error), "danger");
         },
@@ -96,8 +100,9 @@ export default function DashboardPage() {
       show: true,
       title: "Eliminar Recepción",
       message: `¿Estás seguro de ELIMINAR la recepción #${id}? Esta acción no se puede deshacer.`,
-      action: async () => {
-        const res = await removeReception(id, user.id, user.role);
+      requiresReason: true,
+      action: async (reason) => {
+        const res = await removeReception(id, user.id, user.role, reason);
         if (res.success) showToast("Recepción eliminada");
         else showToast(getFriendlyErrorMessage(res.error), "danger");
       },
@@ -218,9 +223,13 @@ export default function DashboardPage() {
     });
   }
 
-  function handleConfirm() {
-    if (confirmState.action) confirmState.action();
-    setConfirmState({ show: false, title: "", message: "", action: null });
+  function handleConfirm(reason) {
+    if (confirmState.action) confirmState.action(reason);
+    setConfirmState({ show: false, title: "", message: "", action: null, requiresReason: false });
+  }
+
+  function closeConfirmModal() {
+    setConfirmState({ show: false, title: "", message: "", action: null, requiresReason: false });
   }
 
   return (
@@ -296,15 +305,25 @@ export default function DashboardPage() {
         onPrint={handlePrint}
       />
 
-      <ConfirmModal
-        show={confirmState.show}
-        title={confirmState.title}
-        message={confirmState.message}
-        onConfirm={handleConfirm}
-        onCancel={() =>
-          setConfirmState({ show: false, title: "", message: "", action: null })
-        }
-      />
+      {confirmState.requiresReason ? (
+        <ReasonModal
+          show={confirmState.show}
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmText="Confirmar"
+          confirmClass="btn-danger"
+          onConfirm={handleConfirm}
+          onCancel={closeConfirmModal}
+        />
+      ) : (
+        <ConfirmModal
+          show={confirmState.show}
+          title={confirmState.title}
+          message={confirmState.message}
+          onConfirm={() => handleConfirm()}
+          onCancel={closeConfirmModal}
+        />
+      )}
 
       <Toast
         message={toast.message}
