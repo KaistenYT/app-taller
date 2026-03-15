@@ -59,8 +59,7 @@ export default function BudgetLogPage() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2>
-            <i className="bi bi-journal-text me-2"></i>Auditoría de
-            Presupuestos
+            <i className="bi bi-journal-text me-2"></i>Auditoría de Presupuestos
           </h2>
           <span className="text-muted">
             Historial de cambios y eliminaciones de presupuestos
@@ -83,8 +82,8 @@ export default function BudgetLogPage() {
               <i className="bi bi-search me-1"></i> Buscar
             </button>
             {budgetId && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => {
                   setBudgetId("");
@@ -126,8 +125,12 @@ export default function BudgetLogPage() {
                 <tbody>
                   {logs.map((log) => (
                     <tr key={log.id}>
-                      <td className="fw-bold text-primary">#{log.budget_id}</td>
-                      <td className="text-nowrap">{formatDate(log.event_timestamp)}</td>
+                      <td className="fw-bold text-primary">
+                        #{log.budget_id || log.snapshot?.id || "N/A"}
+                      </td>
+                      <td className="text-nowrap">
+                        {formatDate(log.event_timestamp)}
+                      </td>
                       <td>
                         <span
                           className={`badge bg-${
@@ -152,7 +155,9 @@ export default function BudgetLogPage() {
                       </td>
                       <td>
                         {log.reason ? (
-                          <span className="text-danger fw-semibold">{log.reason}</span>
+                          <span className="text-danger fw-semibold">
+                            {log.reason}
+                          </span>
                         ) : (
                           <span className="text-muted">N/A</span>
                         )}

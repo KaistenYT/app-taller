@@ -7,7 +7,7 @@ export class BudgetService {
    * Crea un nuevo presupuesto con datos.
    * Registra la acción en budget_log.
    */
-  static async createBudget(data, user_id) {
+  static async createBudget(data, user_id, reason) {
     const trx = await db.transaction();
     try {
       const payload = {
@@ -20,7 +20,7 @@ export class BudgetService {
       const budget = await Budget.create(payload, trx);
 
       await Budget.log(
-        { budget_id: budget.id, user_id, action: "CREATED", snapshot: budget },
+        { budget_id: budget.id, user_id, action: "CREATED", snapshot: budget, reason: reason || "Crear presupuesto" },
         trx
       );
 
@@ -56,13 +56,16 @@ export class BudgetService {
    * Actualiza ítems, notas y/o estado de un presupuesto.
    * Detecta automáticamente si hubo cambio de estado para loguear STATUS_CHANGED.
    */
-  static async updateBudget(id, data, user_id) {
+  static async updateBudget(id, data, user_id, reason) {
     const trx = await db.transaction();
     try {
       const current = await Budget.getById(id, trx);
       if (!current) throw new Error("Presupuesto no encontrado");
 
-      const updated = await Budget.update(id, data, trx);
+      const updateData = { ...data };
+      delete updateData.reason; // Remove reason from update payload to avoid 'column does not exist' in 'budget' table
+
+      const updated = await Budget.update(id, updateData, trx);
 
       const statusChanged = data.status && data.status !== current.status;
       const action = statusChanged ? "STATUS_CHANGED" : "UPDATED";
@@ -74,6 +77,7 @@ export class BudgetService {
           action,
           previous_status: statusChanged ? current.status : null,
           snapshot: updated,
+          reason: reason || (statusChanged ? "Cambio de estado" : "Actualización de presupuesto")
         },
         trx
       );

@@ -254,7 +254,7 @@ export default function ReceptionFormPage() {
       };
 
       if (isEdit) {
-        await updateReception(paramId, finalReception, user.id);
+        await updateReception({ id: Number(paramId), data: finalReception });
         showToast("Recepción actualizada correctamente");
         setTimeout(() => navigate("/dashboard"), 1500);
       } else {

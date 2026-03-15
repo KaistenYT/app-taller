@@ -76,7 +76,6 @@ export function getFriendlyErrorMessage(err) {
 
   if (
     msg.includes("api") ||
-    msg.includes("electron") ||
     msg.includes("connect")
   ) {
     return "No se pudo conectar con el sistema interno. Contacte a soporte técnico.";

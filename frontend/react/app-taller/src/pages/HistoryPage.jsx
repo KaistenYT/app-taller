@@ -95,6 +95,7 @@ export default function HistoryPage() {
         "Usuario",
         "Fecha Ingreso",
         "Fecha Evento",
+        "Motivo",
       ];
       const rows = allEntries.map((e) =>
         [
@@ -109,6 +110,7 @@ export default function HistoryPage() {
           e.user_name || e.username || "",
           formatDate(e.reception_date),
           formatDateTime(e.event_timestamp),
+          e.reason || "",
         ].map((v) => `"${String(v).replace(/"/g, '""')}"`),
       );
       const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join(
@@ -310,6 +312,9 @@ export default function HistoryPage() {
                 <th>
                   <i className="bi bi-clock me-1"></i>Evento
                 </th>
+                <th>
+                  <i className="bi bi-pencil-square me-1"></i>Motivo
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -410,6 +415,13 @@ export default function HistoryPage() {
                         {formatDateTime(
                           entry.event_timestamp || entry.created_at,
                         )}
+                      </td>
+                      <td className="align-middle small text-muted">
+                        {entry.reason ? (
+                           <span className={entry.action === "DELETED" ? "text-danger fw-semibold" : "fst-italic"}>
+                             {escapeHtml(entry.reason)}
+                           </span>
+                        ) : "—"}
                       </td>
                     </tr>
                   );

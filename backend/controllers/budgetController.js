@@ -1,7 +1,7 @@
 import { BudgetService } from "../service/budgetService.js";
 
 export const createBudget = async (req, res) => {
-  const budget = await BudgetService.createBudget(req.body, req.user.id);
+  const budget = await BudgetService.createBudget(req.body, req.user.id, req.body.reason);
   res.status(201).json(budget);
 };
 
@@ -28,13 +28,14 @@ export const updateBudget = async (req, res) => {
   const budget = await BudgetService.updateBudget(
     req.params.id,
     req.body,
-    req.user.id
+    req.user.id,
+    req.body.reason
   );
   res.json(budget);
 };
 
 export const deleteBudget = async (req, res) => {
-  await BudgetService.deleteBudget(req.params.id, req.user.id);
+  await BudgetService.deleteBudget(req.params.id, req.user.id, req.body.reason);
   res.json({ ok: true });
 };
 

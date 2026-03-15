@@ -3,18 +3,13 @@
   "productName": "NanoLogic",
   "version": "1.0.0",
   "description": "Sistema de gestión de taller técnico - NanoLogic",
-  "main": "electron/main.js",
   "type": "module",
   "scripts": {
-    "start": "electron .",
     "server": "node backend/server.js",
-    "dev": "concurrently \"npm run dev --prefix frontend/react/app-taller\" \"cross-env DEV=true npm start\"",
-    "dev:web": "concurrently \"npm run dev --prefix frontend/react/app-taller\" \"npm run server\"",
+    "dev": "concurrently \"npm run dev --prefix frontend/react/app-taller\" \"npm run server\"",
     "test": "NODE_OPTIONS=--experimental-vm-modules npx jest",
     "build:frontend": "npm run build --prefix frontend/react/app-taller",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
-    "build": "npm run build:frontend && npm run make"
+    "build": "npm run build:frontend"
   },
   "keywords": [],
   "author": "NanoLogic",
@@ -32,12 +27,7 @@
     "pg": "^8.20.0"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.10.2",
-    "@electron-forge/maker-squirrel": "^7.10.2",
-    "@electron-forge/maker-zip": "^7.10.2",
-    "@electron-forge/publisher-github": "^7.10.2",
     "concurrently": "^9.2.1",
-    "cross-env": "^10.1.0",
-    "electron": "^38.2.0"
+    "cross-env": "^10.1.0"
   }
 }
