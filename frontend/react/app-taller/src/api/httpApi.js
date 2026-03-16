@@ -100,3 +100,9 @@ export const openBudgetWindow = (budgetId) => {
   window.open(`/#/budget/${budgetId}`, "_blank");
   return Promise.resolve({ ok: true });
 };
+
+// --- Companies ---
+export const registerCompany = (data) => request(api.post("/companies/register", data));
+export const getMyCompany = () => request(api.get("/companies/me"));
+export const updateMyCompany = (data) => request(api.put("/companies/me", data));
+

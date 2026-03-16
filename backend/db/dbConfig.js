@@ -43,7 +43,8 @@ try {
     await db('user').insert({
       username: 'admin',
       password: hashedPassword,
-      role: 'admin'
+      role: 'admin',
+      company_id: 1,
     });
     console.log("[dbConfig] Usuario administrador por defecto creado (admin)");
   }

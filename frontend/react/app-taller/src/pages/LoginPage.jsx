@@ -159,8 +159,8 @@ export default function LoginPage() {
 
           <div className="text-center mt-2">
             <span className="text-muted">¿No tienes cuenta? </span>
-            <Link to="/register" className="text-decoration-none">
-              Regístrate
+            <Link to="/register-company" className="text-decoration-none">
+              Registra tu taller
             </Link>
           </div>
         </div>

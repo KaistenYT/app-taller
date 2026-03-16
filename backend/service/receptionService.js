@@ -38,7 +38,13 @@ export class ReceptionService {
   // Filtros, ordenamiento y paginación server-side con JOINs a client y device
   static async listReceptions(filters = {}) {
     let q = db("reception as r")
-      .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
+      .leftJoin("client as c", function () {
+        this.on("r.client_idNumber", "=", "c.idNumber").andOn(
+          "r.company_id",
+          "=",
+          "c.company_id",
+        );
+      })
       .leftJoin("device as d", "r.device_id", "d.id")
       .select(
         "r.id",
@@ -57,6 +63,7 @@ export class ReceptionService {
         "d.description as device_description",
       );
 
+    if (filters.company_id) q.where("r.company_id", filters.company_id);
     q = ReceptionService._applyFilters(q, filters);
 
     if (filters.orderBy && filters.orderDirection) {
@@ -78,35 +85,42 @@ export class ReceptionService {
   // Misma lógica de filtros que listReceptions, retorna solo el conteo
   static async countReceptions(filters = {}) {
     let q = db("reception as r")
-      .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
+      .leftJoin("client as c", function () {
+        this.on("r.client_idNumber", "=", "c.idNumber").andOn(
+          "r.company_id",
+          "=",
+          "c.company_id",
+        );
+      })
       .leftJoin("device as d", "r.device_id", "d.id")
       .count({ count: "*" });
 
+    if (filters.company_id) q.where("r.company_id", filters.company_id);
     q = ReceptionService._applyFilters(q, filters);
 
     const result = await q.first();
     return result ? result.count : 0;
   }
 
-  static async listArchivedReceptions() {
-    return await Reception.getAllArchived();
+  static async listArchivedReceptions(company_id) {
+    return await Reception.getAllArchived(company_id);
   }
 
-  static async getReception(id) {
-    return await Reception.getById(id);
+  static async getReception(id, company_id) {
+    return await Reception.getById(id, company_id);
   }
 
-  static async getReceptionDetails(id) {
+  static async getReceptionDetails(id, company_id) {
     try {
-      const reception = await Reception.getById(id);
+      const reception = await Reception.getById(id, company_id);
       if (!reception) throw new Error("Recepción no encontrada");
 
       const client = reception.client_idNumber
-        ? await Client.getById(reception.client_idNumber)
+        ? await Client.getById(reception.client_idNumber, company_id)
         : null;
 
       const device = reception.device_id
-        ? await Device.getById(reception.device_id)
+        ? await Device.getById(reception.device_id, company_id)
         : null;
 
       return {
@@ -119,8 +133,8 @@ export class ReceptionService {
     }
   }
 
-  static async archiveReception(id, user_id, reason) {
-    const reception = await Reception.getById(id);
+  static async archiveReception(id, user_id, reason, company_id) {
+    const reception = await Reception.getById(id, company_id);
     if (!reception) throw new Error("Recepcion no encontrada");
 
     await ReceptionHistory.log({
@@ -132,14 +146,15 @@ export class ReceptionService {
       status: reception.status,
       action: "ARCHIVED",
       reason: reason || null,
+      company_id,
     });
 
-    await Reception.archive(id);
+    await Reception.archive(id, company_id);
     return true;
   }
 
-  static async restoreReception(id, user_id) {
-    const reception = await Reception.getById(id);
+  static async restoreReception(id, user_id, company_id) {
+    const reception = await Reception.getById(id, company_id);
     if (!reception) throw new Error("Recepción no encontrada");
 
     await ReceptionHistory.log({
@@ -150,15 +165,16 @@ export class ReceptionService {
       reception_date: reception.created_at,
       status: reception.status,
       action: "RESTORED",
+      company_id,
     });
 
-    return await Reception.restore(id);
+    return await Reception.restore(id, company_id);
   }
 
   // Transacción atómica: crea cliente si no existe, resuelve/crea equipo,
   // captura snapshot del equipo al momento del ingreso, inserta recepción
   // y registra en historial. Rollback completo ante cualquier fallo.
-  static async createReception(data, user_id) {
+  static async createReception(data, user_id, company_id) {
     // Validar datos de entrada
     const { error, value } = receptionSchema.create.validate(data);
     if (error) {
@@ -167,10 +183,35 @@ export class ReceptionService {
 
     const trx = await db.transaction();
     try {
+      // 1. Verificar límites del plan SaaS
+      const subscription = await trx("subscription")
+        .join("plan", "subscription.plan_id", "plan.id")
+        .where({ "subscription.company_id": company_id, "subscription.status": "ACTIVE" })
+        .select("plan.max_receptions")
+        .first();
+
+      if (!subscription) {
+        throw new Error("Su empresa no tiene una suscripción activa.");
+      }
+
+      if (subscription.max_receptions !== -1) {
+        // En un SaaS real esto evaluaría recepciones por MES calendario, 
+        // pero por simplicidad contaremos recepciones totales no archivadas.
+        const countRes = await trx("reception")
+          .where({ company_id, archived: false })
+          .count("id as count")
+          .first();
+        const currentReceptions = parseInt(countRes.count, 10);
+        
+        if (currentReceptions >= subscription.max_receptions) {
+          throw new Error(`Límite alcanzado: Su plan (${subscription.max_receptions} recepciones) ha llegado a su límite de operaciones activas. Actualice su plan para continuar.`);
+        }
+      }
+
       // Usar 'value' que ya está validado y limpio
       const { client_idNumber, client_name, client_phone } = value;
 
-      let client = await Client.getById(client_idNumber, trx);
+      let client = await Client.getById(client_idNumber, company_id, trx);
       if (!client) {
         if (!client_name)
           throw new Error(
@@ -181,6 +222,7 @@ export class ReceptionService {
             idNumber: client_idNumber,
             name: client_name,
             phone: client_phone || null,
+            company_id,
           },
           trx,
         );
@@ -196,21 +238,23 @@ export class ReceptionService {
         if (!info?.serial_number)
           throw new Error("create-reception: serial del equipo es requerido");
 
-        device = await Device.getBySerial(info.serial_number, trx);
+        device = await Device.getBySerial(info.serial_number, company_id, trx);
         if (!device) {
           device = await Device.upsertBySerial(
             {
               serial_number: info.serial_number,
               description: info.description || null,
               features: info.features || null,
+              company_id,
             },
+            company_id,
             trx,
           );
         }
 
         deviceId = device.id;
       } else {
-        device = await Device.getById(deviceId, trx);
+        device = await Device.getById(deviceId, company_id, trx);
       }
 
       if (!deviceId)
@@ -236,10 +280,11 @@ export class ReceptionService {
         defect: value.defect || null,
         status: value.status || "PENDIENTE",
         repair: value.repair || null,
-        device_snapshot: snapshot, // jsonb: el driver pg serializa el objeto automáticamente
+        device_snapshot: snapshot,
         created_at: value.created_at || localNow(),
         updated_at: localNow(),
         archived: !!value.archived,
+        company_id,
       };
 
       const [idRow] = await trx("reception").insert(payload).returning("id");
@@ -254,6 +299,7 @@ export class ReceptionService {
           reception_date: created.created_at,
           status: created.status,
           action: "CREATED",
+          company_id,
         },
         trx,
       );
@@ -268,7 +314,7 @@ export class ReceptionService {
 
   // Transacción: actualiza recepción + datos del cliente si cambiaron.
   // Registra en historial con el created_at original (no el updated_at).
-  static async updateReception(id, data, user_id) {
+  static async updateReception(id, data, user_id, company_id) {
     const trx = await db.transaction();
     try {
       const receptionId = Number(id);
@@ -281,7 +327,7 @@ export class ReceptionService {
         throw new Error(`Validación fallida: ${error.details[0].message}`);
       }
 
-      const originalReception = await Reception.getById(receptionId, trx);
+      const originalReception = await Reception.getById(receptionId, company_id, trx);
       if (!originalReception)
         throw new Error("Recepción no encontrada para actualizar");
 
@@ -292,7 +338,7 @@ export class ReceptionService {
 
         if (Object.keys(update).length > 0) {
           await trx("client")
-            .where({ idNumber: value.client_idNumber })
+            .where({ idNumber: value.client_idNumber, company_id })
             .update(update);
         }
       }
@@ -318,9 +364,9 @@ export class ReceptionService {
         (key) => updatePayload[key] === undefined && delete updatePayload[key],
       );
 
-      await trx("reception").where({ id: receptionId }).update(updatePayload);
+      await trx("reception").where({ id: receptionId, company_id }).update(updatePayload);
 
-      const updated = await trx("reception").where({ id: receptionId }).first();
+      const updated = await trx("reception").where({ id: receptionId, company_id }).first();
 
       await ReceptionHistory.log(
         {
@@ -331,6 +377,7 @@ export class ReceptionService {
           reception_date: originalReception.created_at,
           status: updated.status,
           action: "UPDATED",
+          company_id,
         },
         trx,
       );
@@ -344,14 +391,14 @@ export class ReceptionService {
   }
 
   // Solo administradores pueden eliminar recepciones
-  static async deleteReception(id, user_id, user_role, reason) {
+  static async deleteReception(id, user_id, user_role, reason, company_id) {
     if (user_role !== "admin") {
       throw new Error(
         "Permiso denegado: Solo administradores pueden eliminar recepciones.",
       );
     }
 
-    const reception = await Reception.getById(id);
+    const reception = await Reception.getById(id, company_id);
     if (!reception) throw new Error("Recepción no encontrada");
 
     await ReceptionHistory.log({
@@ -363,8 +410,9 @@ export class ReceptionService {
       status: reception.status,
       action: "DELETED",
       reason: reason || null,
+      company_id,
     });
 
-    return await Reception.delete(id);
+    return await Reception.delete(id, company_id);
   }
 }

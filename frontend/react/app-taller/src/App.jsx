@@ -2,7 +2,9 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import Layout from "./components/layout/Layout";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import RegisterCompanyPage from "./pages/RegisterCompanyPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import ReceptionFormPage from "./pages/ReceptionFormPage";
@@ -14,6 +16,7 @@ import BudgetFormPage from "./pages/BudgetFormPage";
 import BudgetViewPage from "./pages/BudgetViewPage";
 import BudgetListPage from "./pages/BudgetListPage";
 import BudgetLogPage from "./pages/BudgetLogPage";
+import SettingsPage from "./pages/SettingsPage";
 
 export default function App() {
   return (
@@ -21,7 +24,9 @@ export default function App() {
       <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Rutas públicas */}
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register-company" element={<RegisterCompanyPage />} />
           <Route path="/report/:id" element={<ReportViewPage />} />
           <Route path="/budget/:id" element={<BudgetViewPage />} />
 
@@ -42,13 +47,14 @@ export default function App() {
               <Route path="/budgets" element={<BudgetListPage />} />
               <Route path="/budget-logs" element={<BudgetLogPage />} />
               <Route path="/users" element={<UserManagementPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="/receptions/:receptionId/budgets/new" element={<BudgetFormPage />} />
               <Route path="/budgets/:budgetId/edit" element={<BudgetFormPage />} />
             </Route>
           </Route>
 
-          {/* Ruta por defecto */}
-          <Route path="*" element={<LoginPage />} />
+          {/* Ruta por defecto → landing */}
+          <Route path="*" element={<LandingPage />} />
         </Routes>
       </HashRouter>
     </AuthProvider>

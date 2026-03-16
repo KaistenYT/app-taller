@@ -1,10 +1,16 @@
 import db, { localNow } from "../db/dbConfig.js";
 
 export class Reception {
-  static async getAll() {
+  static async getAll(company_id = null) {
     try {
-      const rows = await db("reception as r")
-        .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
+      const query = db("reception as r")
+        .leftJoin("client as c", function () {
+          this.on("r.client_idNumber", "=", "c.idNumber").andOn(
+            "r.company_id",
+            "=",
+            "c.company_id",
+          );
+        })
         .leftJoin("device as d", "r.device_id", "d.id")
         .select(
           "r.id",
@@ -18,17 +24,23 @@ export class Reception {
           "r.created_at",
           "r.archived",
         );
-      // Con jsonb (PostgreSQL) el driver pg deserializa device_snapshot automáticamente.
-      return rows;
+      if (company_id) query.where("r.company_id", company_id);
+      return await query;
     } catch (error) {
       throw new Error("Error al obtener recepciones");
     }
   }
 
-  static async getAllArchived() {
+  static async getAllArchived(company_id = null) {
     try {
-      const rows = await db("reception as r")
-        .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
+      const query = db("reception as r")
+        .leftJoin("client as c", function () {
+          this.on("r.client_idNumber", "=", "c.idNumber").andOn(
+            "r.company_id",
+            "=",
+            "c.company_id",
+          );
+        })
         .leftJoin("device as d", "r.device_id", "d.id")
         .where("r.archived", true)
         .select(
@@ -42,17 +54,24 @@ export class Reception {
           "r.created_at",
           "r.archived",
         );
-      return rows;
+      if (company_id) query.where("r.company_id", company_id);
+      return await query;
     } catch (error) {
       throw new Error("Error al obtener recepciones archivadas");
     }
   }
 
   // Retorna recepción con datos enriquecidos de cliente, equipo y reportes asociados
-  static async getDetailedById(id) {
+  static async getDetailedById(id, company_id = null) {
     try {
-      const rec = await db("reception as r")
-        .leftJoin("client as c", "r.client_idNumber", "c.idNumber")
+      const query = db("reception as r")
+        .leftJoin("client as c", function () {
+          this.on("r.client_idNumber", "=", "c.idNumber").andOn(
+            "r.company_id",
+            "=",
+            "c.company_id",
+          );
+        })
         .leftJoin("device as d", "r.device_id", "d.id")
         .where("r.id", id)
         .select(
@@ -62,8 +81,9 @@ export class Reception {
           "d.description as device_description",
           "d.features as device_features",
           "d.serial_number as device_serial",
-        )
-        .first();
+        );
+      if (company_id) query.where("r.company_id", company_id);
+      const rec = await query.first();
 
       if (!rec) return null;
 
@@ -80,10 +100,12 @@ export class Reception {
     }
   }
 
-  static async getById(id, transaction = null) {
+  static async getById(id, company_id = null, transaction = null) {
     try {
       const knexInstance = transaction || db;
-      const rec = await knexInstance("reception").where({ id }).first();
+      const query = knexInstance("reception").where({ id });
+      if (company_id) query.where({ company_id });
+      const rec = await query.first();
       return rec || null;
     } catch (error) {
       throw new Error("Error al obtener recepción");
@@ -99,8 +121,9 @@ export class Reception {
       payload.created_at = payload.created_at || localNow();
       payload.updated_at = localNow();
 
-      const [id] = await trx("reception").insert(payload).returning("id");
-      const created = await trx("reception").where({ id: id.id ?? id }).first();
+      const [idRow] = await trx("reception").insert(payload).returning("id");
+      const id = idRow.id ?? idRow;
+      const created = await trx("reception").where({ id }).first();
 
       await trx.commit();
       return created;
@@ -110,14 +133,14 @@ export class Reception {
     }
   }
 
-  static async update(id, data) {
+  static async update(id, company_id, data) {
     const trx = await db.transaction();
     try {
       const payload = { ...data };
       payload.updated_at = localNow();
 
-      await trx("reception").where({ id }).update(payload);
-      const updated = await trx("reception").where({ id }).first();
+      await trx("reception").where({ id, company_id }).update(payload);
+      const updated = await trx("reception").where({ id, company_id }).first();
 
       await trx.commit();
       return updated;
@@ -127,29 +150,29 @@ export class Reception {
     }
   }
 
-  static async archive(id) {
+  static async archive(id, company_id) {
     try {
       return await db("reception")
-        .where({ id })
+        .where({ id, company_id })
         .update({ archived: true, updated_at: localNow() });
     } catch (error) {
       throw new Error("Error al archivar recepción");
     }
   }
 
-  static async restore(id) {
+  static async restore(id, company_id) {
     try {
       return await db("reception")
-        .where({ id })
+        .where({ id, company_id })
         .update({ archived: false, updated_at: localNow() });
     } catch (error) {
       throw new Error("Error al restaurar recepción");
     }
   }
 
-  static async delete(id) {
+  static async delete(id, company_id) {
     try {
-      return await db("reception").where({ id }).del();
+      return await db("reception").where({ id, company_id }).del();
     } catch (error) {
       throw new Error("Error al eliminar recepción");
     }

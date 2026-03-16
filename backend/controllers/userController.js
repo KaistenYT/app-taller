@@ -5,7 +5,7 @@ export const loginUser = async (req, res) => {
   const { username, password } = req.body;
   const user = await UserService.login(username, password);
 
-  // Generar JWT
+  // Generar JWT (ahora incluye company_id)
   const token = signToken(user);
   res.json({ token, user });
 };
@@ -16,7 +16,11 @@ export const registerUser = async (req, res) => {
     return res.status(403).json({ error: "No autorizado" });
   }
 
-  const user = await UserService.registerUser(req.body);
+  // Asignar la misma empresa del admin que está registrando
+  const userData = req.body;
+  const company_id = req.user.company_id;
+  
+  const user = await UserService.registerUser(userData, company_id);
   res.status(201).json({ id: user.id, username: user.username, role: user.role });
 };
 
@@ -34,7 +38,7 @@ export const resetUserPassword = async (req, res) => {
 };
 
 export const listUsers = async (req, res) => {
-  const users = await UserService.listUsers(req.user.role);
+  const users = await UserService.listUsers(req.user.role, req.user.company_id);
   res.json(users);
 };
 

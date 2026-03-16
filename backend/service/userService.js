@@ -1,8 +1,13 @@
+import db from "../db/dbConfig.js";
 import { User } from "../model/user.js";
 import { userSchema } from "../validation/schemas.js";
 
 export class UserService {
-  static async registerUser(userData) {
+  static async registerUser(userData, company_id) {
+    if (!company_id) {
+      throw new Error("company_id es requerido para registrar un usuario");
+    }
+
     const { error, value } = userSchema.register.validate(userData);
     if (error) {
       throw new Error(`Validación fallida: ${error.details[0].message}`);
@@ -13,7 +18,38 @@ export class UserService {
     if (existingUser) {
       throw new Error("El nombre de usuario ya existe");
     }
-    return await User.create({ username, password, role });
+
+    const trx = await db.transaction();
+    try {
+      // 1. Verificar límites del plan SaaS
+      const subscription = await trx("subscription")
+        .join("plan", "subscription.plan_id", "plan.id")
+        .where({ "subscription.company_id": company_id, "subscription.status": "ACTIVE" })
+        .select("plan.max_users")
+        .first();
+
+      if (!subscription) {
+        throw new Error("Su empresa no tiene una suscripción activa.");
+      }
+
+      if (subscription.max_users !== -1) {
+        // Contar usuarios actuales (excluyendo borrados si lo hubiera, asumiendo todos)
+        const countRes = await trx("users").where({ company_id }).count("id as count").first();
+        const currentUsers = parseInt(countRes.count, 10);
+        
+        if (currentUsers >= subscription.max_users) {
+          throw new Error(`Límite alcanzado: Su plan permite un máximo de ${subscription.max_users} usuarios.`);
+        }
+      }
+
+      // 2. Crear usuario si pasa la validación
+      const user = await User.create({ username, password, role, company_id }, trx);
+      await trx.commit();
+      return user;
+    } catch (err) {
+      await trx.rollback();
+      throw err;
+    }
   }
 
   static async login(username, password) {
@@ -33,6 +69,7 @@ export class UserService {
       id: user.id,
       username: user.username,
       role: user.role,
+      company_id: user.company_id,
     };
   }
 
@@ -43,6 +80,7 @@ export class UserService {
       id: user.id,
       username: user.username,
       role: user.role,
+      company_id: user.company_id,
     };
   }
 
@@ -73,11 +111,11 @@ export class UserService {
     }
   }
 
-  static async listUsers(requestingRole) {
+  static async listUsers(requestingRole, company_id) {
     if (requestingRole !== "admin") {
       throw new Error("Solo administradores pueden listar usuarios");
     }
-    return await User.getAll();
+    return await User.getAll(company_id);
   }
 
   // Permite cambiar username y/o role (no contraseña — usar resetPassword)

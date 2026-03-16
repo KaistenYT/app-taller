@@ -88,6 +88,13 @@ export default function Navbar() {
                 </Link>
               </li>
             )}
+            {user?.role === "admin" && (
+              <li className="nav-item">
+                <Link className={`nav-link px-3 ${isActive("/settings")}`} to="/settings">
+                  <i className="bi bi-gear me-2"></i>Mi Taller
+                </Link>
+              </li>
+            )}
           </ul>
           
           <div className="d-flex align-items-center gap-3">

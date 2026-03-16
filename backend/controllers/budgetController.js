@@ -1,25 +1,26 @@
 import { BudgetService } from "../service/budgetService.js";
 
 export const createBudget = async (req, res) => {
-  const budget = await BudgetService.createBudget(req.body, req.user.id, req.body.reason);
+  const budget = await BudgetService.createBudget(req.body, req.user.id, req.body.reason, req.user.company_id);
   res.status(201).json(budget);
 };
 
-export const listBudgets = async (_req, res) => {
-  const budgets = await BudgetService.listBudgets();
+export const listBudgets = async (req, res) => {
+  const budgets = await BudgetService.listBudgets(req.user.company_id);
   res.json(budgets);
 };
 
 export const getBudgetByReception = async (req, res) => {
   const budget = await BudgetService.getBudgetByReception(
-    req.params.receptionId
+    req.params.receptionId,
+    req.user.company_id
   );
   if (!budget) return res.json(null);
   res.json(budget);
 };
 
 export const getBudgetDetails = async (req, res) => {
-  const budget = await BudgetService.getBudgetWithDetails(req.params.id);
+  const budget = await BudgetService.getBudgetWithDetails(req.params.id, req.user.company_id);
   if (!budget) return res.status(404).json({ error: "Presupuesto no encontrado" });
   res.json(budget);
 };
@@ -29,22 +30,23 @@ export const updateBudget = async (req, res) => {
     req.params.id,
     req.body,
     req.user.id,
-    req.body.reason
+    req.body.reason,
+    req.user.company_id
   );
   res.json(budget);
 };
 
 export const deleteBudget = async (req, res) => {
-  await BudgetService.deleteBudget(req.params.id, req.user.id, req.body.reason);
+  await BudgetService.deleteBudget(req.params.id, req.user.id, req.body.reason, req.user.company_id);
   res.json({ ok: true });
 };
 
 export const getBudgetLog = async (req, res) => {
-  const log = await BudgetService.getBudgetLog(req.params.id);
+  const log = await BudgetService.getBudgetLog(req.params.id, req.user.company_id);
   res.json(log);
 };
 
 export const getAllBudgetLogs = async (req, res) => {
-  const logs = await BudgetService.getAllBudgetLogs();
+  const logs = await BudgetService.getAllBudgetLogs(req.user.company_id);
   res.json(logs);
 };

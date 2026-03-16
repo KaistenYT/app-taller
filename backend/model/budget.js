@@ -24,8 +24,10 @@ export class Budget {
     return parseItems(await db("budget").where({ reception_id }).first());
   }
 
-  static async list() {
-    const rows = await db("budget").orderBy("created_at", "desc");
+  static async list(company_id = null) {
+    const query = db("budget").orderBy("created_at", "desc");
+    if (company_id) query.where({ company_id });
+    const rows = await query;
     return rows.map(parseItems);
   }
 
@@ -43,9 +45,9 @@ export class Budget {
   }
 
   // ── Auditoría ────────────────────────────────────────────
-  static async log({ budget_id, user_id, action, previous_status = null, snapshot = null, reason = null }, trx = null) {
+  static async log({ budget_id, user_id, action, previous_status = null, snapshot = null, reason = null, company_id = null }, trx = null) {
     const q = trx || db;
-    await q("budget_log").insert({
+    const payload = {
       budget_id,
       user_id,
       action,
@@ -53,7 +55,9 @@ export class Budget {
       snapshot: snapshot ? toJsonb(snapshot) : null,
       reason,
       event_timestamp: q.fn.now(),
-    });
+    };
+    if (company_id) payload.company_id = company_id;
+    await q("budget_log").insert(payload);
   }
 
   static async getLogs(budget_id) {
@@ -64,10 +68,12 @@ export class Budget {
       .orderBy("bl.event_timestamp", "desc");
   }
 
-  static async getAllLogs() {
-    return await db("budget_log as bl")
+  static async getAllLogs(company_id = null) {
+    const query = db("budget_log as bl")
       .leftJoin("user", "bl.user_id", "user.id")
       .select("bl.*", "user.username as performed_by")
       .orderBy("bl.event_timestamp", "desc");
+    if (company_id) query.where("bl.company_id", company_id);
+    return await query;
   }
 }

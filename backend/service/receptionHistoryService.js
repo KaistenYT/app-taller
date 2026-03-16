@@ -4,7 +4,13 @@ export class ReceptionHistoryService {
   // Consulta historial con JOINs a client, device y user para mostrar nombres legibles
   static async listHistory(filters = {}) {
     const q = db("reception_history as rh")
-      .leftJoin("client as c", "rh.client_id", "c.idNumber")
+      .leftJoin("client as c", function () {
+        this.on("rh.client_id", "=", "c.idNumber").andOn(
+          "rh.company_id",
+          "=",
+          "c.company_id",
+        );
+      })
       .leftJoin("device as d", "rh.device_id", "d.id")
       .leftJoin("user as u", "rh.user_id", "u.id")
       .select(
@@ -16,6 +22,7 @@ export class ReceptionHistoryService {
       )
       .orderBy("rh.event_timestamp", "desc");
 
+    if (filters.company_id) q.where("rh.company_id", filters.company_id);
     if (filters.reception_id) q.where("rh.reception_id", filters.reception_id);
     if (filters.client_id) q.where("rh.client_id", filters.client_id);
     if (filters.device_id) q.where("rh.device_id", filters.device_id);
@@ -56,10 +63,17 @@ export class ReceptionHistoryService {
   // Misma lógica de filtros que listHistory, pero retorna solo el conteo total
   static async countHistory(filters = {}) {
     const q = db("reception_history as rh")
-      .leftJoin("client as c", "rh.client_id", "c.idNumber")
+      .leftJoin("client as c", function () {
+        this.on("rh.client_id", "=", "c.idNumber").andOn(
+          "rh.company_id",
+          "=",
+          "c.company_id",
+        );
+      })
       .leftJoin("device as d", "rh.device_id", "d.id")
       .leftJoin("user as u", "rh.user_id", "u.id")
       .count({ count: "*" });
+    if (filters.company_id) q.where("rh.company_id", filters.company_id);
     if (filters.reception_id) q.where("rh.reception_id", filters.reception_id);
     if (filters.client_id) q.where("rh.client_id", filters.client_id);
     if (filters.device_id) q.where("rh.device_id", filters.device_id);

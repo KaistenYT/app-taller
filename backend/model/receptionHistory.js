@@ -22,6 +22,7 @@ export class ReceptionHistory {
       status = null,
       action = null,
       reason = null,
+      company_id = null,
     } = entry || {};
 
     try {
@@ -34,6 +35,7 @@ export class ReceptionHistory {
         status,
         action,
         reason,
+        company_id,
         event_timestamp: knexInstance.fn.now(),
       });
     } catch (err) {
@@ -51,6 +53,8 @@ export class ReceptionHistory {
       .leftJoin("user", "reception_history.user_id", "user.id")
       .orderBy("reception_history.event_timestamp", "desc");
 
+    if (filters.company_id)
+      query.where("reception_history.company_id", filters.company_id);
     if (filters.reception_id)
       query.where("reception_history.reception_id", filters.reception_id);
     if (filters.user_id)

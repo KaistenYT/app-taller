@@ -33,6 +33,7 @@ function getInitialUser() {
           id: session.id,
           username: session.username,
           role: session.role || "user",
+          company_id: session.company_id || null,
         };
       }
     } catch (_) {}
@@ -45,13 +46,14 @@ export function AuthProvider({ children }) {
 
   // "Recordarme" → localStorage con expiración de 30 días; sino → sessionStorage
   const login = useCallback((loginResponse, rememberMe = false) => {
-    // loginResponse ahora trae { token, user: { id, username, role } }
+    // loginResponse ahora trae { token, user: { id, username, role, company_id } }
     const { token, user: userData } = loginResponse;
 
     const currentUser = {
       id: userData.id,
       username: userData.username,
       role: userData.role || "user",
+      company_id: userData.company_id || null,
     };
     setUser(currentUser);
     

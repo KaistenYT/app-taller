@@ -267,3 +267,109 @@
     margin-bottom: 0.5rem;
   }
 }
+
+/* ========================================================================= */
+/* ESTILOS NUEVOS: LANDING PAGE SAAS (Premium Look)                          */
+/* ========================================================================= */
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+}
+
+.text-transparent {
+  color: transparent;
+}
+
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.tracking-tight {
+  letter-spacing: -0.05em;
+}
+
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+
+.tracking-widest {
+  letter-spacing: 0.1em;
+}
+
+.fw-black {
+  font-weight: 900;
+}
+
+.hover-opacity {
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+.hover-opacity:hover {
+  opacity: 1;
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+.py-6 {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+
+@media (min-width: 992px) {
+  .py-6 {
+    padding-top: 7rem;
+    padding-bottom: 7rem;
+  }
+  .transform-scale-lg {
+    transform: scale(1.05);
+    z-index: 10;
+  }
+  .transform-scale-lg:hover {
+    transform: scale(1.08) translateY(-5px);
+  }
+}
+
+.text-primary-light {
+  color: #cff4fc;
+}
+
+/* Glassmorphism sutil para el mockup abstracto del hero */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Animaciones */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+

@@ -2,42 +2,42 @@ import { Reports } from "../model/reports.js";
 import { ReceptionService } from "./receptionService.js";
 
 export class ReportService {
-  static async listReports() {
+  static async listReports(company_id) {
     try {
-      return await Reports.getAll();
+      return await Reports.getAll(company_id);
     } catch (err) {
       throw err;
     }
   }
 
-  static async getReport(id) {
+  static async getReport(id, company_id) {
     try {
-      return await Reports.getById(id);
+      return await Reports.getById(id, company_id);
     } catch (err) {
       throw err;
     }
   }
 
-  static async createReport(reportData) {
+  static async createReport(reportData, company_id) {
     try {
-      return await Reports.create(reportData);
+      return await Reports.create({ ...reportData, company_id });
     } catch (err) {
       throw err;
     }
   }
 
-  static async updateReport(id, reportData) {
+  static async updateReport(id, company_id, reportData) {
     try {
-      await Reports.update(id, reportData);
+      await Reports.update(id, company_id, reportData);
       return true;
     } catch (err) {
       throw err;
     }
   }
 
-  static async deleteReport(id) {
+  static async deleteReport(id, company_id) {
     try {
-      await Reports.delete(id);
+      await Reports.delete(id, company_id);
       return true;
     } catch (err) {
       throw err;
@@ -53,7 +53,7 @@ export class ReportService {
   }
 
   // Genera reporte HTML pre-poblado a partir de los datos de una recepción existente
-  static async createReportFromReception(receptionId) {
+  static async createReportFromReception(receptionId, company_id) {
     try {
       if (!receptionId) throw new Error("receptionId is required");
       const rec = await ReceptionService.getReceptionDetails(receptionId);
@@ -92,6 +92,7 @@ export class ReportService {
       const result = await Reports.create({
         reception_id: receptionId,
         description,
+        company_id,
       });
       return result;
     } catch (err) {

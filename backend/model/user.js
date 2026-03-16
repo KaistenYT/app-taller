@@ -3,14 +3,15 @@ import bcrypt from "bcrypt";
 
 export class User {
   // El hash se genera aquí; nunca se almacena la contraseña en texto plano
-  static async create(userData) {
+  static async create(userData, trx = null) {
+    const q = trx || db;
     try {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       const role = userData.role || "user";
-      const payload = { ...userData, password: hashedPassword, role: role };
-      const [row] = await db("user").insert(payload).returning("id");
+      const payload = { ...userData, password: hashedPassword, role };
+      const [row] = await q("user").insert(payload).returning("id");
       const newUserId = row.id ?? row;
-      return await db("user").where({ id: newUserId }).first();
+      return await q("user").where({ id: newUserId }).first();
     } catch (error) {
       console.error("Error creating user:", error);
       return null;
@@ -43,9 +44,11 @@ export class User {
     }
   }
 
-  static async getAll() {
+  static async getAll(company_id) {
     try {
-      return await db("user").select("id", "username", "role");
+      const query = db("user").select("id", "username", "role", "company_id");
+      if (company_id) query.where({ company_id });
+      return await query;
     } catch (error) {
       throw new Error("Error al obtener usuarios");
     }

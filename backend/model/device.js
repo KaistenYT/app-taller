@@ -1,28 +1,34 @@
 import db from "../db/dbConfig.js";
 
 export class Device {
-  static async getAll(trx = null) {
+  static async getAll(company_id = null, trx = null) {
     const q = trx || db;
     try {
-      return await q("device").select("*");
+      const query = q("device").select("*");
+      if (company_id) query.where({ company_id });
+      return await query;
     } catch (err) {
       throw new Error("Error al obtener dispositivos");
     }
   }
 
-  static async getById(id, trx = null) {
+  static async getById(id, company_id = null, trx = null) {
     const q = trx || db;
     try {
-      return await q("device").where({ id }).first();
+      const query = q("device").where({ id });
+      if (company_id) query.where({ company_id });
+      return await query.first();
     } catch (err) {
       throw new Error("Error al obtener dispositivo");
     }
   }
 
-  static async getBySerial(serial, trx = null) {
+  static async getBySerial(serial, company_id = null, trx = null) {
     const q = trx || db;
     try {
-      return await q("device").where({ serial_number: serial }).first();
+      const query = q("device").where({ serial_number: serial });
+      if (company_id) query.where({ company_id });
+      return await query.first();
     } catch (err) {
       throw new Error("Error al obtener dispositivo por serial");
     }
@@ -39,19 +45,24 @@ export class Device {
     }
   }
 
-  // Inserta o actualiza un equipo según su serial_number (idempotente)
-  static async upsertBySerial(deviceData, trx = null) {
+  // Inserta o actualiza un equipo según su serial_number e isolación por empresa
+  static async upsertBySerial(deviceData, company_id, trx = null) {
     const q = trx || db;
     try {
-      if (!deviceData.serial_number) throw new Error("serial_number requerido");
-      const existing = await q("device")
-        .where({ serial_number: deviceData.serial_number })
-        .first();
+      if (!deviceData.serial_number || !company_id) 
+        throw new Error("serial_number y company_id son requeridos para upsert");
+        
+      // Lookup por serial Y empresa (aislamiento completo)
+      const existing = await q("device").where({ 
+        serial_number: deviceData.serial_number,
+        company_id: company_id 
+      }).first();
+
       if (existing) {
         await q("device").where({ id: existing.id }).update(deviceData);
         return await q("device").where({ id: existing.id }).first();
       } else {
-        const [row] = await q("device").insert(deviceData).returning("id");
+        const [row] = await q("device").insert({ ...deviceData, company_id }).returning("id");
         const id = row.id ?? row;
         return await q("device").where({ id }).first();
       }
@@ -61,20 +72,20 @@ export class Device {
     }
   }
 
-  static async update(id, deviceData, trx = null) {
+  static async update(id, company_id, deviceData, trx = null) {
     const q = trx || db;
     try {
-      await q("device").where({ id }).update(deviceData);
-      return await q("device").where({ id }).first();
+      await q("device").where({ id, company_id }).update(deviceData);
+      return await q("device").where({ id, company_id }).first();
     } catch (err) {
       throw new Error("Error al actualizar dispositivo");
     }
   }
 
-  static async delete(id, trx = null) {
+  static async delete(id, company_id, trx = null) {
     const q = trx || db;
     try {
-      return await q("device").where({ id }).del();
+      return await q("device").where({ id, company_id }).del();
     } catch (err) {
       throw new Error("Error al eliminar dispositivo");
     }
