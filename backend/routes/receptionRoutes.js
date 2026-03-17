@@ -1,13 +1,14 @@
 import { Router } from "express";
 import * as receptionController from "../controllers/receptionController.js";
 import { authenticate, requireAdmin } from "../middleware/authMiddleware.js";
+import { checkSubscriptionLimit } from "../middleware/subscriptionMiddleware.js";
 
 const router = Router();
 
 router.use(authenticate);
 
 router.get("/", receptionController.listReceptions);
-router.post("/", receptionController.createReception);
+router.post("/", checkSubscriptionLimit("reception"), receptionController.createReception);
 router.get("/count", receptionController.countReceptions);
 router.get("/archived", receptionController.listArchivedReceptions);
 

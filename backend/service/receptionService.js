@@ -26,11 +26,12 @@ export class ReceptionService {
       query.where("r.created_at", "<=", filters.dateTo + " 23:59:59");
     }
 
-    if (typeof filters.archived === "boolean") {
-      query.where("r.archived", filters.archived);
-    } else {
+    if (filters.archived === "true" || filters.archived === true) {
+      query.where("r.archived", true);
+    } else if (filters.archived === "false" || filters.archived === false) {
       query.where("r.archived", false);
     }
+    // Si es null o undefined, no filtramos por archivado (muestra todas)
 
     return query;
   }
@@ -183,31 +184,6 @@ export class ReceptionService {
 
     const trx = await db.transaction();
     try {
-      // 1. Verificar límites del plan SaaS
-      const subscription = await trx("subscription")
-        .join("plan", "subscription.plan_id", "plan.id")
-        .where({ "subscription.company_id": company_id, "subscription.status": "ACTIVE" })
-        .select("plan.max_receptions")
-        .first();
-
-      if (!subscription) {
-        throw new Error("Su empresa no tiene una suscripción activa.");
-      }
-
-      if (subscription.max_receptions !== -1) {
-        // En un SaaS real esto evaluaría recepciones por MES calendario, 
-        // pero por simplicidad contaremos recepciones totales no archivadas.
-        const countRes = await trx("reception")
-          .where({ company_id, archived: false })
-          .count("id as count")
-          .first();
-        const currentReceptions = parseInt(countRes.count, 10);
-        
-        if (currentReceptions >= subscription.max_receptions) {
-          throw new Error(`Límite alcanzado: Su plan (${subscription.max_receptions} recepciones) ha llegado a su límite de operaciones activas. Actualice su plan para continuar.`);
-        }
-      }
-
       // Usar 'value' que ya está validado y limpio
       const { client_idNumber, client_name, client_phone } = value;
 

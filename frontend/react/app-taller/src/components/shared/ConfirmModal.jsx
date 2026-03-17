@@ -1,42 +1,51 @@
+import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+
 export default function ConfirmModal({
   show,
   title = "Confirmación",
   message,
   detail,
+  confirmText = "Sí, confirmar",
+  cancelText = "Cancelar",
+  variant = "primary",
   onConfirm,
   onCancel,
 }) {
-  if (!show) return null;
   return (
-    <div
-      className="modal show d-block"
-      tabIndex="-1"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-    >
-      <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">{title}</h5>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={onCancel}
-            ></button>
+    <Dialog open={show} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {message}
+          </DialogDescription>
+        </DialogHeader>
+        {detail && (
+          <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+            {detail}
           </div>
-          <div className="modal-body">
-            <p>{message}</p>
-            {detail && <p className="text-muted small">{detail}</p>}
-          </div>
-          <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={onCancel}>
-              No
-            </button>
-            <button className="btn btn-primary" onClick={onConfirm}>
-              Sí
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+        )}
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={onCancel}>
+            {cancelText}
+          </Button>
+          <Button 
+            variant={variant === "danger" ? "destructive" : "default"} 
+            onClick={onConfirm}
+          >
+            {confirmText}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
