@@ -1,10 +1,11 @@
 import db from "../db/dbConfig.js";
+import logger from "../utils/logger.js";
 
 export class Device {
   static async getAll(company_id = null, trx = null) {
     const q = trx || db;
     try {
-      const query = q("device").select("*");
+      const query = q("device").whereNull("deleted_at").select("*");
       if (company_id) query.where({ company_id });
       return await query;
     } catch (err) {
@@ -15,7 +16,7 @@ export class Device {
   static async getById(id, company_id = null, trx = null) {
     const q = trx || db;
     try {
-      const query = q("device").where({ id });
+      const query = q("device").where({ id }).whereNull("deleted_at");
       if (company_id) query.where({ company_id });
       return await query.first();
     } catch (err) {
@@ -26,7 +27,7 @@ export class Device {
   static async getBySerial(serial, company_id = null, trx = null) {
     const q = trx || db;
     try {
-      const query = q("device").where({ serial_number: serial });
+      const query = q("device").where({ serial_number: serial }).whereNull("deleted_at");
       if (company_id) query.where({ company_id });
       return await query.first();
     } catch (err) {
@@ -53,10 +54,10 @@ export class Device {
         throw new Error("serial_number y company_id son requeridos para upsert");
         
       // Lookup por serial Y empresa (aislamiento completo)
-      const existing = await q("device").where({ 
-        serial_number: deviceData.serial_number,
-        company_id: company_id 
-      }).first();
+      const existing = await q("device")
+        .where({ serial_number: deviceData.serial_number, company_id: company_id })
+        .whereNull("deleted_at")
+        .first();
 
       if (existing) {
         await q("device").where({ id: existing.id }).update(deviceData);
@@ -67,7 +68,7 @@ export class Device {
         return await q("device").where({ id }).first();
       }
     } catch (err) {
-      console.error("Error detailed in upsertBySerial:", err);
+      logger.error("Error detailed in upsertBySerial:", { error: err.message, stack: err.stack });
       throw new Error(`Error al upsert dispositivo: ${err.message}`);
     }
   }
@@ -75,7 +76,10 @@ export class Device {
   static async update(id, company_id, deviceData, trx = null) {
     const q = trx || db;
     try {
-      await q("device").where({ id, company_id }).update(deviceData);
+      await q("device")
+        .where({ id, company_id })
+        .whereNull("deleted_at")
+        .update(deviceData);
       return await q("device").where({ id, company_id }).first();
     } catch (err) {
       throw new Error("Error al actualizar dispositivo");
@@ -85,7 +89,9 @@ export class Device {
   static async delete(id, company_id, trx = null) {
     const q = trx || db;
     try {
-      return await q("device").where({ id, company_id }).del();
+      return await q("device")
+        .where({ id, company_id })
+        .update({ deleted_at: q.fn.now() });
     } catch (err) {
       throw new Error("Error al eliminar dispositivo");
     }

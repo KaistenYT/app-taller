@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcrypt";
 import { ReceptionHistory } from "../model/receptionHistory.js";
+import logger from "../utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,7 +34,7 @@ export function localNow() {
 
 try {
   await db.migrate.latest();
-  console.log("[dbConfig] Migraciones completadas");
+  logger.info("[dbConfig] Migraciones completadas");
 
   // Seed default admin si no existen usuarios
   const hasUsers = await db('user').first();
@@ -46,13 +47,13 @@ try {
       role: 'admin',
       company_id: 1,
     });
-    console.log("[dbConfig] Usuario administrador por defecto creado (admin)");
+    logger.info("[dbConfig] Usuario administrador por defecto creado (admin)");
   }
 } catch (err) {
-  console.error("[dbConfig] Error en inicialización de DB:", err);
+  logger.error("[dbConfig] Error en inicialización de DB:", { error: err.message, stack: err.stack });
 }
 
 await ReceptionHistory.init(db);
-console.log("[dbConfig] ReceptionHistory.init completed");
+logger.info("[dbConfig] ReceptionHistory.init completed");
 
 export default db;

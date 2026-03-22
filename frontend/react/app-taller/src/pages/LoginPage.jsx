@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { loginUser } from "../api/httpApi";
 import { useAuth } from "../context/AuthContext";
 import { getFriendlyErrorMessage } from "../utils/helpers";
 
@@ -11,7 +10,6 @@ export default function LoginPage() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertClass, setAlertClass] = useState("");
@@ -28,7 +26,7 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  async function handleLogin(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!username.trim() || !password) {
       setAlertClass("alert-danger");
@@ -38,15 +36,8 @@ export default function LoginPage() {
     setLoading(true);
     setAlertMessage("");
     try {
-      const res = await loginUser(username.trim(), password);
-      // loginUser devuelve { token, user: { id, username, role } }
-      if (res && res.token && res.user) {
-        login(res, rememberMe);
-        navigate("/dashboard", { replace: true });
-      } else {
-        setAlertClass("alert-warning");
-        setAlertMessage("Credenciales inválidas");
-      }
+      await login(username.trim(), password);
+      // La navegación se dispara por el useEffect de arriba
     } catch (err) {
       setAlertClass("alert-danger");
       setAlertMessage(getFriendlyErrorMessage(err));
@@ -82,7 +73,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSubmit}>
             <div className="mb-3">
               <label htmlFor="username" className="form-label">
                 Usuario
@@ -128,18 +119,6 @@ export default function LoginPage() {
                   ></i>
                 </button>
               </div>
-            </div>
-            <div className="mb-3 form-check">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id="remember-me"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <label className="form-check-label" htmlFor="remember-me">
-                Recordarme
-              </label>
             </div>
             <button
               type="submit"

@@ -1,18 +1,51 @@
 import axios from "axios";
+import axiosRetry from "axios-retry";
+import { useAuthStore } from "../context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true, // ¡Importante para enviar cookies!
 });
 
-// Interceptor para inyectar token en cada request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Interceptor de respuesta para manejar errores de autenticación y refresco de token
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Si el error es 401/403 y no es un reintento del refresh token
+    if (error.response?.status === 403 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        // Intenta refrescar el token
+        await api.post("/users/refresh");
+        // Reintenta la petición original con el nuevo token (que ahora está en la cookie)
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Si el refresh falla, desloguear y redirigir
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    // Para otros errores, simplemente los propagamos
+    return Promise.reject(error);
   }
-  return config;
+);
+
+// Aplicar reintentos automáticos para fallos de red
+axiosRetry(api, {
+  retries: 3,
+  retryDelay: (retryCount) => {
+    return retryCount * 1000; // 1s, 2s, 3s
+  },
+  retryCondition: (error) => {
+    // Reintentar solo en errores de red o 5xx, no en 4xx (errores de cliente)
+    return axios.isAxiosError(error) && !error.response || error.response.status >= 500;
+  },
 });
 
 // Helper genérico para extraer data o lanzar error estandarizado
@@ -56,8 +89,11 @@ export const archiveReception = ({ id, reason }) => request(api.post(`/reception
 export const restoreReception = ({ id }) => request(api.post(`/receptions/${id}/restore`));
 
 // --- Users (Auth) ---
-// Retorna { token, user }
-export const loginUser = (username, password) => request(api.post("/users/login", { username, password }));
+export const loginUser = async (username, password) => {
+  const { user } = await request(api.post("/users/login", { username, password }));
+  return user; // Ya no devolvemos el token, se maneja en cookie
+};
+export const logoutUser = () => request(api.post("/users/logout"));
 export const registerUser = (userData) => request(api.post("/users/register", userData));
 export const resetUserPassword = ({ username, newPassword }) => request(api.post("/users/reset-password", { username, newPassword }));
 export const listUsers = () => request(api.get("/users"));

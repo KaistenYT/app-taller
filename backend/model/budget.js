@@ -17,15 +17,15 @@ export class Budget {
 
   static async getById(id, trx = null) {
     const q = trx || db;
-    return parseItems(await q("budget").where({ id }).first());
+    return parseItems(await q("budget").where({ id }).whereNull("deleted_at").first());
   }
 
   static async getByReceptionId(reception_id) {
-    return parseItems(await db("budget").where({ reception_id }).first());
+    return parseItems(await db("budget").where({ reception_id }).whereNull("deleted_at").first());
   }
 
   static async list(company_id = null) {
-    const query = db("budget").orderBy("created_at", "desc");
+    const query = db("budget").whereNull("deleted_at").orderBy("created_at", "desc");
     if (company_id) query.where({ company_id });
     const rows = await query;
     return rows.map(parseItems);
@@ -35,13 +35,13 @@ export class Budget {
     const q = trx || db;
     const toSave = { ...data, updated_at: q.fn.now() };
     if (toSave.items !== undefined) toSave.items = toJsonb(toSave.items);
-    await q("budget").where({ id }).update(toSave);
+    await q("budget").where({ id }).whereNull("deleted_at").update(toSave);
     return parseItems(await q("budget").where({ id }).first());
   }
 
   static async delete(id, trx = null) {
     const q = trx || db;
-    return await q("budget").where({ id }).del();
+    return await q("budget").where({ id }).update({ deleted_at: q.fn.now() });
   }
 
   // ── Auditoría ────────────────────────────────────────────

@@ -1,9 +1,11 @@
+import logger from "../utils/logger.js";
+
 // Registra auditoría de acciones sobre recepciones (crear, editar, archivar, eliminar).
 // Se inicializa manualmente con la instancia de Knex porque se importa antes que dbConfig termine.
 export class ReceptionHistory {
   static async init(db) {
     ReceptionHistory.db = db;
-    console.log(
+    logger.info(
       "Reception history model initialized. Triggers managed by service layer.",
     );
   }
@@ -39,7 +41,7 @@ export class ReceptionHistory {
         event_timestamp: knexInstance.fn.now(),
       });
     } catch (err) {
-      console.error("ReceptionHistory.log error:", err);
+      logger.error("ReceptionHistory.log error:", { error: err.message, stack: err.stack });
       throw err;
     }
   }

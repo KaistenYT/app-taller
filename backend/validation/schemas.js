@@ -31,22 +31,28 @@ export const receptionSchema = {
     }),
     client_name: Joi.string().allow("", null),
     client_phone: Joi.string().allow("", null),
+
     device_id: Joi.number().integer().allow(null),
     device_serial: Joi.string().allow("", null),
     defect: Joi.string().required().messages({
       "any.required": "La falla/defecto es requerida",
     }),
-    status: Joi.string().default("PENDIENTE"),
-    repair: Joi.string().allow("", null),
-    device_snapshot: Joi.object().optional(),
-    created_at: Joi.string().isoDate().optional(),
-    archived: Joi.boolean().default(false),
+    
+    // Campos de dispositivo para creación on-the-fly
     device: Joi.object({
       serial_number: Joi.string().required(),
       description: Joi.string().allow("", null),
       features: Joi.string().allow("", null),
     }).optional(),
-  }).unknown(true),
+
+    // Campos opcionales con valores por defecto
+    status: Joi.string().valid("PENDIENTE", "EN_REVISION", "PRESUPUESTADO", "APROBADO", "RECHAZADO", "EN_REPARACION", "FINALIZADO", "RETIRADO").default("PENDIENTE"),
+    repair: Joi.string().allow("", null),
+    device_snapshot: Joi.object().optional(),
+    created_at: Joi.string().isoDate().optional(),
+    archived: Joi.boolean().default(false),
+    company_id: Joi.number().integer().required(),
+  }),
 
   update: Joi.object({
     client_idNumber: Joi.string(),
@@ -54,10 +60,31 @@ export const receptionSchema = {
     client_phone: Joi.string().allow("", null),
     device_id: Joi.number().integer(),
     defect: Joi.string(),
-    status: Joi.string(),
+    status: Joi.string().valid("PENDIENTE", "EN_REVISION", "PRESUPUESTADO", "APROBADO", "RECHAZADO", "EN_REPARACION", "FINALIZADO", "RETIRADO"),
     repair: Joi.string().allow("", null),
     device_snapshot: Joi.alternatives()
       .try(Joi.object(), Joi.string())
       .allow(null),
-  }).unknown(true),
+    // No permitir company_id en la actualización para evitar que una recepción se mueva entre empresas
+  }),
+};
+
+export const deviceSchema = {
+  create: Joi.object({
+    serial_number: Joi.string().required().messages({
+      "any.required": "El número de serie es requerido",
+    }),
+    description: Joi.string().required().messages({
+      "any.required": "La descripción del equipo es requerida",
+    }),
+    features: Joi.string().allow("", null),
+    company_id: Joi.number().integer().required(),
+  }),
+  
+  update: Joi.object({
+    serial_number: Joi.string(),
+    description: Joi.string(),
+    features: Joi.string().allow("", null),
+    // No se permite cambiar company_id
+  }),
 };

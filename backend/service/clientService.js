@@ -1,4 +1,5 @@
 import { Client } from "../model/client.js";
+import logger from "../utils/logger.js";
 
 export class ClientService {
   static async listClients(company_id) {
@@ -25,7 +26,7 @@ export class ClientService {
     try {
       return await Client.create(clientData, trx);
     } catch (err) {
-      console.error("Error real en createClient:", err);
+      logger.error("Error real en createClient:", { error: err.message, detail: err.detail, stack: err.stack });
       throw new Error("Error al crear cliente: " + (err.detail || err.message));
     }
   }

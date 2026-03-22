@@ -4,6 +4,7 @@ export class Reception {
   static async getAll(company_id = null) {
     try {
       const query = db("reception as r")
+        .whereNull("r.deleted_at")
         .leftJoin("client as c", function () {
           this.on("r.client_idNumber", "=", "c.idNumber").andOn(
             "r.company_id",
@@ -34,6 +35,7 @@ export class Reception {
   static async getAllArchived(company_id = null) {
     try {
       const query = db("reception as r")
+        .whereNull("r.deleted_at")
         .leftJoin("client as c", function () {
           this.on("r.client_idNumber", "=", "c.idNumber").andOn(
             "r.company_id",
@@ -65,6 +67,7 @@ export class Reception {
   static async getDetailedById(id, company_id = null) {
     try {
       const query = db("reception as r")
+        .whereNull("r.deleted_at")
         .leftJoin("client as c", function () {
           this.on("r.client_idNumber", "=", "c.idNumber").andOn(
             "r.company_id",
@@ -89,6 +92,7 @@ export class Reception {
 
       const reports = await db("report")
         .where("reception_id", id)
+        .whereNull("deleted_at")
         .select("id", "description", "created_at");
 
       return {
@@ -103,7 +107,7 @@ export class Reception {
   static async getById(id, company_id = null, transaction = null) {
     try {
       const knexInstance = transaction || db;
-      const query = knexInstance("reception").where({ id });
+      const query = knexInstance("reception").where({ id }).whereNull("deleted_at");
       if (company_id) query.where({ company_id });
       const rec = await query.first();
       return rec || null;
@@ -172,7 +176,9 @@ export class Reception {
 
   static async delete(id, company_id) {
     try {
-      return await db("reception").where({ id, company_id }).del();
+      return await db("reception")
+        .where({ id, company_id })
+        .update({ deleted_at: db.fn.now() });
     } catch (error) {
       throw new Error("Error al eliminar recepción");
     }

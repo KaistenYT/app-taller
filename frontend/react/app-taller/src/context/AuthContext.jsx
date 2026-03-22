@@ -1,101 +1,52 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { create } from "zustand";
+import { loginUser, logoutUser, getCurrentUser } from "../api/httpApi";
 
-const STORAGE_KEY = "app_user";
-const AuthContext = createContext(null);
+// 1. Define el store de Zustand
+export const useAuthStore = create((set) => ({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true, // Para saber si estamos verificando la sesión inicial
 
-// Intenta recuperar sesión de sessionStorage primero, luego localStorage.
-// Si la sesión expiró (solo aplica con "Recordarme"), la descarta.
-function getInitialUser() {
-  let sessionRaw = null;
-  try {
-    sessionRaw = sessionStorage.getItem(STORAGE_KEY);
-  } catch (_) {}
-  if (!sessionRaw) {
+  // La acción de login ahora solo necesita credenciales
+  login: async (username, password) => {
+    const userData = await loginUser(username, password);
+    set({ user: userData, isAuthenticated: true });
+  },
+
+  // La acción de logout limpia el estado y llama a la API para borrar cookies
+  logout: async () => {
     try {
-      sessionRaw = localStorage.getItem(STORAGE_KEY);
-    } catch (_) {}
-  }
-  if (sessionRaw) {
-    try {
-      const session = JSON.parse(sessionRaw);
-      if (session && session.id) {
-        if (
-          session.expires &&
-          Number(session.expires) &&
-          Date.now() > Number(session.expires)
-        ) {
-          try {
-            localStorage.removeItem(STORAGE_KEY);
-          } catch (_) {}
-          return null;
-        }
-        return {
-          id: session.id,
-          username: session.username,
-          role: session.role || "user",
-          company_id: session.company_id || null,
-        };
-      }
-    } catch (_) {}
-  }
-  return null;
-}
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(getInitialUser);
-
-  // "Recordarme" → localStorage con expiración de 30 días; sino → sessionStorage
-  const login = useCallback((loginResponse, rememberMe = false) => {
-    // loginResponse ahora trae { token, user: { id, username, role, company_id } }
-    const { token, user: userData } = loginResponse;
-
-    const currentUser = {
-      id: userData.id,
-      username: userData.username,
-      role: userData.role || "user",
-      company_id: userData.company_id || null,
-    };
-    setUser(currentUser);
-    
-    // Guardar token en storage de la app para httpApi
-    if (rememberMe) {
-      localStorage.setItem("auth_token", token);
-      sessionStorage.removeItem("auth_token");
-      
-      const sessionObj = { ...userData };
-      sessionObj.expires = Date.now() + 30 * 24 * 60 * 60 * 1000;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionObj));
-      sessionStorage.removeItem(STORAGE_KEY);
-    } else {
-      sessionStorage.setItem("auth_token", token);
-      localStorage.removeItem("auth_token");
-      
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-      localStorage.removeItem(STORAGE_KEY);
+      await logoutUser();
+    } catch (error) {
+      console.error("Logout failed:", error); // Aún así deslogueamos del frontend
     }
-  }, []);
+    set({ user: null, isAuthenticated: false });
+  },
 
-  const logout = useCallback(() => {
-    setUser(null);
+  // Acción para verificar si hay una sesión activa (usando las cookies)
+  checkAuth: async () => {
     try {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem("auth_token");
-      sessionStorage.removeItem(STORAGE_KEY);
-      sessionStorage.removeItem("auth_token");
-    } catch (_) {}
-  }, []);
+      const userData = await getCurrentUser();
+      set({ user: userData, isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
+  },
+}));
 
-  return (
-    <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, login, logout }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
+// 2. Para mantener compatibilidad, exportamos un hook `useAuth`
+export const useAuth = useAuthStore;
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+// (Opcional pero recomendado) Componente que llama a checkAuth al inicio
+import { useEffect } from "react";
+
+export function AuthInitializer({ children }) {
+  const { checkAuth, isLoading } = useAuth();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Podríamos mostrar un spinner de carga aquí mientras isLoading es true
+  return isLoading ? null : children;
 }

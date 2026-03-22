@@ -1,4 +1,5 @@
 import { Device } from "../model/device.js";
+import { deviceSchema } from "../validation/schemas.js";
 
 export class DeviceService {
   static async listDevices(company_id) {
@@ -26,24 +27,38 @@ export class DeviceService {
   }
 
   static async createDevice(deviceData) {
+    const { error, value } = deviceSchema.create.validate(deviceData);
+    if (error) {
+      throw new Error(`Validación fallida: ${error.details[0].message}`);
+    }
     try {
-      return await Device.create(deviceData);
+      return await Device.create(value);
     } catch (err) {
       throw err;
     }
   }
 
   static async upsertDeviceBySerial(deviceData, company_id) {
+    // Usamos el schema 'create' ya que un upsert puede resultar en creación
+    const { error, value } = deviceSchema.create.validate(deviceData);
+    if (error) {
+      throw new Error(`Validación fallida: ${error.details[0].message}`);
+    }
     try {
-      return await Device.upsertBySerial(deviceData, company_id);
+      // Pasamos 'value' que son los datos limpios y validados
+      return await Device.upsertBySerial(value, company_id);
     } catch (err) {
       throw err;
     }
   }
 
   static async updateDevice(id, company_id, deviceData) {
+    const { error, value } = deviceSchema.update.validate(deviceData);
+    if (error) {
+      throw new Error(`Validación fallida: ${error.details[0].message}`);
+    }
     try {
-      return await Device.update(id, company_id, deviceData);
+      return await Device.update(id, company_id, value);
     } catch (err) {
       throw err;
     }

@@ -197,8 +197,11 @@ export default function DashboardPage() {
                   client_name: clients[i].name,
                   client_phone: clients[i].phone,
                   device_serial: devices[i].serial_number,
-                  device_description: devices[i].description,
-                  device_features: devices[i].features,
+                  device: {
+                    serial_number: devices[i].serial_number,
+                    description: devices[i].description,
+                    features: devices[i].features,
+                  },
                   defect: defects[i],
                   status: "PENDIENTE",
                 },

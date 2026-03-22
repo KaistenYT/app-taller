@@ -1,10 +1,12 @@
 import db from "../db/dbConfig.js";
+import logger from "../utils/logger.js";
 
 export class Reports {
   static async getAll(company_id = null, trx = null) {
     const q = trx || db;
     try {
       const query = q("report")
+        .whereNull("report.deleted_at")
         .leftJoin("reception", "report.reception_id", "reception.id")
         .leftJoin("client", function () {
           this.on("reception.client_idNumber", "=", "client.idNumber").andOn(
@@ -35,6 +37,7 @@ export class Reports {
     const q = trx || db;
     try {
       const query = q("report")
+        .whereNull("report.deleted_at")
         .leftJoin("reception", "report.reception_id", "reception.id")
         .leftJoin("client", function () {
           this.on("reception.client_idNumber", "=", "client.idNumber").andOn(
@@ -69,6 +72,7 @@ export class Reports {
     try {
       return await q("report")
         .where({ reception_id })
+        .whereNull("deleted_at")
         .orderBy("created_at", "desc");
     } catch (err) {
       throw new Error("Failed to fetch reports by reception");
@@ -84,7 +88,7 @@ export class Reports {
       const id = row.id ?? row;
       return { id };
     } catch (err) {
-      console.error("[Reports.create] Real error:", err);
+      logger.error("[Reports.create] Real error:", { error: err.message, stack: err.stack });
       throw new Error(`Failed to create report: ${err.message}`);
     }
   }
@@ -92,10 +96,13 @@ export class Reports {
   static async update(id, company_id, { description }, trx = null) {
     const q = trx || db;
     try {
-      await q("report").where({ id, company_id }).update({
-        description,
-        created_at: q.fn.now(),
-      });
+      await q("report")
+        .where({ id, company_id })
+        .whereNull("deleted_at")
+        .update({
+          description,
+          created_at: q.fn.now(),
+        });
     } catch (err) {
       throw new Error("Failed to update report");
     }
@@ -104,7 +111,9 @@ export class Reports {
   static async delete(id, company_id, trx = null) {
     const q = trx || db;
     try {
-      await q("report").where({ id, company_id }).del();
+      await q("report")
+        .where({ id, company_id })
+        .update({ deleted_at: q.fn.now() });
     } catch (err) {
       throw new Error("Failed to delete report");
     }

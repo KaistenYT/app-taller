@@ -1,6 +1,8 @@
 import db from "../db/dbConfig.js";
 import { User } from "../model/user.js";
 import { userSchema } from "../validation/schemas.js";
+import logger from "../utils/logger.js";
+import { SubscriptionService } from "./subscriptionService.js";
 
 export class UserService {
   static async registerUser(userData, company_id) {
@@ -22,25 +24,7 @@ export class UserService {
     const trx = await db.transaction();
     try {
       // 1. Verificar límites del plan SaaS
-      const subscription = await trx("subscription")
-        .join("plan", "subscription.plan_id", "plan.id")
-        .where({ "subscription.company_id": company_id, "subscription.status": "ACTIVE" })
-        .select("plan.max_users")
-        .first();
-
-      if (!subscription) {
-        throw new Error("Su empresa no tiene una suscripción activa.");
-      }
-
-      if (subscription.max_users !== -1) {
-        // Contar usuarios actuales (excluyendo borrados si lo hubiera, asumiendo todos)
-        const countRes = await trx("users").where({ company_id }).count("id as count").first();
-        const currentUsers = parseInt(countRes.count, 10);
-        
-        if (currentUsers >= subscription.max_users) {
-          throw new Error(`Límite alcanzado: Su plan permite un máximo de ${subscription.max_users} usuarios.`);
-        }
-      }
+      await SubscriptionService.checkQuota(company_id, "max_users", trx);
 
       // 2. Crear usuario si pasa la validación
       const user = await User.create({ username, password, role, company_id }, trx);
@@ -106,7 +90,7 @@ export class UserService {
       const updatedUser = await User.update(user.id, { password: newPassword });
       return updatedUser;
     } catch (error) {
-      console.error("Error in UserService.resetPassword:", error);
+      logger.error("Error in UserService.resetPassword:", { error: error.message, stack: error.stack });
       throw error;
     }
   }

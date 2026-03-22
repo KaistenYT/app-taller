@@ -1,5 +1,6 @@
 import db from "../db/dbConfig.js";
 import bcrypt from "bcrypt";
+import logger from "../utils/logger.js";
 
 export class User {
   // El hash se genera aquí; nunca se almacena la contraseña en texto plano
@@ -13,14 +14,14 @@ export class User {
       const newUserId = row.id ?? row;
       return await q("user").where({ id: newUserId }).first();
     } catch (error) {
-      console.error("Error creating user:", error);
+      logger.error("Error creating user:", { error: error.message, stack: error.stack });
       return null;
     }
   }
 
   static async getByUsername(username) {
     try {
-      return await db("user").where({ username }).first();
+      return await db("user").where({ username }).whereNull("deleted_at").first();
     } catch (error) {
       return null;
     }
@@ -38,7 +39,7 @@ export class User {
 
   static async getById(id) {
     try {
-      return await db("user").where({ id }).first();
+      return await db("user").where({ id }).whereNull("deleted_at").first();
     } catch (error) {
       return null;
     }
@@ -46,7 +47,7 @@ export class User {
 
   static async getAll(company_id) {
     try {
-      const query = db("user").select("id", "username", "role", "company_id");
+      const query = db("user").select("id", "username", "role", "company_id").whereNull("deleted_at");
       if (company_id) query.where({ company_id });
       return await query;
     } catch (error) {
@@ -56,7 +57,7 @@ export class User {
 
   static async delete(id) {
     try {
-      return await db("user").where({ id }).del();
+      return await db("user").where({ id }).update({ deleted_at: db.fn.now() });
     } catch (error) {
       throw new Error("Error al eliminar usuario");
     }
@@ -74,10 +75,10 @@ export class User {
         updatedData.password = await bcrypt.hash(updatedData.password, 10);
       }
 
-      await db("user").where({ id }).update(updatedData);
+      await db("user").where({ id }).whereNull("deleted_at").update(updatedData);
       return await db("user").where({ id }).first();
     } catch (error) {
-      console.error("Error in User.update:", error);
+      logger.error("Error in User.update:", { error: error.message, stack: error.stack });
       throw error;
     }
   }

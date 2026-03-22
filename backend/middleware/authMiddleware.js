@@ -1,48 +1,74 @@
 import jwt from "jsonwebtoken";
+import { config } from "../config/env.js";
 
-const SECRET = process.env.ACCESS_TOKEN_SECRET || "dev_secret_change_in_prod";
+const ACCESS_SECRET = config.jwtSecret;
+const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || (ACCESS_SECRET + "_refresh");
 
 /**
- * Middleware que verifica el token JWT en el header Authorization.
- * Añade req.user = { id, username, role } si es válido.
+ * Middleware que verifica el token JWT en cookies o header Authorization.
+ * Añade req.user = { id, username, role, company_id } si es válido.
  */
 export const authenticate = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // "Bearer <token>"
+  // Intentar leer de cookies (HttpOnly) primero, luego de Authorization header
+  let token = req.cookies?.access_token;
+  
+  if (!token) {
+    const authHeader = req.headers["authorization"];
+    token = authHeader && authHeader.split(" ")[1];
+  }
 
   if (!token) {
-    return res.status(401).json({ error: "Token requerido" });
+    return res.status(401).json({ error: "No autenticado" });
   }
 
   try {
-    const payload = jwt.verify(token, SECRET);
-    req.user = payload; // { id, username, role }
+    const payload = jwt.verify(token, ACCESS_SECRET);
+    req.user = payload; 
     next();
-  } catch {
-    return res.status(403).json({ error: "Token inválido o expirado" });
+  } catch (err) {
+    return res.status(403).json({ error: "Sesión expirada o inválida" });
   }
 };
 
 /**
  * Middleware que verifica que el usuario autenticado sea administrador.
- * Debe usarse después de `authenticate`.
  */
 export const requireAdmin = (req, res, next) => {
   if (req.user?.role !== "admin") {
-    return res
-      .status(403)
-      .json({ error: "Acceso restringido a administradores" });
+    return res.status(403).json({ error: "Acceso restringido a administradores" });
   }
   next();
 };
 
 /**
- * Genera un token JWT firmado para el usuario dado.
+ * Genera un Access Token (vida corta: 15m)
  */
-export const signToken = (user) => {
+export const signAccessToken = (user) => {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role, company_id: user.company_id },
-    SECRET,
-    { expiresIn: "8h" }
+    ACCESS_SECRET,
+    { expiresIn: "15m" }
   );
+};
+
+/**
+ * Genera un Refresh Token (vida larga: 7d)
+ */
+export const signRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user.id, company_id: user.company_id },
+    REFRESH_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
+/**
+ * Verifica un Refresh Token
+ */
+export const verifyRefreshToken = (token) => {
+  try {
+    return jwt.verify(token, REFRESH_SECRET);
+  } catch {
+    return null;
+  }
 };

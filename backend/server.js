@@ -2,7 +2,11 @@ import "dotenv/config";
 import "express-async-errors";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
+import { config } from "./config/env.js";
+import { apiRateLimiter } from "./middleware/rateLimiter.js";
 import deviceRoutes from "./routes/deviceRoutes.js";
 import clientRoutes from "./routes/clientRoutes.js";
 import receptionRoutes from "./routes/receptionRoutes.js";
@@ -13,18 +17,22 @@ import budgetRoutes from "./routes/budgetRoutes.js";
 import companyRoutes from "./routes/companyRoutes.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
+import logger from "./utils/logger.js";
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.port;
 
 // ── Middlewares globales ─────────────────────────────────────────────────────
+app.use(helmet());
+app.use(apiRateLimiter);
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: config.corsOrigin,
     credentials: true,
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 // Evitar bloqueos de CSP de extensiones (Kaspersky, React DevTools, etc.)
 app.use((_req, res, next) => {
@@ -53,8 +61,10 @@ app.get("/favicon.ico", (_req, res) => res.status(204).end());
 // ── Manejo global de errores (debe ir al final) ──────────────────────────────
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`[server] Escuchando en http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    logger.info(`[server] Escuchando en http://localhost:${PORT}`);
+  });
+}
 
 export default app;

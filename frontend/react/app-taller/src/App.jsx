@@ -1,11 +1,10 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthInitializer } from "./context/AuthContext";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import Layout from "./components/layout/Layout";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterCompanyPage from "./pages/RegisterCompanyPage";
-import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import ReceptionFormPage from "./pages/ReceptionFormPage";
 import HistoryPage from "./pages/HistoryPage";
@@ -20,7 +19,7 @@ import SettingsPage from "./pages/SettingsPage";
 
 export default function App() {
   return (
-    <AuthProvider>
+    <AuthInitializer>
       <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Rutas públicas */}
@@ -57,6 +56,6 @@ export default function App() {
           <Route path="*" element={<LandingPage />} />
         </Routes>
       </HashRouter>
-    </AuthProvider>
+    </AuthInitializer>
   );
 }

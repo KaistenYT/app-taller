@@ -1,13 +1,46 @@
 import { UserService } from "../service/userService.js";
-import { signToken } from "../middleware/authMiddleware.js";
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../middleware/authMiddleware.js";
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días (coincide con refresh token)
+};
 
 export const loginUser = async (req, res) => {
   const { username, password } = req.body;
   const user = await UserService.login(username, password);
 
-  // Generar JWT (ahora incluye company_id)
-  const token = signToken(user);
-  res.json({ token, user });
+  const accessToken = signAccessToken(user);
+  const refreshToken = signRefreshToken(user);
+
+  res.cookie("access_token", accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
+  res.cookie("refresh_token", refreshToken, COOKIE_OPTIONS);
+
+  res.json({ user, accessToken }); // Se devuelve token también por si el cliente no puede usar cookies (Legacy)
+};
+
+export const logoutUser = async (req, res) => {
+  res.clearCookie("access_token");
+  res.clearCookie("refresh_token");
+  res.json({ ok: true });
+};
+
+export const refreshToken = async (req, res) => {
+  const token = req.cookies?.refresh_token;
+  if (!token) return res.status(401).json({ error: "No refresh token" });
+
+  const payload = verifyRefreshToken(token);
+  if (!payload) return res.status(403).json({ error: "Refresh token inválido" });
+
+  const user = await UserService.getByUserId(payload.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+  const newAccessToken = signAccessToken(user);
+  res.cookie("access_token", newAccessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
+
+  res.json({ accessToken: newAccessToken });
 };
 
 export const registerUser = async (req, res) => {
