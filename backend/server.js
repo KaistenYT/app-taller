@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import { rateLimit } from "express-rate-limit";
 
 import { config } from "./config/env.js";
 import { apiRateLimiter } from "./middleware/rateLimiter.js";
@@ -22,26 +23,51 @@ import logger from "./utils/logger.js";
 const app = express();
 const PORT = config.port;
 
-// ── Middlewares globales ─────────────────────────────────────────────────────
-app.use(helmet());
-app.use(apiRateLimiter);
+// 1. CORS DEBE IR PRIMERO PARA EVITAR BLOQUEOS EN PREFLIGHT
 app.use(
   cors({
     origin: config.corsOrigin,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-app.use(express.json());
 app.use(cookieParser());
 
-// Evitar bloqueos de CSP de extensiones (Kaspersky, React DevTools, etc.)
-app.use((_req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; connect-src 'self' http://localhost:* ws://localhost:* http://gc.kis.v2.scr.kaspersky-labs.com ws://gc.kis.v2.scr.kaspersky-labs.com;"
-  );
-  next();
+// 2. SEGURIDAD (HELMET)
+app.use(helmet());
+
+// Configuración de CSP para desarrollo
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: [
+        "'self'",
+        "http://localhost:*",
+        "ws://localhost:*",
+        "http://gc.kis.v2.scr.kaspersky-labs.com",
+        "ws://gc.kis.v2.scr.kaspersky-labs.com",
+      ],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+    },
+  })
+);
+
+// 3. RATE LIMITING (Solo para API)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  limit: 500, // Aumentado para evitar bloqueos durante pruebas intensas
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Demasiadas peticiones, intente de nuevo más tarde." },
+  skipSuccessfulRequests: false,
 });
+app.use("/api/", limiter);
+
+// 4. PARSERS
+app.use(express.json());
 
 // ── Rutas API ────────────────────────────────────────────────────────────────
 app.use("/api/devices", deviceRoutes);

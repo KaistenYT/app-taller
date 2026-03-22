@@ -1,18 +1,24 @@
-/**
- * Placeholder for missing migration file to satisfy Knex validator.
- */
-export async function up(knex) {
-  // Check if column already exists to avoid errors if it was partially applied
-  const hasColumn = await knex.schema.hasColumn('company', 'max_budgets');
-  if (!hasColumn) {
-    await knex.schema.alterTable('company', table => {
-      table.integer('max_budgets').defaultTo(100);
+export function up(knex) {
+  return knex.schema
+    .table("plan", (table) => {
+      table.integer("max_budgets").defaultTo(-1);
+    })
+    .then(async () => {
+      // Configurar límites solicitados
+      await knex("plan").where({ name: "FREE" }).orWhere({ id: 1 }).update({
+        max_receptions: 20, // Semanales (se controla en el middleware)
+        max_budgets: 10
+      });
+
+      await knex("plan").where({ name: "EMPRENDEDOR" }).update({
+        max_receptions: 50, // Mensuales (se controla en el middleware)
+        max_budgets: 30
+      });
     });
-  }
 }
 
-export async function down(knex) {
-  await knex.schema.alterTable('company', table => {
-    table.dropColumn('max_budgets');
+export function down(knex) {
+  return knex.schema.table("plan", (table) => {
+    table.dropColumn("max_budgets");
   });
 }

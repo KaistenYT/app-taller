@@ -8,7 +8,6 @@ import {
   createClient,
   getDeviceBySerial,
   upsertDeviceBySerial,
-  createDevice,
   createReception,
   getReportByReception,
   createReportFromReception,
@@ -22,18 +21,32 @@ import ReceptionDetailModal from "../components/dashboard/ReceptionDetailModal";
 import ReasonModal from "../components/shared/ReasonModal";
 import ConfirmModal from "../components/shared/ConfirmModal";
 import Toast from "../components/shared/Toast";
+import { Button } from "../components/ui/button";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "../components/ui/card";
+import { PlusCircle, RotateCw, Database, Gauge, Table } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const receptions = useReceptions((s) => s.receptions);
-  const totalCount = useReceptions((s) => s.totalCount);
-  const loading = useReceptions((s) => s.loading);
-  const loadReceptions = useReceptions((s) => s.loadReceptions);
-  const clearFilters = useReceptions((s) => s.clearFilters);
-  const archiveReception = useReceptions((s) => s.archiveReception);
-  const restoreReception = useReceptions((s) => s.restoreReception);
-  const removeReception = useReceptions((s) => s.removeReception);
+  const { 
+    receptions, 
+    totalCount, 
+    loading, 
+    loadReceptions, 
+    clearFilters, 
+    archiveReception, 
+    restoreReception, 
+    removeReception 
+  } = useReceptions((s) => ({
+    receptions: s.receptions,
+    totalCount: s.totalCount,
+    loading: s.loading,
+    loadReceptions: s.loadReceptions,
+    clearFilters: s.clearFilters,
+    archiveReception: s.archiveReception,
+    restoreReception: s.restoreReception,
+    removeReception: s.removeReception
+  }));
 
   const [detailId, setDetailId] = useState(null);
   const [confirmState, setConfirmState] = useState({
@@ -42,6 +55,7 @@ export default function DashboardPage() {
     message: "",
     action: null,
     requiresReason: false,
+    variant: "primary"
   });
   const [toast, setToast] = useState({ message: "", type: "success" });
   const [seedingData, setSeedingData] = useState(false);
@@ -74,6 +88,7 @@ export default function DashboardPage() {
         title: "Restaurar Recepción",
         message: `¿Estás seguro de restaurar la recepción #${id}?`,
         requiresReason: false,
+        variant: "default",
         action: async () => {
           const res = await restoreReception(id, user.id);
           if (res.success) showToast("Recepción restaurada");
@@ -86,6 +101,7 @@ export default function DashboardPage() {
         title: "Archivar Recepción",
         message: `¿Estás seguro de archivar la recepción #${id}?`,
         requiresReason: true,
+        variant: "warning",
         action: async (reason) => {
           const res = await archiveReception(id, user.id, reason);
           if (res.success) showToast("Recepción archivada");
@@ -101,6 +117,7 @@ export default function DashboardPage() {
       title: "Eliminar Recepción",
       message: `¿Estás seguro de ELIMINAR la recepción #${id}? Esta acción no se puede deshacer.`,
       requiresReason: true,
+      variant: "destructive",
       action: async (reason) => {
         const res = await removeReception(id, user.id, user.role, reason);
         if (res.success) showToast("Recepción eliminada");
@@ -123,7 +140,7 @@ export default function DashboardPage() {
         reportId = newReport.id;
       }
 
-      await openReport(reportId); // Changed from invoke("open-report-window", Number(reportId))
+      await openReport(reportId);
     } catch (err) {
       console.error("Print failed:", err);
       showToast(getFriendlyErrorMessage(err), "danger");
@@ -136,38 +153,19 @@ export default function DashboardPage() {
       title: "Datos de Prueba",
       message:
         "¿Deseas insertar datos de prueba? Se crearán 3 clientes, 3 dispositivos y 3 recepciones.",
+      variant: "default",
       action: async () => {
         setSeedingData(true);
         try {
           const clients = [
             { idNumber: "V12345678", name: "Juan Pérez", phone: "04141234567" },
-            {
-              idNumber: "V87654321",
-              name: "María García",
-              phone: "04249876543",
-            },
-            {
-              idNumber: "J123456789",
-              name: "Empresa ABC C.A.",
-              phone: "02121234567",
-            },
+            { idNumber: "V87654321", name: "María García", phone: "04249876543" },
+            { idNumber: "J123456789", name: "Empresa ABC C.A.", phone: "02121234567" },
           ];
           const devices = [
-            {
-              serial_number: "SN-LAPTOP-001",
-              description: "Laptop HP ProBook 450",
-              features: "i5, 8GB RAM, 256GB SSD",
-            },
-            {
-              serial_number: "SN-DESKTOP-002",
-              description: "Desktop Dell OptiPlex 3080",
-              features: "i7, 16GB RAM, 512GB SSD",
-            },
-            {
-              serial_number: "SN-PRINTER-003",
-              description: "Impresora Epson L3150",
-              features: "Multifuncional, WiFi",
-            },
+            { serial_number: "SN-LAPTOP-001", description: "Laptop HP ProBook 450", features: "i5, 8GB RAM, 256GB SSD" },
+            { serial_number: "SN-DESKTOP-002", description: "Desktop Dell OptiPlex 3080", features: "i7, 16GB RAM, 512GB SSD" },
+            { serial_number: "SN-PRINTER-003", description: "Impresora Epson L3150", features: "Multifuncional, WiFi" },
           ];
           const defects = [
             "No enciende, sin señales de vida",
@@ -183,16 +181,13 @@ export default function DashboardPage() {
               await createClient(clients[i]).catch(() => {});
             }
             try {
-              const existingDev = await getDeviceBySerial(
-                devices[i].serial_number,
-              );
+              const existingDev = await getDeviceBySerial(devices[i].serial_number);
               if (!existingDev) await upsertDeviceBySerial(devices[i]);
             } catch {
               await upsertDeviceBySerial(devices[i]).catch(() => {});
             }
             try {
-              await createReception(
-                {
+              await createReception({
                   client_idNumber: clients[i].idNumber,
                   client_name: clients[i].name,
                   client_phone: clients[i].phone,
@@ -212,10 +207,7 @@ export default function DashboardPage() {
               console.error("Error creating reception:", err);
             }
           }
-          showToast(
-            `Datos de prueba creados: ${created} recepciones`,
-            "success",
-          );
+          showToast(`Datos de prueba creados: ${created} recepciones`, "success");
           await loadReceptions();
         } catch (err) {
           showToast(getFriendlyErrorMessage(err), "danger");
@@ -228,76 +220,88 @@ export default function DashboardPage() {
 
   function handleConfirm(reason) {
     if (confirmState.action) confirmState.action(reason);
-    setConfirmState({ show: false, title: "", message: "", action: null, requiresReason: false });
+    setConfirmState({ show: false, title: "", message: "", action: null, requiresReason: false, variant: "primary" });
   }
 
   function closeConfirmModal() {
-    setConfirmState({ show: false, title: "", message: "", action: null, requiresReason: false });
+    setConfirmState({ show: false, title: "", message: "", action: null, requiresReason: false, variant: "primary" });
   }
 
   return (
-    <div className="container-fluid py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="mb-1">
-            <i className="bi bi-speedometer2 me-2"></i>Panel de Control
+          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Gauge className="h-8 w-8 text-primary" />
+            Panel de Control
           </h2>
-          <span className="text-muted">Gestión de recepciones del taller</span>
+          <p className="text-muted-foreground">
+            Gestión de recepciones y operaciones del taller
+          </p>
         </div>
-        <div className="d-flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {import.meta.env.DEV && (
-            <button
-              className="btn btn-outline-secondary btn-sm"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleSeedData}
               disabled={seedingData}
             >
-              <i className="bi bi-database-add me-1"></i>
+              <Database className="mr-2 h-4 w-4" />
               {seedingData ? "Creando..." : "Datos de Prueba"}
-            </button>
+            </Button>
           )}
-          <button
-            className="btn btn-outline-primary btn-sm"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={loadReceptions}
           >
-            <i className="bi bi-arrow-clockwise me-1"></i>Refrescar
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => navigate("/reception/new")}
-          >
-            <i className="bi bi-plus-circle me-1"></i>Nueva Recepción
-          </button>
+            <RotateCw className="mr-2 h-4 w-4" />
+            Refrescar
+          </Button>
+          <Button onClick={() => navigate("/reception/new")}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nueva Recepción
+          </Button>
         </div>
       </div>
 
       <FilterBar />
 
-      <div className="card">
-        <div className="card-header bg-white d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">
-            <i className="bi bi-table me-2"></i>Recepciones
-          </h5>
-          <span className="text-muted small">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <Table className="h-5 w-5" />
+              Recepciones
+            </CardTitle>
+            <CardDescription>
+              Lista de equipos recibidos en el taller
+            </CardDescription>
+          </div>
+          <div className="text-sm text-muted-foreground font-medium bg-muted px-2.5 py-0.5 rounded-full">
             {totalCount > 0
               ? `${totalCount} recepción${totalCount !== 1 ? "es" : ""}`
-              : ""}
-          </span>
-        </div>
-        <ReceptionTable
-          receptions={receptions}
-          loading={loading}
-          userRole={user?.role}
-          onView={handleView}
-          onEdit={handleEdit}
-          onArchive={handleArchive}
-          onDelete={handleDelete}
-          onPrint={handlePrint}
-          onBudget={handleBudget}
-          onClearFilters={clearFilters}
-          onCreateNew={() => navigate("/reception/new")}
-        />
-        <PaginationControls />
-      </div>
+              : "0 recepciones"}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ReceptionTable
+            receptions={receptions}
+            loading={loading}
+            userRole={user?.role}
+            onView={handleView}
+            onEdit={handleEdit}
+            onArchive={handleArchive}
+            onDelete={handleDelete}
+            onPrint={handlePrint}
+            onBudget={handleBudget}
+            onClearFilters={clearFilters}
+            onCreateNew={() => navigate("/reception/new")}
+          />
+          <PaginationControls />
+        </CardContent>
+      </Card>
 
       <ReceptionDetailModal
         show={!!detailId}
@@ -314,7 +318,7 @@ export default function DashboardPage() {
           title={confirmState.title}
           message={confirmState.message}
           confirmText="Confirmar"
-          confirmClass="btn-danger"
+          variant={confirmState.variant === "warning" ? "default" : "destructive"} 
           onConfirm={handleConfirm}
           onCancel={closeConfirmModal}
         />
@@ -323,6 +327,7 @@ export default function DashboardPage() {
           show={confirmState.show}
           title={confirmState.title}
           message={confirmState.message}
+          variant={confirmState.variant}
           onConfirm={() => handleConfirm()}
           onCancel={closeConfirmModal}
         />

@@ -1,14 +1,26 @@
 import { escapeHtml } from "../../utils/helpers";
+import { TableCell, TableRow } from "../ui/table";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { 
+  Eye, 
+  Pencil, 
+  Calculator, 
+  Archive, 
+  RotateCcw, 
+  Trash2, 
+  Printer 
+} from "lucide-react";
 
-const STATUS_COLORS = {
+const STATUS_VARIANTS = {
   PENDIENTE: "warning",
   EN_PROCESO: "info",
   EN_PROGRESO: "info",
   ESPERA_RESPUESTA: "secondary",
   REPARADO: "success",
   TERMINADO: "success",
-  ENTREGADO: "secondary",
-  CANCELADO: "danger",
+  ENTREGADO: "outline",
+  CANCELADO: "destructive",
 };
 
 const STATUS_LABELS = {
@@ -49,85 +61,67 @@ export default function ReceptionRow({
   const estado = r.status || "";
   const falla = r.defect || "";
   const created = r.created_at || r.createdAt || r.created || "";
-  const createdStr = created ? new Date(created).toLocaleString() : "N/A";
-  const colorClass = STATUS_COLORS[estado] || "secondary";
+  const createdStr = created ? new Date(created).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }) : "N/A";
+  
+  const variant = STATUS_VARIANTS[estado] || "secondary";
   const label = STATUS_LABELS[estado] || estado;
 
   return (
-    <tr>
-      <td className="table-fixed-row">
-        {escapeHtml(cliente)}
-        {clientId && (
-          <>
-            <br />
-            <small className="text-muted">{escapeHtml(clientId)}</small>
-          </>
-        )}
-      </td>
-      <td className="table-fixed-row">
-        {escapeHtml(equipo)}
-        {serial && (
-          <>
-            <br />
-            <small className="text-muted">S/N: {escapeHtml(serial)}</small>
-          </>
-        )}
-      </td>
-      <td>
-        <span className={`badge bg-${colorClass}`}>{label}</span>
-      </td>
-      <td className="table-fixed-row">{escapeHtml(falla)}</td>
-      <td>{createdStr}</td>
-      <td className="text-center">
-        <div className="btn-group" role="group" aria-label="Acciones">
-          <button
-            className="btn btn-sm btn-outline-primary action-small mx-1"
-            onClick={() => onView(r.id)}
-            title="Ver"
-          >
-            <i className="bi bi-eye"></i>
-          </button>
-          <button
-            className="btn btn-sm btn-outline-warning action-small mx-1"
-            onClick={() => onEdit(r.id)}
-            title="Editar Recepción"
-          >
-            <i className="bi bi-pencil"></i>
-          </button>
-          <button
-            className="btn btn-sm btn-outline-success action-small mx-1"
-            onClick={() => onBudget(r.id)}
-            title="Presupuesto"
-          >
-            <i className="bi bi-calculator"></i>
-          </button>
-          <button
-            className="btn btn-sm btn-outline-secondary action-small mx-1"
-            onClick={() => onArchive(r.id, r.archived)}
-            title={r.archived ? "Restaurar" : "Archivar"}
-          >
-            <i
-              className={`bi ${r.archived ? "bi-arrow-counterclockwise" : "bi-archive"}`}
-            ></i>
-          </button>
-          {userRole === "admin" && (
-            <button
-              className="btn btn-sm btn-outline-danger action-small mx-1"
-              onClick={() => onDelete(r.id)}
-              title="Eliminar"
-            >
-              <i className="bi bi-trash"></i>
-            </button>
+    <TableRow className="group">
+      <TableCell className="font-medium">
+        <div className="flex flex-col">
+          <span>{escapeHtml(cliente)}</span>
+          {clientId && (
+            <span className="text-xs text-muted-foreground">{escapeHtml(clientId)}</span>
           )}
-          <button
-            className="btn btn-sm btn-outline-secondary action-small mx-1"
-            onClick={() => onPrint(r.id)}
-            title="Imprimir"
-          >
-            <i className="bi bi-printer"></i>
-          </button>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-col">
+          <span>{escapeHtml(equipo)}</span>
+          {serial && (
+            <span className="text-xs text-muted-foreground font-mono">S/N: {escapeHtml(serial)}</span>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant={variant} className="whitespace-nowrap">
+          {label}
+        </Badge>
+      </TableCell>
+      <TableCell className="max-w-[200px] truncate" title={escapeHtml(falla)}>
+        {escapeHtml(falla)}
+      </TableCell>
+      <TableCell className="text-muted-foreground text-xs">
+        {createdStr}
+      </TableCell>
+      <TableCell className="text-center">
+        <div className="flex items-center justify-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(r.id)} title="Ver detalles">
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => onEdit(r.id)} title="Editar">
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => onBudget(r.id)} title="Presupuesto">
+            <Calculator className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => onArchive(r.id, r.archived)} title={r.archived ? "Restaurar" : "Archivar"}>
+            {r.archived ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+          </Button>
+          {userRole === "admin" && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => onDelete(r.id)} title="Eliminar">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onPrint(r.id)} title="Imprimir">
+            <Printer className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }

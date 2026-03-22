@@ -1,17 +1,48 @@
 import { useState, useEffect } from "react";
 import { receptionDetails, getClient } from "../../api/httpApi";
 import { escapeHtml, formatPhoneNumber } from "../../utils/helpers";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
+import { 
+  User, 
+  CreditCard, 
+  Phone, 
+  Laptop, 
+  ScanBarcode, 
+  ClipboardList, 
+  AlertTriangle, 
+  Wrench, 
+  History,
+  Calendar,
+  Printer,
+  Pencil,
+  X
+} from "lucide-react";
+import LoadingSpinner from "../shared/LoadingSpinner";
 
-const STATUS_COLORS = {
+const STATUS_VARIANTS = {
   PENDIENTE: "warning",
+  EN_PROCESO: "info",
   EN_PROGRESO: "info",
   ESPERA_RESPUESTA: "secondary",
+  REPARADO: "success",
   TERMINADO: "success",
-  ENTREGADO: "primary",
-  CANCELADO: "danger",
+  ENTREGADO: "outline",
+  CANCELADO: "destructive",
 };
+
 const STATUS_LABELS = {
   PENDIENTE: "Pendiente",
+  EN_PROCESO: "En Proceso",
   EN_PROGRESO: "En Progreso",
   ESPERA_RESPUESTA: "Esperando",
   TERMINADO: "Terminado",
@@ -40,14 +71,13 @@ export default function ReceptionDetailModal({
           (r) => String(r.id) === String(receptionId),
         );
         if (!found) found = await receptionDetails(receptionId);
+        
         if (!found) {
           setRec(null);
-          setLoading(false);
           return;
         }
 
-        // device_snapshot puede venir como JSON string desde SQLite
-        if (found && typeof found.device_snapshot === "string") {
+        if (typeof found.device_snapshot === "string") {
           try {
             found.device_snapshot = JSON.parse(found.device_snapshot);
           } catch {
@@ -74,229 +104,150 @@ export default function ReceptionDetailModal({
     })();
   }, [show, receptionId, receptions]);
 
-  if (!show) return null;
-
   const snapshot = rec?.device_snapshot || {
     serial_number: rec?.device_serial || rec?.device?.serial_number || null,
     description: rec?.device_description || rec?.device?.description || null,
     features: rec?.device?.features || null,
   };
 
+  const statusVariant = rec ? (STATUS_VARIANTS[rec.status] || "secondary") : "secondary";
+  const statusLabel = rec ? (STATUS_LABELS[rec.status] || rec.status) : "";
+
   return (
-    <div
-      className="modal show d-block"
-      tabIndex="-1"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-    >
-      <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Detalles de Recepción</h5>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={onClose}
-            ></button>
+    <Dialog open={show} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center justify-between mr-8">
+            <DialogTitle>Detalles de Recepción #{rec?.id}</DialogTitle>
+            {rec && <Badge variant={statusVariant}>{statusLabel}</Badge>}
           </div>
-          <div className="modal-body">
-            {loading ? (
-              <div className="text-center py-4">
-                <div className="spinner-border text-primary"></div>
-                <p className="text-muted mt-2">Cargando detalles...</p>
-              </div>
-            ) : !rec ? (
-              <div className="alert alert-warning">Recepción no encontrada</div>
-            ) : (
-              <>
-                {/* Header con ID */}
-                <div className="alert alert-primary d-flex align-items-center mb-3">
-                  <i className="bi bi-receipt fs-4 me-3"></i>
+          <DialogDescription>
+            Creada el {rec ? new Date(rec.created_at || "").toLocaleString() : ""}
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="py-12">
+            <LoadingSpinner text="Cargando detalles..." />
+          </div>
+        ) : !rec ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <AlertTriangle className="h-10 w-10 text-warning mb-2" />
+            <p>Recepción no encontrada</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Cliente */}
+            <Card>
+              <CardHeader className="py-3 bg-muted/50">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Información del Cliente
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Nombre</label>
+                  <div className="font-medium">{escapeHtml(rec.client_name || rec.client?.name || "—")}</div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Cédula/RIF</label>
+                  <div className="font-medium flex items-center gap-2">
+                    <CreditCard className="h-3 w-3 text-muted-foreground" />
+                    {escapeHtml(rec.client_idNumber || "—")}
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs text-muted-foreground block mb-1">Teléfono</label>
+                  <div className="font-medium flex items-center gap-2">
+                    <Phone className="h-3 w-3 text-muted-foreground" />
+                    {formatPhoneNumber(clientPhone) || clientPhone}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Equipo */}
+            <Card>
+              <CardHeader className="py-3 bg-muted/50">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Laptop className="h-4 w-4" />
+                  Información del Equipo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Descripción</label>
+                  <div className="font-medium">{escapeHtml(snapshot.description || "—")}</div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Número de Serie</label>
+                  <div className="font-medium flex items-center gap-2">
+                    <ScanBarcode className="h-3 w-3 text-muted-foreground" />
+                    {escapeHtml(snapshot.serial_number || "—")}
+                  </div>
+                </div>
+                {snapshot.features && snapshot.features !== "—" && (
+                  <div className="md:col-span-2">
+                    <label className="text-xs text-muted-foreground block mb-1">Características</label>
+                    <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded-md">
+                      {escapeHtml(snapshot.features)}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Detalles Técnicos */}
+            <Card>
+              <CardHeader className="py-3 bg-muted/50">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Diagnóstico y Fallas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Falla Reportada
+                  </label>
+                  <div className="text-sm bg-yellow-50 text-yellow-900 border border-yellow-200 p-3 rounded-md dark:bg-yellow-900/20 dark:text-yellow-200 dark:border-yellow-900/50">
+                    {escapeHtml(rec.defect || "No especificada")}
+                  </div>
+                </div>
+                {rec.repair && (
                   <div>
-                    <h6 className="mb-0">Recepción #{rec.id}</h6>
-                    <small>
-                      Creada el{" "}
-                      {new Date(rec.created_at || "").toLocaleString()}
-                    </small>
-                  </div>
-                  <div className="ms-auto">
-                    <span
-                      className={`badge bg-${STATUS_COLORS[rec.status] || "secondary"}`}
-                    >
-                      {STATUS_LABELS[rec.status] || rec.status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Cliente */}
-                <div className="card mb-3">
-                  <div className="card-header bg-light">
-                    <h6 className="mb-0">
-                      <i className="bi bi-person-circle me-2"></i>Información
-                      del Cliente
-                    </h6>
-                  </div>
-                  <div className="card-body">
-                    <div className="row g-3">
-                      <div className="col-md-6">
-                        <label className="text-muted small mb-1">Nombre</label>
-                        <div className="fw-semibold">
-                          {escapeHtml(
-                            rec.client_name || rec.client?.name || "—",
-                          )}
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="text-muted small mb-1">
-                          Cédula/RIF
-                        </label>
-                        <div className="fw-semibold">
-                          {escapeHtml(rec.client_idNumber || "—")}
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="text-muted small mb-1">
-                          Teléfono
-                        </label>
-                        <div className="fw-semibold">
-                          <i className="bi bi-telephone me-1"></i>
-                          {formatPhoneNumber(clientPhone) || clientPhone}
-                        </div>
-                      </div>
+                    <label className="text-xs text-muted-foreground block mb-1 flex items-center gap-1">
+                      <Wrench className="h-3 w-3" /> Diagnóstico / Reparación
+                    </label>
+                    <div className="text-sm bg-blue-50 text-blue-900 border border-blue-200 p-3 rounded-md dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-900/50">
+                      {escapeHtml(rec.repair)}
                     </div>
                   </div>
-                </div>
-
-                {/* Equipo */}
-                <div className="card mb-3">
-                  <div className="card-header bg-light">
-                    <h6 className="mb-0">
-                      <i className="bi bi-laptop me-2"></i>Información del
-                      Equipo
-                    </h6>
-                  </div>
-                  <div className="card-body">
-                    <div className="row g-3">
-                      <div className="col-md-6">
-                        <label className="text-muted small mb-1">
-                          Descripción
-                        </label>
-                        <div className="fw-semibold">
-                          {escapeHtml(snapshot.description || "—")}
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="text-muted small mb-1">
-                          Número de Serie
-                        </label>
-                        <div className="fw-semibold">
-                          <i className="bi bi-upc-scan me-1"></i>
-                          {escapeHtml(snapshot.serial_number || "—")}
-                        </div>
-                      </div>
-                      {snapshot.features && snapshot.features !== "—" && (
-                        <div className="col-12">
-                          <label className="text-muted small mb-1">
-                            Características
-                          </label>
-                          <div className="fw-semibold">
-                            {escapeHtml(snapshot.features)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Detalles */}
-                <div className="card mb-3">
-                  <div className="card-header bg-light">
-                    <h6 className="mb-0">
-                      <i className="bi bi-clipboard-check me-2"></i>Detalles de
-                      la Recepción
-                    </h6>
-                  </div>
-                  <div className="card-body">
-                    <div className="row g-3">
-                      <div className="col-12">
-                        <label className="text-muted small mb-1">
-                          <i className="bi bi-exclamation-triangle me-1"></i>
-                          Falla Reportada
-                        </label>
-                        <div className="alert alert-warning mb-0 py-2">
-                          {escapeHtml(rec.defect || "No especificada")}
-                        </div>
-                      </div>
-                      {rec.repair && (
-                        <div className="col-12">
-                          <label className="text-muted small mb-1">
-                            <i className="bi bi-tools me-1"></i>
-                            Diagnóstico/Reparación
-                          </label>
-                          <div className="alert alert-info mb-0 py-2">
-                            {escapeHtml(rec.repair)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="card">
-                  <div className="card-header bg-light">
-                    <h6 className="mb-0">
-                      <i className="bi bi-clock-history me-2"></i>Historial
-                    </h6>
-                  </div>
-                  <div className="card-body">
-                    <div className="d-flex align-items-start">
-                      <div className="flex-shrink-0">
-                        <div
-                          className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                          style={{ width: 40, height: 40 }}
-                        >
-                          <i className="bi bi-plus-circle"></i>
-                        </div>
-                      </div>
-                      <div className="flex-grow-1 ms-3">
-                        <div className="fw-semibold">Recepción creada</div>
-                        <small className="text-muted">
-                          <i className="bi bi-calendar3 me-1"></i>
-                          {new Date(rec.created_at || "").toLocaleString()}
-                        </small>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </div>
-          <div className="modal-footer">
-            <button className="btn btn-outline-secondary" onClick={onClose}>
-              Cerrar
-            </button>
-            {rec && (
-              <>
-                <button
-                  className="btn btn-outline-primary"
-                  onClick={() => onPrint(rec.id)}
-                >
-                  <i className="bi bi-printer me-1"></i>Imprimir
-                </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => {
-                    onClose();
-                    onEdit(rec.id);
-                  }}
-                >
-                  <i className="bi bi-pencil me-1"></i>Editar
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-0 pt-4 border-t">
+          <Button variant="outline" onClick={onClose}>
+            Cerrar
+          </Button>
+          {rec && (
+            <>
+              <Button variant="secondary" onClick={() => onPrint(rec.id)}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir
+              </Button>
+              <Button onClick={() => { onClose(); onEdit(rec.id); }}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
