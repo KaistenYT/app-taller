@@ -1,107 +1,75 @@
-# App Taller (Sistema de Gestión Técnica)
+# Sistema de Gestión de Taller Técnico (SaaS)
 
-Sistema integral de gestión para talleres de servicio técnico, desarrollado con **React**, **Node.js (Express)** y base de datos relacional (**PostgreSQL** con Knex).
+Sistema integral para la gestión de talleres de servicio técnico, diseñado con una arquitectura multitenant (SaaS) que permite a múltiples empresas gestionar sus operaciones de forma aislada, segura y eficiente.
 
-## Características Principales
+## 🚀 Funcionalidades Principales
 
-- **Gestión de Recepciones:** Control completo del ciclo de vida de un equipo en el taller (Recepción, Diagnóstico, Reparación, Entrega).
-- **Gestión de Presupuestos:** Creación de presupuestos detallados asociados a las recepciones, con control de estados (Borrador, Aprobado, Rechazado).
-- **Historial y Auditoría Avanzada:** Registro automático e inmutable de cambios de estado, y auditoría estricta de eliminación/archivos con exigencia de "Motivos" (Reasons) tanto para recepciones como para presupuestos.
-- **Panel de Administración (Admin):** Vistas exclusivas para administradores que permiten gestionar usuarios, auditar quién borró qué (y por qué), y supervisar la actividad global.
-- **Gestión de Clientes y Dispositivos:** Catálogo de clientes y control de dispositivos por número de serie.
-- **Generación de Reportes:** Creación de reportes técnicos detallados y exportables.
-- **Seguridad y Autenticación:** Autenticación basada en **JWT (JSON Web Tokens)**, contraseñas encriptadas con `bcrypt`, y protección de rutas en el Frontend y Backend.
+- **Gestión Multi-empresa (SaaS):** Aislamiento total de datos por empresa (tenants).
+- **Control de Recepciones:** Registro detallado de equipos, fallas y estados de reparación.
+- **Auditoría y Trazabilidad:** Historial completo de cambios en recepciones y presupuestos (logs de auditoría).
+- **Gestión de Clientes y Equipos:** Catálogo centralizado con historial por serial de equipo.
+- **Presupuestos Dinámicos:** Creación, edición y seguimiento de estados de presupuestos.
+- **Reportes Técnicos:** Generación automática de informes de servicio en formato web/imprimible.
+- **Panel de Control (Dashboard):** Estadísticas y métricas en tiempo real.
 
-## Tecnologías Utilizadas
+## ⚡ Tecnologías de Alto Rendimiento (Novedades)
 
-- **Frontend:** React, Vite, Bootstrap 5, Zustand (Estado global), React Router DOM.
-- **Backend:** Node.js, Express.js.
-- **Base de Datos y ORM:** PostgreSQL, Knex.js (Migraciones y Query Builder).
-- **Seguridad:** JSON Web Tokens (JWT), Bcrypt.
+Para garantizar la escalabilidad y una experiencia de usuario fluida, el sistema integra:
 
-## Requisitos Previos
+- **WebSockets (Socket.io):** Actualizaciones instantáneas en el dashboard. Cuando un técnico cambia un estado o crea un reporte, todos los usuarios de la empresa ven el cambio sin recargar la página.
+- **Caché Distribuida/Local:** Implementación de caché para consultas pesadas (conteos y listados), reduciendo la carga en PostgreSQL. Configurable para usar **Redis** (producción/escalabilidad) o **Memoria Local** (desarrollo rápido).
+- **Arquitectura Multitenant:** Filtro automático por `company_id` en todas las capas del sistema (Caché, Base de Datos y WebSockets).
 
-- Node.js v18 o superior.
-- Base de datos PostgreSQL en funcionamiento (y las credenciales configuradas en tu entorno).
-- NPM o predeterminado.
+## 🛠️ Stack Tecnológico
 
-## Instalación y Configuración
+- **Backend:** Node.js, Express, Knex.js (Query Builder).
+- **Base de Datos:** PostgreSQL.
+- **Caché:** Redis / Node-Cache (In-memory).
+- **Frontend:** React 18, Vite, Tailwind CSS, Zustand (Estado), Lucide React (Iconos).
+- **Tiempo Real:** Socket.io.
+- **Contenedores:** Docker & Docker Compose.
 
-1.  **Clonar el repositorio y entrar a la carpeta del proyecto:**
+## 📦 Instalación y Despliegue
 
-2.  **Configurar Variables de Entorno (Backend):**
-    En la carpeta principal (donde se ubica el backend), crea un archivo `.env`:
+### Requisitos Previos
 
-    ```env
-    PORT=3001
-    DB_CLIENT=pg
-    DB_HOST=localhost
-    DB_USER=tu_usuario
-    DB_PASSWORD=tu_password
-    DB_NAME=app_taller_db
-    DB_PORT=5432
-    JWT_SECRET=tu_secreto_super_seguro
-    ```
+- Node.js (v20+)
+- PostgreSQL
+- Redis (Opcional para modo local, recomendado para Docker)
 
-3.  **Configurar Variables de Entorno (Frontend):**
-    En `frontend/react/app-taller/`, crea un archivo `.env`:
+### Opción A: Despliegue con Docker (Recomendado)
 
-    ```env
-    VITE_API_URL=http://localhost:3001/api
-    ```
+Levanta todo el ecosistema (Postgres, Redis, Backend y Frontend) con un solo comando:
 
-4.  **Instalación de Dependencias:**
-    Debes instalar las dependencias tanto en la raíz (Backend) como en el frontend.
+```bash
+docker-compose up --build
+```
 
-    ```bash
-    # En la raíz (Backend)
-    npm install
+El sistema estará disponible en:
 
-    # En la carpeta del Frontend
-    cd frontend/react/app-taller
-    npm install
-    ```
+- Frontend: `http://localhost:8080`
+- Backend API: `http://localhost:3001`
 
-5.  **Migraciones de Base de Datos:**
-    Para crear las tablas necesarias en PostgreSQL, asegúrate de estar en la carpeta raíz/backend y ejecuta:
-    ```bash
-    npx knex migrate:latest
-    ```
-    _Nota: Al iniciar el sistema, si no hay usuarios creados, puedes añadir un script de `seed` o usar directamente el endpoint de registro para crear el primer "admin"._
+### Opción B: Desarrollo Local
 
-## Ejecución del Sistema
+1. Instalar dependencias:
+   ```bash
+   npm install
+   npm install --prefix frontend/react/app-taller
+   ```
+2. Configurar variables de entorno (`.env` en la raíz).
+3. Iniciar entorno de desarrollo (Backend + Frontend):
+   ```bash
+   npm run dev
+   ```
+   _Este comando limpia automáticamente puertos bloqueados y habilita hot-reload._
 
-### Modo Desarrollo
+## 🧪 Pruebas Automáticas
 
-1.  **Iniciar Backend:**
-    Desde la raíz del backend:
+El proyecto cuenta con una suite de tests exhaustiva que cubre la lógica de negocio, validaciones, caché y WebSockets:
 
-    ```bash
-    npm run dev
-    ```
+```bash
+npm test
+```
 
-    (El servidor correrá en `http://localhost:3001` o el puerto que hayas definido).
-
-2.  **Iniciar Frontend:**
-    Desde la carpeta `frontend/react/app-taller`:
-    ```bash
-    npm run dev
-    ```
-    (Se abrirá el cliente web de React, generalmente en `http://localhost:5173`).
-
-## Estructura del Proyecto
-
-- `backend/`: Código fuente de la API Node.js/Express.
-  - `controllers/`: Lógica de cada endpoint HTTP.
-  - `middleware/`: Middlewares como autenticación JWT (`authMiddleware`).
-  - `model/`: Clases o funciones que interactúan con Knex.js.
-  - `routes/`: Definición de endpoints de la API REST.
-  - `service/`: Capa de lógica de negocio (intermediario entre controladores y base de datos).
-  - `db/migrations/`: Archivos para crear o modificar esquemas de DB en PostgreSQL.
-- `frontend/react/app-taller/`:
-  - `src/api/`: Servicios HTTP utilizando `axios` integrados con JWT auth.
-  - `src/components/`: Componentes reutilizables UI (Modales, Tablas, Layout, Navbar).
-  - `src/context/`: Contextos globales (ej. `AuthContext` para el estado de la sesión).
-  - `src/hooks/`: Custom hooks (Zustand para manejo de estado global de recepciones, presupuestos).
-  - `src/pages/`: Vistas completas de la aplicación (Dashboard, BudgetList, Auditorías, Login).
-  - `src/App.jsx`: Configuración del router y protección de rutas de React.
+---

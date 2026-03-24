@@ -1,5 +1,6 @@
 import { Reports } from "../model/reports.js";
 import { ReceptionService } from "./receptionService.js";
+import { emitToCompany } from "../socket.js";
 
 export class ReportService {
   static async listReports(company_id) {
@@ -20,7 +21,9 @@ export class ReportService {
 
   static async createReport(reportData, company_id) {
     try {
-      return await Reports.create({ ...reportData, company_id });
+      const result = await Reports.create({ ...reportData, company_id });
+      emitToCompany(company_id, "reportCreated", result);
+      return result;
     } catch (err) {
       throw err;
     }
@@ -28,8 +31,9 @@ export class ReportService {
 
   static async updateReport(id, company_id, reportData) {
     try {
-      await Reports.update(id, company_id, reportData);
-      return true;
+      const result = await Reports.update(id, company_id, reportData);
+      emitToCompany(company_id, "reportUpdated", result);
+      return result;
     } catch (err) {
       throw err;
     }
@@ -38,6 +42,7 @@ export class ReportService {
   static async deleteReport(id, company_id) {
     try {
       await Reports.delete(id, company_id);
+      emitToCompany(company_id, "reportDeleted", { id });
       return true;
     } catch (err) {
       throw err;
@@ -94,6 +99,7 @@ export class ReportService {
         description,
         company_id,
       });
+      emitToCompany(company_id, "reportCreated", result);
       return result;
     } catch (err) {
       throw err;

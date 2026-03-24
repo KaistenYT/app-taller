@@ -1,8 +1,15 @@
 import db from "../db/dbConfig.js";
 import { Budget } from "../model/budget.js";
 import { ReceptionService } from "./receptionService.js";
+import { emitToCompany } from "../socket.js";
+import { cache } from "../utils/cache.js";
 
 export class BudgetService {
+  static async _invalidateCache(company_id) {
+    if (company_id) {
+      await cache.del(`budgets:list:${company_id}`);
+    }
+  }
   /**
    * Crea un nuevo presupuesto con datos.
    * Registra la acción en budget_log.
@@ -26,6 +33,8 @@ export class BudgetService {
       );
 
       await trx.commit();
+      await BudgetService._invalidateCache(company_id);
+      emitToCompany(company_id, "budgetCreated", budget);
       return budget;
     } catch (err) {
       await trx.rollback();
@@ -38,9 +47,15 @@ export class BudgetService {
     return await Budget.getByReceptionId(reception_id, company_id);
   }
 
-  /** Lista todos los presupuestos */
+  /** Lista todos los presupuestos con caché distribuida. */
   static async listBudgets(company_id) {
-    return await Budget.list(company_id);
+    const cacheKey = `budgets:list:${company_id}`;
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    const budgets = await Budget.list(company_id);
+    await cache.set(cacheKey, budgets, 600); // 10 min de caché
+    return budgets;
   }
 
   /** Recupera el historial de auditoría de un presupuesto. */
@@ -85,6 +100,8 @@ export class BudgetService {
       );
 
       await trx.commit();
+      await BudgetService._invalidateCache(company_id);
+      emitToCompany(company_id, "budgetUpdated", updated);
       return updated;
     } catch (err) {
       await trx.rollback();
@@ -116,6 +133,8 @@ export class BudgetService {
 
       await Budget.delete(id, company_id, trx);
       await trx.commit();
+      await BudgetService._invalidateCache(company_id);
+      emitToCompany(company_id, "budgetDeleted", { id });
       return true;
     } catch (err) {
       await trx.rollback();

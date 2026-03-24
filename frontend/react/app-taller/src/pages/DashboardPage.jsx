@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
 import useReceptions from "../hooks/useReceptions";
 import {
   getClient,
@@ -60,9 +61,34 @@ export default function DashboardPage() {
   const [toast, setToast] = useState({ message: "", type: "success" });
   const [seedingData, setSeedingData] = useState(false);
 
+  const socket = useSocket();
+
   useEffect(() => {
     loadReceptions();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const refresh = () => {
+      console.log("[socket] Evento recibido, refrescando recepciones...");
+      loadReceptions();
+    };
+
+    socket.on("receptionCreated", refresh);
+    socket.on("receptionUpdated", refresh);
+    socket.on("receptionDeleted", refresh);
+    socket.on("receptionArchived", refresh);
+    socket.on("receptionRestored", refresh);
+
+    return () => {
+      socket.off("receptionCreated", refresh);
+      socket.off("receptionUpdated", refresh);
+      socket.off("receptionDeleted", refresh);
+      socket.off("receptionArchived", refresh);
+      socket.off("receptionRestored", refresh);
+    };
+  }, [socket, loadReceptions]);
 
   const showToast = useCallback(
     (message, type = "success") => setToast({ message, type }),

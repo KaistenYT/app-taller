@@ -19,8 +19,11 @@ import companyRoutes from "./routes/companyRoutes.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
 import logger from "./utils/logger.js";
+import { createServer } from "http";
+import { initSocket } from "./socket.js";
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = config.port;
 
 // 1. CORS DEBE IR PRIMERO PARA EVITAR BLOQUEOS EN PREFLIGHT
@@ -88,9 +91,11 @@ app.get("/favicon.ico", (_req, res) => res.status(204).end());
 app.use(errorHandler);
 
 if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () => {
-    logger.info(`[server] Escuchando en http://localhost:${PORT}`);
+  initSocket(httpServer, config.corsOrigin);
+  httpServer.listen(PORT, () => {
+    logger.info(`[server] Escuchando en http://localhost:${PORT} (Express + Socket.io)`);
   });
 }
 
+export { app, httpServer };
 export default app;

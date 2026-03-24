@@ -76,6 +76,80 @@ describe("Receptions Endpoints", () => {
     expect(res.body.id).toBe(receptionId);
     expect(res.body.client_idNumber).toBe(testClientId);
   });
+
+  test("POST /api/receptions/:id/archive - Should archive reception", async () => {
+    // Primero crear una
+    const createRes = await request(app)
+      .post("/api/receptions")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        client_idNumber: testClientId,
+        defect: "Archive Test",
+        device: { serial_number: `SN-ARCH-${Date.now()}`, description: "Tablet" }
+      });
+    const receptionId = createRes.body.id;
+
+    const res = await request(app)
+      .post(`/api/receptions/${receptionId}/archive`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ reason: "Testing archive" });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+
+    // Verificar que realmente se archivó
+    const checkRes = await request(app)
+      .get(`/api/receptions/${receptionId}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(checkRes.body.archived).toBe(true);
+  });
+
+  test("POST /api/receptions/:id/restore - Should restore reception", async () => {
+    // Crear y archivar una
+    const createRes = await request(app)
+      .post("/api/receptions")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        client_idNumber: testClientId,
+        defect: "Restore Test",
+        device: { serial_number: `SN-REST-${Date.now()}`, description: "Smartwatch" }
+      });
+    const receptionId = createRes.body.id;
+    await request(app).post(`/api/receptions/${receptionId}/archive`).set("Authorization", `Bearer ${token}`);
+
+    const res = await request(app)
+      .post(`/api/receptions/${receptionId}/restore`)
+      .set("Authorization", `Bearer ${token}`);
+    
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+
+    // Verificar que realmente se restauró
+    const checkRes = await request(app)
+      .get(`/api/receptions/${receptionId}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(checkRes.body.archived).toBe(false);
+  });
+
+  test("DELETE /api/receptions/:id - Should delete reception (Admin)", async () => {
+    const createRes = await request(app)
+      .post("/api/receptions")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        client_idNumber: testClientId,
+        defect: "Delete Test",
+        device: { serial_number: `SN-DEL-${Date.now()}`, description: "Console" }
+      });
+    const receptionId = createRes.body.id;
+
+    const res = await request(app)
+      .delete(`/api/receptions/${receptionId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ reason: "Testing delete" });
+    
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+  });
 });
 
 afterAll(async () => {

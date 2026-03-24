@@ -1,10 +1,23 @@
 import { Client } from "../model/client.js";
 import logger from "../utils/logger.js";
+import { cache } from "../utils/cache.js";
 
 export class ClientService {
+  static async _invalidateCache(company_id) {
+    if (company_id) {
+      await cache.del(`clients:list:${company_id}`);
+    }
+  }
+
   static async listClients(company_id) {
+    const cacheKey = `clients:list:${company_id}`;
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
     try {
-      return await Client.getAll(company_id);
+      const clients = await Client.getAll(company_id);
+      await cache.set(cacheKey, clients, 1800); // 30 min de caché
+      return clients;
     } catch (err) {
       throw new Error("Error al listar clientes");
     }
@@ -24,7 +37,11 @@ export class ClientService {
       throw new Error("createClient: datos inválidos");
     }
     try {
-      return await Client.create(clientData, trx);
+      const client = await Client.create(clientData, trx);
+      if (clientData.company_id) {
+        await ClientService._invalidateCache(clientData.company_id);
+      }
+      return client;
     } catch (err) {
       logger.error("Error real en createClient:", { error: err.message, detail: err.detail, stack: err.stack });
       throw new Error("Error al crear cliente: " + (err.detail || err.message));
@@ -37,6 +54,7 @@ export class ClientService {
     }
     try {
       await Client.update(idNumber, company_id, clientData);
+      await ClientService._invalidateCache(company_id);
       return true;
     } catch (err) {
       throw new Error("Error al actualizar cliente");
@@ -47,6 +65,7 @@ export class ClientService {
     if (!idNumber || !company_id) throw new Error("deleteClient: idNumber y company_id son requeridos");
     try {
       await Client.delete(idNumber, company_id);
+      await ClientService._invalidateCache(company_id);
       return true;
     } catch (err) {
       throw new Error("Error al eliminar cliente");

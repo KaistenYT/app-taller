@@ -6,8 +6,16 @@ import { ReceptionHistory } from "../model/receptionHistory.js";
 import { User } from "../model/user.js";
 import { receptionSchema } from "../validation/schemas.js";
 import { SubscriptionService } from "./subscriptionService.js";
+import { emitToCompany } from "../socket.js";
+import { cache } from "../utils/cache.js";
 
 export class ReceptionService {
+  // Helper para invalidar cachés relacionadas con recepciones de una empresa
+  static async _invalidateCache(company_id) {
+    if (company_id) {
+      await cache.delPrefix(`receptions:count:${company_id}`);
+    }
+  }
   // Helper privado para aplicar filtros comunes
   static _applyFilters(query, filters) {
     if (filters.general) {
@@ -86,6 +94,12 @@ export class ReceptionService {
 
   // Misma lógica de filtros que listReceptions, retorna solo el conteo
   static async countReceptions(filters = {}) {
+    const company_id = filters.company_id;
+    const cacheKey = `receptions:count:${company_id}:${JSON.stringify(filters)}`;
+    
+    const cached = await cache.get(cacheKey);
+    if (cached !== null) return cached;
+
     let q = db("reception as r")
       .leftJoin("client as c", function () {
         this.on("r.client_idNumber", "=", "c.idNumber").andOn(
@@ -97,11 +111,14 @@ export class ReceptionService {
       .leftJoin("device as d", "r.device_id", "d.id")
       .count({ count: "*" });
 
-    if (filters.company_id) q.where("r.company_id", filters.company_id);
+    if (company_id) q.where("r.company_id", company_id);
     q = ReceptionService._applyFilters(q, filters);
 
     const result = await q.first();
-    return result ? result.count : 0;
+    const count = result ? Number(result.count) : 0;
+    
+    await cache.set(cacheKey, count, 300); // 5 min de caché
+    return count;
   }
 
   static async listArchivedReceptions(company_id) {
@@ -152,6 +169,8 @@ export class ReceptionService {
     });
 
     await Reception.archive(id, company_id);
+    await ReceptionService._invalidateCache(company_id);
+    emitToCompany(company_id, "receptionArchived", { id });
     return true;
   }
 
@@ -170,7 +189,10 @@ export class ReceptionService {
       company_id,
     });
 
-    return await Reception.restore(id, company_id);
+    const restored = await Reception.restore(id, company_id);
+    await ReceptionService._invalidateCache(company_id);
+    emitToCompany(company_id, "receptionRestored", restored);
+    return restored;
   }
 
   // Transacción atómica: crea cliente si no existe, resuelve/crea equipo,
@@ -288,6 +310,8 @@ export class ReceptionService {
       );
 
       await trx.commit();
+      await ReceptionService._invalidateCache(company_id);
+      emitToCompany(company_id, "receptionCreated", created);
       return created;
     } catch (err) {
       await trx.rollback();
@@ -366,6 +390,8 @@ export class ReceptionService {
       );
 
       await trx.commit();
+      await ReceptionService._invalidateCache(company_id);
+      emitToCompany(company_id, "receptionUpdated", updated);
       return updated;
     } catch (err) {
       await trx.rollback();
@@ -396,6 +422,9 @@ export class ReceptionService {
       company_id,
     });
 
-    return await Reception.delete(id, company_id);
+    await Reception.delete(id, company_id);
+    await ReceptionService._invalidateCache(company_id);
+    emitToCompany(company_id, "receptionDeleted", { id });
+    return true;
   }
 }

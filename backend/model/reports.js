@@ -84,9 +84,8 @@ export class Reports {
     try {
       const payload = { reception_id, description, created_at: q.fn.now() };
       if (company_id) payload.company_id = company_id;
-      const [row] = await q("report").insert(payload).returning("id");
-      const id = row.id ?? row;
-      return { id };
+      const [row] = await q("report").insert(payload).returning("*");
+      return row;
     } catch (err) {
       logger.error("[Reports.create] Real error:", { error: err.message, stack: err.stack });
       throw new Error(`Failed to create report: ${err.message}`);
@@ -96,13 +95,15 @@ export class Reports {
   static async update(id, company_id, { description }, trx = null) {
     const q = trx || db;
     try {
-      await q("report")
+      const [row] = await q("report")
         .where({ id, company_id })
         .whereNull("deleted_at")
         .update({
           description,
           created_at: q.fn.now(),
-        });
+        })
+        .returning("*");
+      return row;
     } catch (err) {
       throw new Error("Failed to update report");
     }

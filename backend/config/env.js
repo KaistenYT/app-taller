@@ -11,6 +11,9 @@ const envSchema = Joi.object({
   DB_NAME: Joi.string().required(),
   ACCESS_TOKEN_SECRET: Joi.string().min(32).required(),
   CORS_ORIGIN: Joi.string().uri().default("http://localhost:5173"),
+  REDIS_HOST: Joi.string().default("127.0.0.1"),
+  REDIS_PORT: Joi.number().default(6379),
+  REDIS_PASSWORD: Joi.string().allow("").default(""),
 }).unknown(true);
 
 const { error, value: envVars } = envSchema.validate(process.env);
@@ -29,6 +32,11 @@ export const config = {
     user: envVars.DB_USER,
     password: envVars.DB_PASSWORD,
     database: envVars.DB_NAME,
+  },
+  redis: {
+    host: envVars.REDIS_HOST,
+    port: envVars.REDIS_PORT,
+    password: envVars.REDIS_PASSWORD,
   },
   jwtSecret: envVars.ACCESS_TOKEN_SECRET,
   corsOrigin: envVars.CORS_ORIGIN,

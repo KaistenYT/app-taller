@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthInitializer } from "./context/AuthContext";
+import { SocketProvider } from "./context/SocketContext";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import Layout from "./components/layout/Layout";
 import LandingPage from "./pages/LandingPage";
@@ -20,42 +21,44 @@ import SettingsPage from "./pages/SettingsPage";
 export default function App() {
   return (
     <AuthInitializer>
-      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          {/* Rutas públicas */}
-          <Route path="/landing" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register-company" element={<RegisterCompanyPage />} />
-          <Route path="/report/:id" element={<ReportViewPage />} />
-          <Route path="/budget/:id" element={<BudgetViewPage />} />
+      <SocketProvider>
+        <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            {/* Rutas públicas */}
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register-company" element={<RegisterCompanyPage />} />
+            <Route path="/report/:id" element={<ReportViewPage />} />
+            <Route path="/budget/:id" element={<BudgetViewPage />} />
 
-          {/* Rutas protegidas */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/reception/new" element={<ReceptionFormPage />} />
-              <Route path="/receptions/new" element={<ReceptionFormPage />} />
-              <Route path="/reception/:id" element={<ReceptionFormPage />} />
-              <Route
-                path="/receptions/:id/edit"
-                element={<ReceptionFormPage />}
-              />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/reports" element={<ReportListPage />} />
-              <Route path="/budgets" element={<BudgetListPage />} />
-              <Route path="/budget-logs" element={<BudgetLogPage />} />
-              <Route path="/users" element={<UserManagementPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/receptions/:receptionId/budgets/new" element={<BudgetFormPage />} />
-              <Route path="/budgets/:budgetId/edit" element={<BudgetFormPage />} />
+            {/* Rutas protegidas */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<Layout />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/reception/new" element={<ReceptionFormPage />} />
+                <Route path="/receptions/new" element={<ReceptionFormPage />} />
+                <Route path="/reception/:id" element={<ReceptionFormPage />} />
+                <Route
+                  path="/receptions/:id/edit"
+                  element={<ReceptionFormPage />}
+                />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/reports" element={<ReportListPage />} />
+                <Route path="/budgets" element={<BudgetListPage />} />
+                <Route path="/budget-logs" element={<BudgetLogPage />} />
+                <Route path="/users" element={<UserManagementPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/receptions/:receptionId/budgets/new" element={<BudgetFormPage />} />
+                <Route path="/budgets/:budgetId/edit" element={<BudgetFormPage />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Ruta por defecto → landing */}
-          <Route path="*" element={<LandingPage />} />
-        </Routes>
-      </HashRouter>
+            {/* Ruta por defecto → landing */}
+            <Route path="*" element={<LandingPage />} />
+          </Routes>
+        </HashRouter>
+      </SocketProvider>
     </AuthInitializer>
   );
 }
