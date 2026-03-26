@@ -4,7 +4,7 @@ import db from "../db/dbConfig.js";
 
 describe("Devices API", () => {
   let token;
-  const testSerial = `SN-DEV-${Date.now()}`;
+  const testSerial = `SD-${Date.now()}`;
 
   beforeAll(async () => {
     const loginRes = await request(app).post("/api/users/login").send({
@@ -56,7 +56,7 @@ describe("Devices API", () => {
 
   // 4. Upsert (create si no existe)
   test("POST /api/devices/upsert - should create new device if serial not found", async () => {
-    const newSerial = `SN-NEW-${Date.now()}`;
+    const newSerial = `SNW-${Date.now()}`;
     const res = await request(app)
       .post("/api/devices/upsert")
       .set("Authorization", `Bearer ${token}`)

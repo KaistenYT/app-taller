@@ -33,6 +33,7 @@
     "node-cache": "^5.1.2",
     "pg": "^8.20.0",
     "socket.io": "^4.8.3",
+    "tailwindcss-animate": "^1.0.7",
     "winston": "^3.19.0"
   },
   "devDependencies": {

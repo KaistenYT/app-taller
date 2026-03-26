@@ -46,7 +46,7 @@ services:
       context: .
       dockerfile: frontend/react/app-taller/Dockerfile
       args:
-        VITE_API_URL: http://localhost:3001
+        VITE_API_URL: http://localhost:3001/api
     container_name: taller-frontend
     restart: always
     ports:

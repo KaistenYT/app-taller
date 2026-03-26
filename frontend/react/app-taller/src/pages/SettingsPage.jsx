@@ -1,37 +1,59 @@
 import { useState, useEffect, useCallback } from "react";
 import { getMyCompany, updateMyCompany } from "../api/httpApi";
 import { getFriendlyErrorMessage } from "../utils/helpers";
+import { 
+  Settings, 
+  Building2, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  CreditCard, 
+  FileText, 
+  Save, 
+  RotateCw, 
+  Fingerprint,
+  MessageSquareQuote
+} from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
+import Toast from "../components/shared/Toast";
 
 export default function SettingsPage() {
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
+  const [toast, setToast] = useState({ message: "", type: "success" });
 
   // Form fields
-  const [name, setName] = useState("");
-  const [rif, setRif] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [email, setEmail] = useState("");
-  const [terms, setTerms] = useState("");
-  const [currencySymbol, setCurrencySymbol] = useState("$");
+  const [form, setForm] = useState({
+    name: "",
+    rif: "",
+    phone: "",
+    address: "",
+    email: "",
+    terms: "",
+    currencySymbol: "$",
+  });
 
   const loadCompany = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getMyCompany();
       setCompany(data);
-      setName(data.name || "");
-      setRif(data.rif || "");
-      setPhone(data.phone || "");
-      setAddress(data.address || "");
-      setEmail(data.email || "");
-      setTerms(data.terms || "");
-      setCurrencySymbol(data.currency_symbol || "$");
+      setForm({
+        name: data.name || "",
+        rif: data.rif || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        email: data.email || "",
+        terms: data.terms || "",
+        currencySymbol: data.currency_symbol || "$",
+      });
     } catch (err) {
-      setError(getFriendlyErrorMessage(err));
+      setToast({ message: getFriendlyErrorMessage(err), type: "danger" });
     } finally {
       setLoading(false);
     }
@@ -41,32 +63,33 @@ export default function SettingsPage() {
     loadCompany();
   }, [loadCompany]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (!name.trim()) {
-      setError("El nombre del taller es obligatorio");
+    if (!form.name.trim()) {
+      setToast({ message: "El nombre del taller es obligatorio", type: "warning" });
       return;
     }
 
     setSaving(true);
     try {
       const updated = await updateMyCompany({
-        name: name.trim(),
-        rif: rif.trim() || null,
-        phone: phone.trim() || null,
-        address: address.trim() || null,
-        email: email.trim() || null,
-        terms: terms.trim() || null,
-        currency_symbol: currencySymbol.trim() || "$",
+        name: form.name.trim(),
+        rif: form.rif.trim() || null,
+        phone: form.phone.trim() || null,
+        address: form.address.trim() || null,
+        email: form.email.trim() || null,
+        terms: form.terms.trim() || null,
+        currency_symbol: form.currencySymbol.trim() || "$",
       });
       setCompany(updated);
-      setSuccess("Configuración guardada correctamente");
-      setTimeout(() => setSuccess(""), 3000);
+      setToast({ message: "Configuración actualizada con éxito", type: "success" });
     } catch (err) {
-      setError(getFriendlyErrorMessage(err));
+      setToast({ message: getFriendlyErrorMessage(err), type: "danger" });
     } finally {
       setSaving(false);
     }
@@ -74,150 +97,203 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="container py-5 text-center">
-        <div className="spinner-border text-primary" role="status"></div>
-        <p className="text-muted mt-2">Cargando configuración...</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <RotateCw className="h-12 w-12 text-primary animate-spin" />
+        <p className="text-muted-foreground font-medium animate-pulse">Cargando configuración...</p>
       </div>
     );
   }
 
   return (
-    <div className="container py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2>
-            <i className="bi bi-gear me-2"></i>Configuración del Taller
+    <div className="max-w-5xl mx-auto space-y-8 animate-in-fade pb-10">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-1">
+          <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
+            <Settings className="h-8 w-8 text-primary" />
+            Configuración del Sistema
           </h2>
-          <span className="text-muted">
-            Personaliza los datos de tu empresa
-          </span>
+          <p className="text-muted-foreground font-medium pl-11">
+            Personaliza la identidad y parámetros legales de tu taller.
+          </p>
         </div>
+        <Button
+          onClick={handleSubmit}
+          disabled={saving}
+          className="rounded-xl px-5 py-2.5 font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-2"
+        >
+          {saving ? <RotateCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Guardar Cambios
+        </Button>
       </div>
 
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show" role="alert">
-          <i className="bi bi-exclamation-triangle me-2"></i>{error}
-          <button type="button" className="btn-close" onClick={() => setError("")}></button>
-        </div>
-      )}
-      {success && (
-        <div className="alert alert-success alert-dismissible fade show" role="alert">
-          <i className="bi bi-check-circle me-2"></i>{success}
-          <button type="button" className="btn-close" onClick={() => setSuccess("")}></button>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <div className="row g-4">
-          {/* Datos básicos */}
-          <div className="col-lg-6">
-            <div className="card shadow-sm">
-              <div className="card-header bg-white py-3">
-                <h5 className="mb-0">
-                  <i className="bi bi-building me-2"></i>Datos del Taller
-                </h5>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Company Identity */}
+        <div className="space-y-8">
+          <Card className="border-none shadow-xl glass-card overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/50 py-4 px-6">
+              <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Identidad de la Empresa
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                  Nombre Comercial / Razón Social <span className="text-primary">*</span>
+                </Label>
+                <div className="relative group">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="name"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                    placeholder="Ej: Taller Tech Solutions C.A."
+                    required
+                  />
+                </div>
               </div>
-              <div className="card-body">
-                <div className="mb-3">
-                  <label htmlFor="s-name" className="form-label fw-semibold">
-                    Nombre <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    id="s-name"
-                    className="form-control"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+
+              <div className="space-y-2">
+                <Label htmlFor="rif" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                  RIF / Identificación Fiscal
+                </Label>
+                <div className="relative group">
+                  <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="rif"
+                    name="rif"
+                    value={form.rif}
+                    onChange={handleChange}
+                    className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                    placeholder="J-12345678-9"
                   />
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="s-rif" className="form-label fw-semibold">RIF / Documento</label>
-                  <input
-                    id="s-rif"
-                    className="form-control"
-                    value={rif}
-                    onChange={(e) => setRif(e.target.value)}
-                  />
-                </div>
-                <div className="row g-3">
-                  <div className="col-6">
-                    <label htmlFor="s-phone" className="form-label fw-semibold">Teléfono</label>
-                    <input
-                      id="s-phone"
-                      className="form-control"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                    Teléfono de Contacto
+                  </Label>
+                  <div className="relative group">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                      placeholder="0414-0000000"
                     />
                   </div>
-                  <div className="col-6">
-                    <label htmlFor="s-email" className="form-label fw-semibold">Email</label>
-                    <input
-                      id="s-email"
-                      className="form-control"
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                    Email Corporativo
+                  </Label>
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      id="email"
+                      name="email"
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={form.email}
+                      onChange={handleChange}
+                      className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                      placeholder="taller@ejemplo.com"
                     />
                   </div>
                 </div>
-                <div className="mb-3 mt-3">
-                  <label htmlFor="s-address" className="form-label fw-semibold">Dirección</label>
-                  <input
-                    id="s-address"
-                    className="form-control"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                  Dirección Física
+                </Label>
+                <div className="relative group">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="address"
+                    name="address"
+                    value={form.address}
+                    onChange={handleChange}
+                    className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                    placeholder="Calle Principal, Av. Libertador..."
                   />
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="s-currency" className="form-label fw-semibold">Símbolo de Moneda</label>
-                  <input
-                    id="s-currency"
-                    className="form-control"
-                    style={{ width: "80px" }}
-                    value={currencySymbol}
-                    onChange={(e) => setCurrencySymbol(e.target.value)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-xl glass-card overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/50 py-4 px-6">
+              <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Preferencias de Moneda
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-6">
+                <div className="space-y-2 flex-grow">
+                  <Label htmlFor="currencySymbol" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                    Símbolo Monetario
+                  </Label>
+                  <Input
+                    id="currencySymbol"
+                    name="currencySymbol"
+                    value={form.currencySymbol}
+                    onChange={handleChange}
+                    className="w-24 text-center font-bold text-xl h-12 bg-primary/5 border-primary/20 text-primary"
                     maxLength={5}
                   />
                 </div>
+                <div className="bg-muted/20 p-4 rounded-2xl border border-dashed border-border/60 flex-grow">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                    Este símbolo se utilizará en todos los presupuestos, reportes y tablas de costos en toda la aplicación.
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
-
-          {/* Términos y condiciones */}
-          <div className="col-lg-6">
-            <div className="card shadow-sm h-100">
-              <div className="card-header bg-white py-3">
-                <h5 className="mb-0">
-                  <i className="bi bi-file-earmark-text me-2"></i>Términos y Condiciones
-                </h5>
-              </div>
-              <div className="card-body d-flex flex-column">
-                <p className="text-muted small mb-2">
-                  Este texto aparecerá en los PDFs de reportes y presupuestos generados.
-                </p>
-                <textarea
-                  id="s-terms"
-                  className="form-control flex-grow-1"
-                  rows={10}
-                  placeholder="Ej: El equipo será almacenado por un máximo de 30 días después de notificado el cliente..."
-                  value={terms}
-                  onChange={(e) => setTerms(e.target.value)}
-                ></textarea>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="d-flex justify-content-end mt-4">
-          <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
-            {saving ? (
-              <><span className="spinner-border spinner-border-sm me-2"></span>Guardando...</>
-            ) : (
-              <><i className="bi bi-check-lg me-2"></i>Guardar Cambios</>
-            )}
-          </button>
+        {/* Terms and Conditions */}
+        <div className="space-y-8">
+          <Card className="border-none shadow-xl glass-card h-full flex flex-col overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/50 py-4 px-6">
+              <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Términos, Condiciones y Cláusulas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 flex-grow flex flex-col space-y-4">
+              <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3">
+                <MessageSquareQuote className="h-5 w-5 text-amber-500 shrink-0" />
+                <p className="text-[11px] text-amber-900/80 leading-relaxed font-medium">
+                  Este texto es de vital importancia legal. Aparecerá al final de cada presupuesto y reporte técnico generado para tus clientes.
+                </p>
+              </div>
+              <Textarea
+                id="terms"
+                name="terms"
+                className="flex-grow min-h-[350px] bg-muted/20 border-transparent focus:bg-background transition-all resize-none shadow-inner p-4 text-sm font-medium leading-relaxed"
+                placeholder="Ej: El taller no se hace responsable por equipos retirados después de 30 días continuos..."
+                value={form.terms}
+                onChange={handleChange}
+              />
+            </CardContent>
+          </Card>
         </div>
       </form>
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: "", type: "success" })}
+      />
     </div>
   );
 }

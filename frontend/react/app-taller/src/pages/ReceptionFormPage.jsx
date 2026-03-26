@@ -1,571 +1,468 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  getClient,
-  createClient,
-  updateClient,
-  getDeviceBySerial,
-  upsertDeviceBySerial,
-  createDevice,
-  getDevice,
   getReception,
+  getReceptionDetails,
   createReception,
   updateReception,
 } from "../api/httpApi";
-import useDebounce from "../hooks/useDebounce";
+import { getFriendlyErrorMessage } from "../utils/helpers";
 import Toast from "../components/shared/Toast";
-import { toLocalISOString } from "../utils/helpers";
+import {
+  FilePlus,
+  ChevronLeft,
+  Save,
+  RotateCw,
+  User,
+  Smartphone,
+  Hash,
+  FileText,
+  ShieldCheck,
+  AlertCircle,
+  LayoutGrid,
+  ClipboardList,
+  Phone,
+  Mail,
+  Box,
+  Fingerprint,
+  Search,
+} from "lucide-react";
+import { getClient } from "../api/httpApi";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Badge } from "../components/ui/badge";
+import { Textarea } from "../components/ui/textarea";
+import { cn } from "../utils/cn";
 
 export default function ReceptionFormPage() {
-  const { id: paramId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const formRef = useRef(null);
+  const isEdit = !!id;
 
-  const isEdit = paramId && paramId !== "new";
-
-  const [clientIdPrefix, setClientIdPrefix] = useState("V");
-  const [clientIdNum, setClientIdNum] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientLocked, setClientLocked] = useState(false);
-
-  const [deviceSerial, setDeviceSerial] = useState("");
-  const [deviceDescription, setDeviceDescription] = useState("");
-  const [deviceFeatures, setDeviceFeatures] = useState("");
-
-  const [defect, setDefect] = useState("");
-  const [status, setStatus] = useState("PENDIENTE");
-  const [repair, setRepair] = useState("");
+  const [form, setForm] = useState({
+    client_name: "",
+    client_idNumber: "",
+    client_phone: "",
+    client_email: "",
+    device_description: "",
+    device_serial: "",
+    device_features: "",
+    defect: "",
+    observations: "",
+    status: "PENDIENTE",
+  });
 
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
-  const [formMessage, setFormMessage] = useState({ text: "", type: "" });
 
-  const showToast = useCallback(
-    (message, type = "success") => setToast({ message, type }),
-    [],
-  );
+  useEffect(() => {
+    if (isEdit) {
+      const fetchReception = async () => {
+        setFetching(true);
+        try {
+          const data = await getReceptionDetails(id);
+          if (data) {
+            setForm({
+              client_name: data.client?.name || data.client_name || "",
+              client_idNumber: data.client_idNumber || "",
+              client_phone: data.client?.phone || data.client_phone || "",
+              client_email: data.client?.email || data.client_email || "",
+              device_description:
+                data.device?.description || data.device_description || "",
+              device_serial:
+                data.device?.serial_number || data.device_serial || "",
+              device_features:
+                data.device?.features ||
+                data.device_features ||
+                data.device_snapshot?.features ||
+                "",
+              defect: data.defect || "",
+              observations: data.repair || data.observations || "",
+              status: data.status || "PENDIENTE",
+            });
+          }
+        } catch (err) {
+          setToast({ message: getFriendlyErrorMessage(err), type: "danger" });
+        } finally {
+          setFetching(false);
+        }
+      };
+      fetchReception();
+    }
+  }, [id, isEdit]);
 
-  const getClientId = () => {
-    const prefix = clientIdPrefix.trim();
-    const num = clientIdNum.trim();
-    return prefix && num ? `${prefix}${num}`.toUpperCase() : "";
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Busca cliente por cédula (debounced) para autocompletar nombre/teléfono
-  const searchClient = useDebounce(async () => {
-    const idNumber = getClientId();
-    if (!idNumber || idNumber.length < 3) {
-      setClientLocked(false);
-      return;
-    }
-    try {
-      const cliente = await getClient(idNumber);
-      if (cliente) {
-        setClientName(cliente.name || "");
-        setClientPhone(cliente.phone || "");
-        setClientLocked(true);
-        showToast(`Cliente encontrado: ${cliente.name}`, "info");
-      } else {
-        setClientLocked(false);
-        setClientName("");
-        setClientPhone("");
-      }
-    } catch (err) {
-      console.error("Error searching client:", err);
-      setClientLocked(false);
-    }
-  }, 500);
-
-  useEffect(() => {
-    if (!isEdit) searchClient();
-  }, [clientIdPrefix, clientIdNum]);
-
-  // Carga datos existentes al editar una recepción
-  useEffect(() => {
-    if (!isEdit) return;
-
-    (async () => {
-      setLoading(true);
-      setFormMessage({
-        text: "Cargando información de la recepción...",
-        type: "info",
-      });
-      try {
-        const rec = await getReception(paramId);
-        if (!rec) throw new Error("Recepción no encontrada");
-
-        if (rec.client_idNumber) {
-          const prefix = rec.client_idNumber.charAt(0).toUpperCase();
-          const num = rec.client_idNumber.substring(1);
-          setClientIdPrefix(prefix);
-          setClientIdNum(num);
-
-          try {
-            const cliente = await getClient(rec.client_idNumber);
-            if (cliente) {
-              setClientName(cliente.name || "");
-              setClientPhone(cliente.phone || "");
-              setClientLocked(true);
-            }
-          } catch {
-            setClientLocked(false);
-          }
-        }
-
-        let snapshot = rec.device_snapshot;
-        if (typeof snapshot === "string") {
-          try {
-            snapshot = JSON.parse(snapshot);
-          } catch {
-            snapshot = null;
-          }
-        }
-
-        if (snapshot) {
-          setDeviceSerial(snapshot.serial_number || "");
-          setDeviceDescription(snapshot.description || "");
-          setDeviceFeatures(snapshot.features || "");
-        } else if (rec.device_id) {
-          try {
-            const device = await getDevice(rec.device_id);
-            if (device) {
-              setDeviceSerial(device.serial_number || "");
-              setDeviceDescription(device.description || "");
-              setDeviceFeatures(device.features || "");
-            }
-          } catch {}
-        }
-
-        setDefect(rec.defect || "");
-        setStatus(rec.status || "PENDIENTE");
-        setRepair(rec.repair || "");
-
-        setFormMessage({
-          text: "Recepción cargada correctamente.",
-          type: "success",
-        });
-      } catch (err) {
-        setFormMessage({ text: `Error: ${err.message}`, type: "danger" });
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [paramId, isEdit]);
-
-  function extractDeviceId(device) {
-    if (!device) return null;
-    return device.id || device.deviceId || device.device_id || null;
-  }
-
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formRef.current && !formRef.current.checkValidity()) {
-      formRef.current.classList.add("was-validated");
-      return;
-    }
-
-    const clientId = getClientId();
-    if (!clientId || !clientName.trim()) {
-      setFormMessage({
-        text: "Por favor, complete los datos del cliente",
-        type: "warning",
-      });
-      return;
-    }
-    if (!deviceDescription.trim() || !defect.trim()) {
-      setFormMessage({
-        text: "Complete la descripción del equipo y el defecto reportado",
+    if (
+      !form.client_name ||
+      !form.client_idNumber ||
+      !form.device_description ||
+      !form.defect
+    ) {
+      setToast({
+        message: "Por favor completa los campos obligatorios",
         type: "warning",
       });
       return;
     }
 
     setLoading(true);
-    setFormMessage({ text: "", type: "" });
-
-    const clientData = {
-      idNumber: clientId,
-      name: clientName.trim(),
-      phone: clientPhone.trim() || null,
-    };
-    const deviceData = {
-      serial_number: deviceSerial.trim() || null,
-      description: deviceDescription.trim(),
-      features: deviceFeatures.trim() || null,
-    };
-
     try {
-      let cliente;
-      try {
-        cliente = await getClient(clientData.idNumber);
-        if (cliente) {
-          if (
-            cliente.name !== clientData.name ||
-            cliente.phone !== clientData.phone
-          ) {
-            await updateClient(clientData.idNumber, {
-              name: clientData.name,
-              phone: clientData.phone,
-            });
-          }
-        } else {
-          cliente = await createClient(clientData);
-        }
-      } catch (err) {
-        throw new Error("No se pudo guardar la información del cliente.");
-      }
-
-      let equipo;
-      try {
-        if (deviceData.serial_number) {
-          equipo = await upsertDeviceBySerial(deviceData);
-        } else {
-          equipo = await createDevice(deviceData);
-        }
-      } catch (err) {
-        console.error("Device error:", err);
-        equipo = null;
-      }
-
-      const device_id = extractDeviceId(equipo);
-      if (!device_id) throw new Error("No se pudo obtener el ID del equipo");
-
-      const snapshot = {
-        id: device_id,
-        serial_number:
-          equipo?.serial_number || deviceData.serial_number || null,
-        description: equipo?.description || deviceData.description || null,
-        features: equipo?.features || deviceData.features || null,
-        captured_at: toLocalISOString(),
-      };
-
-      const finalReception = {
-        client_idNumber: cliente.idNumber,
-        client_name: clientData.name,
-        client_phone: clientData.phone,
-        device_id,
-        defect: defect.trim(),
-        status: status || "PENDIENTE",
-        repair: repair.trim() || null,
-        device_snapshot: snapshot,
-      };
-
       if (isEdit) {
-        await updateReception({ id: Number(paramId), data: finalReception });
-        showToast("Recepción actualizada correctamente");
-        setTimeout(() => navigate("/dashboard"), 1500);
+        // Adaptar payload para update (backend espera id y data separados en un objeto)
+        await updateReception({ id, data: form });
+        setToast({
+          message: "Recepción actualizada con éxito",
+          type: "success",
+        });
       } else {
-        await createReception(finalReception, user.id);
-        showToast("Recepción creada correctamente");
-        setTimeout(() => navigate("/dashboard"), 1000);
+        await createReception(form);
+        setToast({ message: "Recepción creada con éxito", type: "success" });
       }
+      setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
-      let msg = err.message || "Error desconocido";
-      if (msg.includes("UNIQUE constraint failed")) {
-        if (msg.includes("client.idNumber"))
-          msg = "Ya existe un cliente con esta cédula/RIF";
-        else if (msg.includes("device.serial_number"))
-          msg = "Ya existe un equipo con este número de serie";
-      }
-      setFormMessage({ text: msg, type: "danger" });
-      showToast(msg, "danger");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setToast({ message: getFriendlyErrorMessage(err), type: "danger" });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  function handlePhoneInput(value) {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    if (digits.length >= 4) {
-      const formatted =
-        digits.length >= 7
-          ? `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`
-          : `${digits.slice(0, 4)}-${digits.slice(4)}`;
-      setClientPhone(formatted);
-    } else {
-      setClientPhone(digits);
+  const [searchingClient, setSearchingClient] = useState(false);
+
+  const handleClientLookup = async () => {
+    if (!form.client_idNumber || isEdit) return;
+
+    setSearchingClient(true);
+    try {
+      const client = await getClient(form.client_idNumber);
+      if (client) {
+        setForm((prev) => ({
+          ...prev,
+          client_name: client.name || prev.client_name,
+          client_phone: client.phone || prev.client_phone,
+          client_email: client.email || prev.client_email,
+        }));
+        setToast({
+          message: "Cliente encontrado y datos cargados",
+          type: "success",
+        });
+      }
+    } catch (err) {
+      // Si no existe, no hacemos nada (es un cliente nuevo)
+      console.log("Client not found, likely a new client");
+    } finally {
+      setSearchingClient(false);
     }
+  };
+
+  if (fetching) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <RotateCw className="h-12 w-12 text-primary animate-spin" />
+        <p className="text-muted-foreground font-medium animate-pulse">
+          Cargando datos de la recepción...
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="container py-4" style={{ maxWidth: 800 }}>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>
-          <i
-            className={`bi ${isEdit ? "bi-pencil-square" : "bi-plus-circle"} me-2`}
-          ></i>
-          {isEdit ? `Editar Recepción #${paramId}` : "Nueva Recepción"}
-        </h2>
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => navigate("/dashboard")}
-        >
-          <i className="bi bi-arrow-left me-1"></i>Volver
-        </button>
+    <div className="max-w-4xl mx-auto space-y-8 animate-in-fade">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all"
+            onClick={() => navigate(-1)}
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              {isEdit ? (
+                <ClipboardList className="h-8 w-8 text-primary" />
+              ) : (
+                <FilePlus className="h-8 w-8 text-primary" />
+              )}
+              {isEdit ? "Editar Recepción" : "Nueva Recepción"}
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              {isEdit
+                ? `Actualizando registro #${id}`
+                : "Ingresa un nuevo equipo al laboratorio."}
+            </p>
+          </div>
+        </div>
+        {isEdit && (
+          <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1 text-sm font-bold uppercase tracking-widest">
+            ID: {id}
+          </Badge>
+        )}
       </div>
 
-      {formMessage.text && (
-        <div
-          className={`alert alert-${formMessage.type} alert-dismissible fade show`}
-        >
-          {formMessage.text}
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setFormMessage({ text: "", type: "" })}
-          ></button>
-        </div>
-      )}
-
-      <form
-        ref={formRef}
-        onSubmit={handleSubmit}
-        noValidate
-        className="needs-validation"
-      >
-        {/* Cliente */}
-        <div className="card mb-4">
-          <div className="card-header bg-light">
-            <h5 className="mb-0">
-              <i className="bi bi-person-circle me-2"></i>Datos del Cliente
-            </h5>
-          </div>
-          <div className="card-body">
-            <div className="row g-3">
-              <div className="col-md-2">
-                <label htmlFor="client_idNumber_prefix" className="form-label">
-                  Tipo
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Cliente y Equipo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-none shadow-xl glass-card overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/50 py-3">
+              <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Información del Cliente
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                  DNI / Identificación <span className="text-primary">*</span>
                 </label>
-                <select
-                  id="client_idNumber_prefix"
-                  className="form-select"
-                  value={clientIdPrefix}
-                  onChange={(e) => setClientIdPrefix(e.target.value)}
-                  disabled={isEdit || clientLocked}
-                >
-                  <option value="V">V</option>
-                  <option value="E">E</option>
-                  <option value="J">J</option>
-                  <option value="G">G</option>
-                  <option value="P">P</option>
-                </select>
-              </div>
-              <div className="col-md-4">
-                <label htmlFor="client_idNumber_num" className="form-label">
-                  Número de Cédula/RIF
-                </label>
-                <input
-                  id="client_idNumber_num"
-                  type="text"
-                  className="form-control"
-                  required
-                  placeholder="12345678"
-                  value={clientIdNum}
-                  onChange={(e) => setClientIdNum(e.target.value)}
-                  disabled={isEdit || clientLocked}
-                />
-                <div className="invalid-feedback">
-                  Ingrese el número de cédula/RIF
+                <div className="relative group">
+                  <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    name="client_idNumber"
+                    value={form.client_idNumber}
+                    onChange={handleChange}
+                    onBlur={handleClientLookup}
+                    className={cn(
+                      "pl-10 bg-muted/20 border-transparent focus:bg-background transition-all",
+                      searchingClient && "opacity-50",
+                    )}
+                    placeholder="Ej: V-12345678"
+                    required
+                  />
+                  {searchingClient && (
+                    <RotateCw className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin" />
+                  )}
                 </div>
-                {clientLocked && (
-                  <button
-                    type="button"
-                    className="btn btn-link btn-sm p-0 mt-1"
-                    onClick={() => setClientLocked(false)}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                  Nombre Completo <span className="text-primary">*</span>
+                </label>
+                <div className="relative group">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    name="client_name"
+                    value={form.client_name}
+                    onChange={handleChange}
+                    className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                    placeholder="Ej: Juan Pérez"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                    Teléfono <span className="text-primary">*</span>
+                  </label>
+                  <div className="relative group">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      name="client_phone"
+                      value={form.client_phone}
+                      onChange={handleChange}
+                      className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                      placeholder="0412..."
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                    Email
+                  </label>
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      name="client_email"
+                      type="email"
+                      value={form.client_email}
+                      onChange={handleChange}
+                      className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                      placeholder="email@ejemplo.com"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-xl glass-card overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b border-border/50 py-3">
+              <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                Información del Equipo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                  Descripción <span className="text-primary">*</span>
+                </label>
+                <div className="relative group">
+                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    name="device_description"
+                    value={form.device_description}
+                    onChange={handleChange}
+                    className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                    placeholder="Ej: iPhone 13 Pro Max Azul"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                    Número de Serie / IMEI
+                  </label>
+                  <div className="relative group">
+                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      name="device_serial"
+                      value={form.device_serial}
+                      onChange={handleChange}
+                      className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                      placeholder="S/N"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                    Accesorios / Características
+                  </label>
+                  <div className="relative group">
+                    <Box className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      name="device_features"
+                      value={form.device_features}
+                      onChange={handleChange}
+                      className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                      placeholder="Ej: Con forro, sin cargador"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Detalles Técnicos */}
+        <Card className="border-none shadow-xl glass-card overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border/50 py-3">
+            <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Detalles de la Recepción
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                Reporte de Falla / Síntomas{" "}
+                <span className="text-primary">*</span>
+              </label>
+              <div className="relative group">
+                <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Textarea
+                  name="defect"
+                  value={form.defect}
+                  onChange={handleChange}
+                  className="pl-10 min-h-[120px] bg-muted/20 border-transparent focus:bg-background transition-all resize-none"
+                  placeholder="Describe detalladamente el problema que reporta el cliente..."
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                Observaciones Adicionales / Estado Físico
+              </label>
+              <div className="relative group">
+                <ShieldCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Textarea
+                  name="observations"
+                  value={form.observations}
+                  onChange={handleChange}
+                  className="pl-10 min-h-[100px] bg-muted/20 border-transparent focus:bg-background transition-all resize-none"
+                  placeholder="Detalles sobre golpes, rayones, piezas faltantes, etc."
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end pt-4 border-t border-border/40">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                  Estado Inicial
+                </label>
+                <div className="relative group">
+                  <LayoutGrid className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <select
+                    name="status"
+                    className="w-full h-10 rounded-md border border-transparent bg-muted/20 pl-10 pr-3 py-2 text-sm focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none"
+                    value={form.status}
+                    onChange={handleChange}
                   >
-                    <i className="bi bi-unlock me-1"></i>Desbloquear
-                  </button>
-                )}
-              </div>
-              <div className="col-md-3">
-                <label htmlFor="client_name" className="form-label">
-                  Nombre
-                </label>
-                <input
-                  id="client_name"
-                  type="text"
-                  className="form-control"
-                  required
-                  placeholder="Nombre del cliente"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                />
-                <div className="invalid-feedback">
-                  Ingrese el nombre del cliente
+                    <option value="PENDIENTE">PENDIENTE (Nuevo Ingreso)</option>
+                    <option value="EN_REPARACION">EN REPARACIÓN</option>
+                    <option value="EN_PROCESO">EN PROCESO (Repuestos/Otros)</option>
+                    <option value="REPARADO">REPARADO</option>
+                    <option value="LISTO">LISTO PARA ENTREGA</option>
+                  </select>
                 </div>
               </div>
-              <div className="col-md-3">
-                <label htmlFor="client_phone" className="form-label">
-                  Teléfono
-                </label>
-                <input
-                  id="client_phone"
-                  type="text"
-                  className="form-control"
-                  placeholder="0414-123-4567"
-                  value={clientPhone}
-                  onChange={(e) => handlePhoneInput(e.target.value)}
-                />
+
+              <div className="flex bg-muted/20 p-4 rounded-xl border border-dashed border-border/60 items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Recuerda verificar que el equipo encienda antes de recibirlo.
+                  Todas las observaciones sobre el estado físico deben
+                  registrarse aquí para evitar reclamos.
+                </p>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Equipo */}
-        <div className="card mb-4">
-          <div className="card-header bg-light">
-            <h5 className="mb-0">
-              <i className="bi bi-laptop me-2"></i>Datos del Equipo
-            </h5>
-          </div>
-          <div className="card-body">
-            <div className="row g-3">
-              <div className="col-md-4">
-                <label htmlFor="device_serial_number" className="form-label">
-                  Número de Serie
-                </label>
-                <input
-                  id="device_serial_number"
-                  type="text"
-                  className="form-control"
-                  placeholder="Opcional"
-                  value={deviceSerial}
-                  onChange={(e) => setDeviceSerial(e.target.value)}
-                />
-              </div>
-              <div className="col-md-8">
-                <label htmlFor="device_description" className="form-label">
-                  Descripción del Equipo
-                </label>
-                <input
-                  id="device_description"
-                  type="text"
-                  className="form-control"
-                  required
-                  placeholder="Ej: Laptop HP ProBook 450 G8"
-                  value={deviceDescription}
-                  onChange={(e) => setDeviceDescription(e.target.value)}
-                />
-                <div className="invalid-feedback">
-                  Ingrese la descripción del equipo
-                </div>
-              </div>
-              <div className="col-12">
-                <label htmlFor="device_features" className="form-label">
-                  Características
-                </label>
-                <textarea
-                  id="device_features"
-                  className="form-control"
-                  rows="2"
-                  placeholder="Ej: Intel i5, 8GB RAM, 256GB SSD"
-                  value={deviceFeatures}
-                  onChange={(e) => setDeviceFeatures(e.target.value)}
-                ></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recepción */}
-        <div className="card mb-4">
-          <div className="card-header bg-light">
-            <h5 className="mb-0">
-              <i className="bi bi-clipboard-check me-2"></i>Detalles de la
-              Recepción
-            </h5>
-          </div>
-          <div className="card-body">
-            <div className="row g-3">
-              <div className="col-12">
-                <label htmlFor="defect" className="form-label">
-                  Falla Reportada
-                </label>
-                <textarea
-                  id="defect"
-                  className="form-control"
-                  rows="3"
-                  required
-                  placeholder="Describa la falla o problema reportado por el cliente"
-                  value={defect}
-                  onChange={(e) => setDefect(e.target.value)}
-                ></textarea>
-                <div className="invalid-feedback">
-                  Ingrese la falla reportada
-                </div>
-              </div>
-              <div className="col-md-6">
-                <label htmlFor="status" className="form-label">
-                  Estado
-                </label>
-                <select
-                  id="status"
-                  className="form-select"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="PENDIENTE">Pendiente</option>
-                  <option value="EN_PROGRESO">En Progreso</option>
-                  <option value="ESPERA_RESPUESTA">Esperando Respuesta</option>
-                  <option value="TERMINADO">Terminado</option>
-                  <option value="ENTREGADO">Entregado</option>
-                  <option value="CANCELADO">Cancelado</option>
-                </select>
-              </div>
-              <div className="col-12">
-                <label htmlFor="repair" className="form-label">
-                  Diagnóstico / Reparación
-                </label>
-                <textarea
-                  id="repair"
-                  className="form-control"
-                  rows="3"
-                  placeholder="Opcional – Describa el diagnóstico o la reparación realizada"
-                  value={repair}
-                  onChange={(e) => setRepair(e.target.value)}
-                ></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="d-flex justify-content-end gap-2">
-          <button
+        {/* Botones de Acción */}
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+          <Button
             type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => navigate("/dashboard")}
+            variant="ghost"
+            className="h-12 px-8 rounded-xl font-semibold"
+            onClick={() => navigate(-1)}
           >
             Cancelar
-          </button>
-          {isEdit && (
-            <button
-              type="button"
-              className="btn btn-outline-warning"
-              onClick={() => navigate(`/reception/${paramId}/budget`)}
-            >
-              <i className="bi bi-calculator me-1"></i>💰 Presupuesto
-            </button>
-          )}
-          <button type="submit" className="btn btn-primary" disabled={loading}>
+          </Button>
+          <Button
+            type="submit"
+            className="h-12 px-12 rounded-xl font-bold text-base shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            disabled={loading}
+          >
             {loading ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2"></span>
-                {isEdit ? "Actualizando..." : "Guardando..."}
-              </>
+              <RotateCw className="mr-2 h-5 w-5 animate-spin" />
             ) : (
-              <>
-                <i
-                  className={`bi ${isEdit ? "bi-check-lg" : "bi-save"} me-1`}
-                ></i>
-                {isEdit ? "Actualizar Recepción" : "Guardar Recepción"}
-              </>
+              <Save className="mr-2 h-5 w-5" />
             )}
-          </button>
+            {isEdit ? "Actualizar Registro" : "Crear Recepción"}
+          </Button>
         </div>
       </form>
 

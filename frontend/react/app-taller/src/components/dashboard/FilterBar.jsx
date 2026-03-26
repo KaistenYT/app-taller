@@ -68,19 +68,19 @@ export default function FilterBar() {
   ].filter(Boolean).length;
 
   return (
-    <Card className="mb-6 border-slate-200 bg-white shadow-sm overflow-hidden">
-      <CardHeader className="py-3 px-4 bg-slate-50/50 border-b border-slate-200">
+    <Card className="mb-6 border-none shadow-xl glass-card overflow-hidden">
+      <CardHeader className="py-4 px-6 bg-muted/30 border-b border-border/50">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xs font-bold flex items-center gap-2 text-slate-700 uppercase tracking-widest">
-            <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
-            Panel de Filtrado
+          <CardTitle className="text-xs font-black flex items-center gap-2 text-foreground/80 uppercase tracking-[0.2em]">
+            <SlidersHorizontal className="h-4 w-4 text-primary" />
+            Búsqueda y Filtros
           </CardTitle>
           {activeFiltersCount > 0 && (
             <Badge
               variant="secondary"
-              className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold"
+              className="bg-primary/20 text-primary border-primary/30 text-[10px] font-black px-3"
             >
-              {activeFiltersCount} FILTROS
+              {activeFiltersCount} ACTIVOS
             </Badge>
           )}
         </div>
@@ -91,17 +91,17 @@ export default function FilterBar() {
           <div className="md:col-span-3 space-y-2">
             <Label
               htmlFor="search"
-              className="text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+              className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1"
             >
               Búsqueda General
             </Label>
-            <div className="flex items-center w-full rounded-md border border-slate-200 bg-white px-3 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all h-9">
-              <Search className="h-4 w-4 text-slate-400 shrink-0 mr-2" />
+            <div className="flex items-center w-full rounded-xl border border-border/40 bg-muted/20 px-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:bg-background transition-all h-10">
+              <Search className="h-4 w-4 text-muted-foreground shrink-0 mr-2" />
               <input
                 id="search"
                 type="text"
                 placeholder="Cliente, Equipo, Serial..."
-                className="flex-1 bg-transparent border-none outline-none text-sm text-slate-900 placeholder:text-slate-400 h-full w-full"
+                className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground/50 h-full w-full"
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
@@ -112,14 +112,14 @@ export default function FilterBar() {
           <div className="md:col-span-2 space-y-2">
             <Label
               htmlFor="dateFrom"
-              className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"
+              className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1 ml-1"
             >
-              <Calendar className="h-3 w-3 text-slate-400" /> Desde
+              <Calendar className="h-3 w-3" /> Desde
             </Label>
             <Input
               id="dateFrom"
               type="date"
-              className="bg-white border-slate-200 text-slate-900 focus:border-primary shadow-none"
+              className="bg-muted/20 border-border/40 text-foreground focus:bg-background focus:ring-2 focus:ring-primary/20 h-10 rounded-xl"
               value={filters.dateFrom || ""}
               onChange={(e) => setFilters({ dateFrom: e.target.value })}
             />
@@ -128,14 +128,14 @@ export default function FilterBar() {
           <div className="md:col-span-2 space-y-2">
             <Label
               htmlFor="dateTo"
-              className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"
+              className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1 ml-1"
             >
-              <CalendarDays className="h-3 w-3 text-slate-400" /> Hasta
+              <CalendarDays className="h-3 w-3" /> Hasta
             </Label>
             <Input
               id="dateTo"
               type="date"
-              className="bg-white border-slate-200 text-slate-900 focus:border-primary shadow-none"
+              className="bg-muted/20 border-border/40 text-foreground focus:bg-background focus:ring-2 focus:ring-primary/20 h-10 rounded-xl"
               value={filters.dateTo || ""}
               onChange={(e) => setFilters({ dateTo: e.target.value })}
             />
@@ -145,19 +145,19 @@ export default function FilterBar() {
           <div className="md:col-span-2 space-y-2">
             <Label
               htmlFor="status"
-              className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"
+              className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1 ml-1"
             >
-              <Archive className="h-3 w-3 text-slate-400" /> Estado
+              <Archive className="h-3 w-3" /> Estado
             </Label>
             <select
               id="status"
-              className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-all appearance-none"
+              className="flex h-10 w-full rounded-xl border border-border/40 bg-muted/20 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-background cursor-pointer transition-all appearance-none"
               value={getArchivedValue()}
               onChange={handleArchivedChange}
             >
-              <option value="activas">Activas</option>
-              <option value="archivadas">Archivadas</option>
-              <option value="todas">Todas</option>
+              <option value="activas" className="bg-background">Activas</option>
+              <option value="archivadas" className="bg-background">Archivadas</option>
+              <option value="todas" className="bg-background">Todas</option>
             </select>
           </div>
 
@@ -165,18 +165,18 @@ export default function FilterBar() {
           <div className="md:col-span-2 space-y-2">
             <Label
               htmlFor="sort"
-              className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"
+              className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1 ml-1"
             >
-              <SortDesc className="h-3 w-3 text-slate-400" /> Orden
+              <SortDesc className="h-3 w-3" /> Orden
             </Label>
             <select
               id="sort"
-              className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-all appearance-none"
+              className="flex h-10 w-full rounded-xl border border-border/40 bg-muted/20 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-background cursor-pointer transition-all appearance-none"
               value={pagination.sort}
               onChange={(e) => setSort(e.target.value)}
             >
-              <option value="desc">Más Reciente</option>
-              <option value="asc">Más Antigua</option>
+              <option value="desc" className="bg-background">Más Reciente</option>
+              <option value="asc" className="bg-background">Más Antigua</option>
             </select>
           </div>
 
@@ -186,8 +186,8 @@ export default function FilterBar() {
               variant="ghost"
               size="icon"
               className={cn(
-                "w-full h-9 border border-dashed border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-destructive transition-all",
-                activeFiltersCount === 0 && "opacity-40 pointer-events-none",
+                "w-full h-10 border border-dashed border-border/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 transition-all rounded-xl",
+                activeFiltersCount === 0 && "opacity-20 pointer-events-none",
               )}
               onClick={() => {
                 setSearchTerm("");
@@ -195,25 +195,25 @@ export default function FilterBar() {
               }}
               title="Limpiar filtros"
             >
-              <FilterX className="h-4 w-4" />
+              <FilterX className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
         {/* Chips de Filtros Activos */}
         {activeFiltersCount > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-slate-100 animate-in fade-in duration-500">
+          <div className="mt-6 flex flex-wrap gap-2 pt-6 border-t border-border/40 animate-in fade-in slide-in-from-top-2 duration-500">
             {searchTerm && (
               <Badge
                 variant="outline"
-                className="gap-1.5 px-3 py-1 font-normal text-slate-600 bg-slate-50 border-slate-200"
+                className="gap-2 px-4 py-2 font-medium text-foreground bg-primary/5 border-primary/20 rounded-full"
               >
-                <span className="opacity-60 text-[10px] uppercase font-bold mr-1 text-primary">
+                <span className="opacity-60 text-[10px] uppercase font-black tracking-widest mr-1 text-primary">
                   Búsqueda
                 </span>{" "}
                 {searchTerm}
                 <X
-                  className="h-3 w-3 cursor-pointer hover:text-red-500 transition-colors ml-1"
+                  className="h-3.5 w-3.5 cursor-pointer hover:text-destructive transition-colors ml-2 bg-primary/10 rounded-full p-0.5"
                   onClick={() => {
                     setSearchTerm("");
                     setFilters({ general: "" });
@@ -224,14 +224,14 @@ export default function FilterBar() {
             {(filters.dateFrom || filters.dateTo) && (
               <Badge
                 variant="outline"
-                className="gap-1.5 px-3 py-1 font-normal text-slate-600 bg-slate-50 border-slate-200"
+                className="gap-2 px-4 py-2 font-medium text-foreground bg-primary/5 border-primary/20 rounded-full"
               >
-                <span className="opacity-60 text-[10px] uppercase font-bold mr-1 text-primary">
+                <span className="opacity-60 text-[10px] uppercase font-black tracking-widest mr-1 text-primary">
                   Periodo
                 </span>{" "}
-                {filters.dateFrom || "..."} / {filters.dateTo || "..."}
+                {filters.dateFrom || "..."} — {filters.dateTo || "..."}
                 <X
-                  className="h-3 w-3 cursor-pointer hover:text-red-500 transition-colors ml-1"
+                  className="h-3.5 w-3.5 cursor-pointer hover:text-destructive transition-colors ml-2 bg-primary/10 rounded-full p-0.5"
                   onClick={() => setFilters({ dateFrom: "", dateTo: "" })}
                 />
               </Badge>
@@ -239,14 +239,14 @@ export default function FilterBar() {
             {filters.archived !== false && (
               <Badge
                 variant="outline"
-                className="gap-1.5 px-3 py-1 font-normal text-slate-600 bg-slate-50 border-slate-200"
+                className="gap-2 px-4 py-2 font-medium text-foreground bg-primary/5 border-primary/20 rounded-full"
               >
-                <span className="opacity-60 text-[10px] uppercase font-bold mr-1 text-primary">
+                <span className="opacity-60 text-[10px] uppercase font-black tracking-widest mr-1 text-primary">
                   Vista
                 </span>{" "}
                 {filters.archived === true ? "Archivadas" : "Todas"}
                 <X
-                  className="h-3 w-3 cursor-pointer hover:text-red-500 transition-colors ml-1"
+                  className="h-3.5 w-3.5 cursor-pointer hover:text-destructive transition-colors ml-2 bg-primary/10 rounded-full p-0.5"
                   onClick={() => setFilters({ archived: false })}
                 />
               </Badge>

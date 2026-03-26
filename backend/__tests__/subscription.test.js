@@ -22,7 +22,7 @@ describe("Subscription Service", () => {
    */
   async function createTestCompanyWithPlan(planId) {
     const [row] = await db("company")
-      .insert({ name: `Test Co ${Date.now()}`, status: "ACTIVE" })
+      .insert({ name: `TC-${Date.now()}`, status: "ACTIVE" })
       .returning("id");
     const companyId = row?.id ?? row;
 
@@ -41,7 +41,7 @@ describe("Subscription Service", () => {
    * Retorna su idNumber.
    */
   async function createTestClient(companyId) {
-    const idNumber = `CLI-${companyId}-${Date.now()}`;
+    const idNumber = `C-${companyId}-${Date.now()}`;
     await db("client").insert({
       idNumber,
       name: "Cliente Test",
@@ -63,7 +63,7 @@ describe("Subscription Service", () => {
       // Cada recepción necesita su propio dispositivo (FK device_id)
       const [devRow] = await db("device")
         .insert({
-          serial_number: `SN-${companyId}-${i}-${Date.now()}`,
+          serial_number: `S-${companyId}-${i}-${Date.now()}`,
           description: `Dispositivo test #${i + 1}`,
           features: "N/A",
           company_id: companyId,
@@ -101,7 +101,7 @@ describe("Subscription Service", () => {
       // Dispositivo de soporte para la recepción
       const [devRow] = await db("device")
         .insert({
-          serial_number: `SN-BUD-${companyId}-${i}-${Date.now()}`,
+          serial_number: `SB-${companyId}-${i}-${Date.now()}`,
           description: `Dispositivo budget #${i + 1}`,
           company_id: companyId,
         })
@@ -302,7 +302,7 @@ describe("Subscription Service", () => {
 
     beforeAll(async () => {
       const [row] = await db("company")
-        .insert({ name: `Orphan Co ${Date.now()}`, status: "ACTIVE" })
+        .insert({ name: `OC-${Date.now()}`, status: "ACTIVE" })
         .returning("id");
       orphanCompanyId = row?.id ?? row;
       // Sin suscripción → checkQuota debe fallar
@@ -324,7 +324,7 @@ describe("Subscription Service", () => {
   // ═══════════════════════════════════════════════════════════════════════════
   describe("Middleware checkSubscriptionQuota (integración HTTP)", () => {
     test("POST /api/receptions retorna 201 cuando el plan tiene cupo (admin, plan ilimitado)", async () => {
-      const idNumber = `CLI-MW-${Date.now()}`;
+      const idNumber = `CMW-${Date.now()}`;
       await request(app)
         .post("/api/clients")
         .set("Authorization", `Bearer ${token}`)
@@ -337,7 +337,7 @@ describe("Subscription Service", () => {
           client_idNumber: idNumber,
           defect: "Test middleware cuota",
           device: {
-            serial_number: `SN-MW-${Date.now()}`,
+            serial_number: `SMW-${Date.now()}`,
             description: "Dispositivo middleware test",
           },
         });

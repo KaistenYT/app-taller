@@ -4,8 +4,8 @@ import db from "../db/dbConfig.js";
 
 describe("Budgets API", () => {
   let token;
-  const testClientId = `TEST-BUDGET-${Date.now()}`;
-  const testDevice = `TEST-DEVICE-${Date.now()}`;
+  const testClientId = `TB-${Date.now()}`;
+  const testDevice = `TD-${Date.now()}`;
   let receptionId;
   let budgetId;
 

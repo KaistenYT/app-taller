@@ -6,7 +6,7 @@ describe("Reports API", () => {
   let token;
   let receptionId;
   let reportId;
-  const testClientId = `CLI-REP-${Date.now()}`;
+  const testClientId = `CR-${Date.now()}`;
 
   beforeAll(async () => {
     // Login
@@ -29,7 +29,7 @@ describe("Reports API", () => {
       .send({
         client_idNumber: testClientId,
         defect: "Broken Screen",
-        device: { serial_number: `SN-REP-${Date.now()}`, description: "iPhone 13" }
+        device: { serial_number: `SR-${Date.now()}`, description: "iPhone 13" }
       });
     receptionId = recRes.body.id;
   });
@@ -58,7 +58,7 @@ describe("Reports API", () => {
       .send({
         client_idNumber: testClientId,
         defect: "Battery issue",
-        device: { serial_number: `SN-REP-2-${Date.now()}`, description: "iPhone 12" }
+        device: { serial_number: `SR2-${Date.now()}`, description: "iPhone 12" }
       });
     
     const res = await request(app)

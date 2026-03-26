@@ -4,7 +4,7 @@ import db from "../db/dbConfig.js";
 
 describe("Receptions Endpoints", () => {
   let token;
-  const testClientId = `TEST-REC-${Date.now()}`;
+  const testClientId = `TR-${Date.now()}`;
 
   beforeAll(async () => {
     // Login
@@ -85,7 +85,7 @@ describe("Receptions Endpoints", () => {
       .send({
         client_idNumber: testClientId,
         defect: "Archive Test",
-        device: { serial_number: `SN-ARCH-${Date.now()}`, description: "Tablet" }
+        device: { serial_number: `SARC-${Date.now()}`, description: "Tablet" }
       });
     const receptionId = createRes.body.id;
 
@@ -112,7 +112,7 @@ describe("Receptions Endpoints", () => {
       .send({
         client_idNumber: testClientId,
         defect: "Restore Test",
-        device: { serial_number: `SN-REST-${Date.now()}`, description: "Smartwatch" }
+        device: { serial_number: `SRES-${Date.now()}`, description: "Smartwatch" }
       });
     const receptionId = createRes.body.id;
     await request(app).post(`/api/receptions/${receptionId}/archive`).set("Authorization", `Bearer ${token}`);
@@ -138,7 +138,7 @@ describe("Receptions Endpoints", () => {
       .send({
         client_idNumber: testClientId,
         defect: "Delete Test",
-        device: { serial_number: `SN-DEL-${Date.now()}`, description: "Console" }
+        device: { serial_number: `SDEL-${Date.now()}`, description: "Console" }
       });
     const receptionId = createRes.body.id;
 

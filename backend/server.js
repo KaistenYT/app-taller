@@ -92,8 +92,8 @@ app.use(errorHandler);
 
 if (process.env.NODE_ENV !== "test") {
   initSocket(httpServer, config.corsOrigin);
-  httpServer.listen(PORT, () => {
-    logger.info(`[server] Escuchando en http://localhost:${PORT} (Express + Socket.io)`);
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    logger.info(`[server] Escuchando en http://0.0.0.0:${PORT} (Express + Socket.io)`);
   });
 }
 

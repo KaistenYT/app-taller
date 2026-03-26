@@ -3,6 +3,23 @@ import { useNavigate, Link } from "react-router-dom";
 import { registerUser, loginUser } from "../api/httpApi";
 import { useAuth } from "../context/AuthContext";
 import { getFriendlyErrorMessage } from "../utils/helpers";
+import { 
+  UserPlus, 
+  User, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ChevronRight, 
+  CheckCircle2, 
+  AlertCircle,
+  RotateCw,
+  ArrowLeft
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "../components/ui/card";
+import { cn } from "../utils/cn";
 
 export default function RegisterPage() {
   const { login } = useAuth();
@@ -12,8 +29,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertType, setAlertType] = useState("");
+  const [alert, setAlert] = useState({ message: "", type: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -26,14 +42,13 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!isValid) return;
     setLoading(true);
-    setAlertMessage("");
+    setAlert({ message: "", type: "" });
     try {
       const result = await registerUser({
         username: username.trim(),
         password,
       });
       if (result && result.id) {
-        // Auto-login después de registro
         try {
           const user = await loginUser(username.trim(), password);
           if (user && user.id) {
@@ -42,155 +57,154 @@ export default function RegisterPage() {
             return;
           }
         } catch (_) {}
-        // Si auto-login falla, ir a login con param
         navigate("/login?registered=1", { replace: true });
       } else {
-        setAlertType("danger");
-        setAlertMessage(
-          getFriendlyErrorMessage(result?.message || "No se pudo registrar"),
-        );
+        setAlert({ 
+          message: getFriendlyErrorMessage(result?.message || "No se pudo procesar el registro"), 
+          type: "error" 
+        });
       }
     } catch (err) {
-      setAlertType("danger");
-      setAlertMessage(getFriendlyErrorMessage(err));
+      setAlert({ message: getFriendlyErrorMessage(err), type: "error" });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light">
-      <div
-        className="card shadow-sm"
-        style={{ width: "100%", maxWidth: "420px" }}
-      >
-        <div className="card-body p-4">
-          <div className="text-center mb-4">
-            <i className="bi bi-person-plus display-4 text-primary"></i>
-            <h3 className="mt-2">Crear Cuenta</h3>
-            <p className="text-muted">Registra una nueva cuenta de usuario</p>
-          </div>
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-slate-950 overflow-hidden font-sans">
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-0 -left-1/4 w-full h-full bg-primary/20 rounded-full blur-[120px] animate-pulse pointer-events-none" />
+      <div className="absolute bottom-0 -right-1/4 w-[80%] h-[80%] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
 
-          {alertMessage && (
-            <div
-              className={`alert alert-${alertType} alert-dismissible fade show`}
-            >
-              {alertMessage}
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setAlertMessage("")}
-              ></button>
+      <Card className="w-full max-w-[420px] bg-card/40 backdrop-blur-xl border-white/10 shadow-2xl relative z-10 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-primary via-blue-400 to-primary/50" />
+
+        <CardHeader className="space-y-1 pt-8 pb-6">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 shadow-inner">
+              <UserPlus className="h-10 w-10 text-primary animate-in zoom-in duration-700" />
+            </div>
+          </div>
+          <CardTitle className="text-3xl font-bold text-center tracking-tight text-white italic">
+            Nuevo Operador
+          </CardTitle>
+          <CardDescription className="text-center text-white/40 font-medium">
+            Crea una cuenta para un nuevo técnico o administrativo en tu taller.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {alert.message && (
+            <div className={cn(
+              "p-4 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300",
+              alert.type === "error"
+                ? "bg-destructive/10 text-destructive border border-destructive/20"
+                : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20",
+            )}>
+              {alert.type === "error" ? <AlertCircle className="h-5 w-5 shrink-0" /> : <CheckCircle2 className="h-5 w-5 shrink-0" />}
+              <span className="text-sm font-bold leading-tight">{alert.message}</span>
             </div>
           )}
 
-          <form onSubmit={handleRegister}>
-            <div className="mb-3">
-              <label htmlFor="reg-username" className="form-label">
-                Usuario
-              </label>
-              <div className="input-group">
-                <span className="input-group-text">
-                  <i className="bi bi-person"></i>
-                </span>
-                <input
-                  id="reg-username"
-                  type="text"
-                  className="form-control"
-                  placeholder="Nombre de usuario"
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Identificador de Usuario</Label>
+              <div className="relative group">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="username"
+                  placeholder="ej: tecnico_juan"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10 h-11 bg-white/5 border-transparent focus:border-primary/50 text-white rounded-xl transition-all"
                   autoFocus
                 />
               </div>
             </div>
-            <div className="mb-3">
-              <label htmlFor="reg-password" className="form-label">
-                Contraseña
-              </label>
-              <div className="input-group">
-                <span className="input-group-text">
-                  <i className="bi bi-lock"></i>
-                </span>
-                <input
-                  id="reg-password"
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Contraseña de Seguridad</Label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="password"
                   type={showPassword ? "text" : "password"}
-                  className="form-control"
                   placeholder="Mínimo 4 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10 h-11 bg-white/5 border-transparent focus:border-primary/50 text-white rounded-xl transition-all"
                 />
                 <button
-                  className="btn btn-outline-secondary"
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
                 >
-                  <i
-                    className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
-                  ></i>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {password.length > 0 && password.length < 4 && (
-                <div className="form-text text-danger">
-                  La contraseña debe tener al menos 4 caracteres
-                </div>
-              )}
             </div>
-            <div className="mb-3">
-              <label htmlFor="reg-confirm" className="form-label">
-                Confirmar Contraseña
-              </label>
-              <div className="input-group">
-                <span className="input-group-text">
-                  <i className="bi bi-lock-fill"></i>
-                </span>
-                <input
-                  id="reg-confirm"
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm" className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Revalidar Contraseña</Label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="confirm"
                   type={showConfirm ? "text" : "password"}
-                  className="form-control"
                   placeholder="Repite la contraseña"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-10 pr-10 h-11 bg-white/5 border-transparent focus:border-primary/50 text-white rounded-xl transition-all"
                 />
                 <button
-                  className="btn btn-outline-secondary"
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
                 >
-                  <i
-                    className={`bi ${showConfirm ? "bi-eye-slash" : "bi-eye"}`}
-                  ></i>
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {confirmPassword.length > 0 && password !== confirmPassword && (
-                <div className="form-text text-danger">
-                  Las contraseñas no coinciden
-                </div>
-              )}
             </div>
-            <button
+
+            <Button
               type="submit"
-              className="btn btn-primary w-100"
               disabled={loading || !isValid}
+              className="w-full h-12 text-base font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all bg-linear-to-br from-primary to-blue-600 border-none"
             >
               {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2"></span>
-                  Registrando...
-                </>
+                <div className="flex items-center gap-2">
+                  <RotateCw className="h-5 w-5 animate-spin" />
+                  Creando Perfil...
+                </div>
               ) : (
-                "Crear Cuenta"
+                <div className="flex items-center justify-center gap-2">
+                  Registrar Operador
+                  <ChevronRight className="h-4 w-4" />
+                </div>
               )}
-            </button>
+            </Button>
           </form>
+        </CardContent>
 
-          <div className="text-center mt-3">
-            <span className="text-muted">¿Ya tienes cuenta? </span>
-            <Link to="/login" className="text-decoration-none">
-              Inicia sesión
+        <CardFooter className="flex flex-col space-y-4 pb-8">
+          <div className="relative w-full">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/5" />
+            </div>
+          </div>
+
+          <div className="text-center w-full">
+            <Link to="/login" className="inline-flex items-center gap-2 text-xs font-bold text-white/20 hover:text-primary transition-all">
+              <ArrowLeft className="h-3 w-3" />
+              Regresar al Inicio de Sesión
             </Link>
           </div>
-        </div>
+        </CardFooter>
+      </Card>
+
+      <div className="absolute bottom-4 text-[9px] font-mono tracking-[0.4em] uppercase text-white/20">
+        v1.0.0 • ENVIROMENT SECURED BY NANOLOGIC
       </div>
     </div>
   );

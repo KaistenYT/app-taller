@@ -1,46 +1,75 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useCallback, useState } from "react";
 import useHistory from "../hooks/useHistory";
 import useDebounce from "../hooks/useDebounce";
-import { formatDateTime, formatDate, escapeHtml } from "../utils/helpers";
+import { formatDateTime, formatDate } from "../utils/helpers";
+import { 
+  Clock, 
+  Search, 
+  Filter, 
+  FileDown, 
+  RotateCw, 
+  User, 
+  Calendar, 
+  Receipt, 
+  Laptop, 
+  Hash, 
+  Flag, 
+  Zap,
+  MoreHorizontal,
+  PlusCircle,
+  Pencil,
+  Archive,
+  RotateCcw,
+  Trash2,
+  XCircle,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Badge } from "../components/ui/badge";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "../components/ui/dropdown-menu";
+import { cn } from "../utils/cn";
 
 const STATUS_COLORS = {
-  PENDIENTE: "warning",
-  EN_PROCESO: "info",
-  REPARADO: "success",
-  ENTREGADO: "secondary",
-  CANCELADO: "danger",
+  PENDIENTE: "bg-yellow-500/10 text-yellow-600 border-yellow-200 dark:text-yellow-400 dark:border-yellow-900",
+  EN_PROCESO: "bg-blue-500/10 text-blue-600 border-blue-200 dark:text-blue-400 dark:border-blue-900",
+  REPARADO: "bg-green-500/10 text-green-600 border-green-200 dark:text-green-400 dark:border-green-900",
+  ENTREGADO: "bg-slate-500/10 text-slate-600 border-slate-200 dark:text-slate-400 dark:border-slate-900",
+  CANCELADO: "bg-red-500/10 text-red-600 border-red-200 dark:text-red-400 dark:border-red-900",
 };
 
 const ACTION_COLORS = {
-  CREADA: "success",
-  ACTUALIZADA: "info",
-  ARCHIVADA: "warning text-dark",
-  RESTAURADA: "primary",
-  ELIMINADA: "danger",
-  CREATE: "success",
-  CREATED: "success",
-  UPDATE: "info",
-  UPDATED: "info",
-  ARCHIVE: "warning text-dark",
-  ARCHIVED: "warning text-dark",
-  RESTORE: "primary",
-  RESTORED: "primary",
-  DELETE: "danger",
-  DELETED: "danger",
+  CREADA: "bg-green-500/10 text-green-600 border-green-200",
+  ACTUALIZADA: "bg-blue-500/10 text-blue-600 border-blue-200",
+  ARCHIVADA: "bg-yellow-500/10 text-yellow-600 border-yellow-200",
+  RESTAURADA: "bg-indigo-500/10 text-indigo-600 border-indigo-200",
+  ELIMINADA: "bg-red-500/10 text-red-600 border-red-200",
+  CREATED: "bg-green-500/10 text-green-600 border-green-200",
+  UPDATED: "bg-blue-500/10 text-blue-600 border-blue-200",
+  ARCHIVED: "bg-yellow-500/10 text-yellow-600 border-yellow-200",
+  RESTORED: "bg-indigo-500/10 text-indigo-600 border-indigo-200",
+  DELETED: "bg-red-500/10 text-red-600 border-red-200",
 };
 
 const ACTION_ICONS = {
-  CREADA: "bi-plus-circle",
-  ACTUALIZADA: "bi-pencil-square",
-  ARCHIVADA: "bi-archive",
-  RESTAURADA: "bi-arrow-counterclockwise",
-  ELIMINADA: "bi-trash",
-  CREATED: "bi-plus-circle",
-  UPDATED: "bi-pencil-square",
-  ARCHIVED: "bi-archive",
-  RESTORED: "bi-arrow-counterclockwise",
-  DELETED: "bi-trash",
+  CREADA: PlusCircle,
+  ACTUALIZADA: Pencil,
+  ARCHIVADA: Archive,
+  RESTAURADA: RotateCcw,
+  ELIMINADA: Trash2,
+  CREATED: PlusCircle,
+  UPDATED: Pencil,
+  ARCHIVED: Archive,
+  RESTORED: RotateCcw,
+  DELETED: Trash2,
 };
 
 export default function HistoryPage() {
@@ -56,7 +85,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     loadHistory();
-  }, []);
+  }, [loadHistory]);
 
   const debouncedSearch = useDebounce((val) => setFilters({ free: val }), 300);
   const debouncedId = useDebounce(
@@ -76,8 +105,7 @@ export default function HistoryPage() {
     if (!entries.length) return;
     setExporting(true);
     try {
-      // Obtener TODOS los registros filtrados (limit: -1)
-      const allEntries = await loadHistory(true); // true indica modo exportación
+      const allEntries = await loadHistory(true);
       if (!allEntries || !allEntries.length) {
         setExporting(false);
         return;
@@ -133,84 +161,89 @@ export default function HistoryPage() {
   }, [entries, loadHistory]);
 
   return (
-    <div className="container-fluid py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <div className="space-y-8 animate-in-fade">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2>
-            <i className="bi bi-clock-history me-2"></i>Historial de Recepciones
+          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Clock className="h-8 w-8 text-primary" />
+            Historial de Recepciones
           </h2>
-          <span className="text-muted">
-            Registro de acciones sobre las recepciones
-          </span>
+          <p className="text-muted-foreground mt-1">
+            Registro detallado de acciones y movimientos del sistema.
+          </p>
         </div>
-        <div className="d-flex gap-2">
-          <button
-            className="btn btn-outline-success btn-sm"
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full px-4 border-green-500/30 text-green-600 hover:bg-green-500/10 transition-all"
             onClick={handleExport}
             disabled={!entries.length || exporting}
           >
             {exporting ? (
-              <span className="spinner-border spinner-border-sm me-1"></span>
+              <RotateCw className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <i className="bi bi-file-earmark-csv me-1"></i>
+              <FileDown className="mr-2 h-4 w-4" />
             )}
             Exportar CSV
-          </button>
-          <button
-            className="btn btn-outline-primary btn-sm"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full px-4"
             onClick={loadHistory}
           >
-            <i className="bi bi-arrow-clockwise me-1"></i>Refrescar
-          </button>
+            <RotateCw className="mr-2 h-4 w-4" />
+            Refrescar
+          </Button>
         </div>
       </div>
 
-      <div className="card mb-4 shadow-sm">
-        <div className="card-header bg-white py-3">
-          <h5 className="mb-0">
-            <i className="bi bi-funnel me-2"></i>Filtros de Búsqueda
-          </h5>
-        </div>
-        <div className="card-body">
-          <div className="row g-3 align-items-end">
-            <div className="col-md-3">
-              <label className="form-label fw-semibold small text-muted">
-                Búsqueda libre
+      <Card className="border-none shadow-xl glass-card overflow-hidden">
+        <CardHeader className="bg-muted/30 border-b border-border/50 py-4">
+          <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Filtros de Búsqueda
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                Búsqueda Libre
               </label>
-              <div className="input-group">
-                <span className="input-group-text bg-white border-end-0">
-                  <i className="bi bi-search text-muted"></i>
-                </span>
-                <input
-                  className="form-control"
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
                   placeholder="Cliente, equipo..."
+                  className="pl-10 h-10 bg-muted/20 border-transparent focus:bg-background transition-all"
                   defaultValue={filters.free}
                   onChange={(e) => debouncedSearch(e.target.value)}
                 />
               </div>
             </div>
-            <div className="col-md-2">
-              <label className="form-label fw-semibold small text-muted">
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
                 ID Recepción
               </label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-end-0 text-muted">
-                  #
-                </span>
-                <input
-                  className="form-control"
-                  placeholder="123"
+              <div className="relative group">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  placeholder="Ej: 123"
+                  className="pl-10 h-10 bg-muted/20 border-transparent focus:bg-background transition-all"
                   defaultValue={filters.reception_id}
                   onChange={(e) => debouncedId(e.target.value)}
                 />
               </div>
             </div>
-            <div className="col-md-2">
-              <label className="form-label fw-semibold small text-muted">
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
                 Acción
               </label>
               <select
-                className="form-select"
+                className="w-full h-10 rounded-md border border-transparent bg-muted/20 px-3 py-2 text-sm focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                 value={filters.action}
                 onChange={(e) => setFilters({ action: e.target.value })}
               >
@@ -222,12 +255,13 @@ export default function HistoryPage() {
                 <option value="RESTORED">Restaurado</option>
               </select>
             </div>
-            <div className="col-md-2">
-              <label className="form-label fw-semibold small text-muted">
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
                 Estado
               </label>
               <select
-                className="form-select"
+                className="w-full h-10 rounded-md border border-transparent bg-muted/20 px-3 py-2 text-sm focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                 value={filters.status}
                 onChange={(e) => setFilters({ status: e.target.value })}
               >
@@ -239,245 +273,198 @@ export default function HistoryPage() {
                 <option value="CANCELADO">Cancelado</option>
               </select>
             </div>
-            <div className="col-md-3">
-              <div className="row g-2">
-                <div className="col-6">
-                  <label className="form-label fw-semibold small text-muted">
-                    Desde
-                  </label>
-                  <input
-                    className="form-control"
-                    type="date"
-                    value={filters.from}
-                    onChange={(e) => setFilters({ from: e.target.value })}
-                  />
-                </div>
-                <div className="col-6">
-                  <label className="form-label fw-semibold small text-muted">
-                    Hasta
-                  </label>
-                  <input
-                    className="form-control"
-                    type="date"
-                    value={filters.to}
-                    onChange={(e) => setFilters({ to: e.target.value })}
-                  />
-                </div>
+
+            <div className="space-y-2 lg:col-span-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
+                Rango de Fechas
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="date"
+                  className="bg-muted/20 border-transparent focus:bg-background transition-all"
+                  value={filters.from}
+                  onChange={(e) => setFilters({ from: e.target.value })}
+                />
+                <Input
+                  type="date"
+                  className="bg-muted/20 border-transparent focus:bg-background transition-all"
+                  value={filters.to}
+                  onChange={(e) => setFilters({ to: e.target.value })}
+                />
               </div>
             </div>
-            <div className="col-12 d-flex justify-content-end mt-3">
-              <button className="btn btn-primary me-2" onClick={loadHistory}>
-                <i className="bi bi-funnel-fill me-1"></i>Aplicar Filtros
-              </button>
-              <button
-                className="btn btn-outline-secondary"
+
+            <div className="lg:col-span-2 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                className="h-10 px-6 rounded-lg font-semibold"
                 onClick={clearFilters}
               >
-                <i className="bi bi-x-circle me-1"></i> Limpiar
-              </button>
+                <XCircle className="mr-2 h-4 w-4" />
+                Limpiar
+              </Button>
+              <Button
+                className="h-10 px-8 rounded-lg font-bold shadow-lg shadow-primary/20"
+                onClick={loadHistory}
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Aplicar Filtros
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="card history-table shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
-            <thead className="table-light">
-              <tr>
-                <th style={{ width: "80px" }} className="text-center">
-                  <i className="bi bi-hash"></i>
-                </th>
-                <th>
-                  <i className="bi bi-receipt me-1"></i>Recepción
-                </th>
-                <th>
-                  <i className="bi bi-person me-1"></i>Cliente
-                </th>
-                <th>
-                  <i className="bi bi-laptop me-1"></i>Equipo
-                </th>
-                <th className="text-center">
-                  <i className="bi bi-flag me-1"></i>Estado
-                </th>
-                <th className="text-center">
-                  <i className="bi bi-lightning me-1"></i>Acción
-                </th>
-                <th>
-                  <i className="bi bi-person-circle me-1"></i>Usuario
-                </th>
-                <th>
-                  <i className="bi bi-calendar-check me-1"></i>Ingreso
-                </th>
-                <th>
-                  <i className="bi bi-clock me-1"></i>Evento
-                </th>
-                <th>
-                  <i className="bi bi-pencil-square me-1"></i>Motivo
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card className="border-none shadow-2xl overflow-hidden bg-card/60 backdrop-blur-md">
+        <div className="overflow-x-auto custom-scrollbar">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/50">
+                <TableHead className="w-[80px] text-center font-bold uppercase tracking-widest text-[10px]">#</TableHead>
+                <TableHead className="font-bold uppercase tracking-widest text-[10px]"><Receipt className="inline mr-1 h-3 w-3" /> Recepción</TableHead>
+                <TableHead className="font-bold uppercase tracking-widest text-[10px]"><User className="inline mr-1 h-3 w-3" /> Cliente</TableHead>
+                <TableHead className="font-bold uppercase tracking-widest text-[10px]"><Laptop className="inline mr-1 h-3 w-3" /> Equipo</TableHead>
+                <TableHead className="font-bold uppercase tracking-widest text-[10px] text-center"><Flag className="inline mr-1 h-3 w-3" /> Estado</TableHead>
+                <TableHead className="font-bold uppercase tracking-widest text-[10px] text-center"><Zap className="inline mr-1 h-3 w-3" /> Acción</TableHead>
+                <TableHead className="font-bold uppercase tracking-widest text-[10px]"><Calendar className="inline mr-1 h-3 w-3" /> Evento</TableHead>
+                <TableHead className="font-bold uppercase tracking-widest text-[10px] text-right"><MoreHorizontal className="inline h-3 w-3" /></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {loading ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}>
-                    {Array.from({ length: 9 }).map((_, j) => (
-                      <td key={j}>
-                        <div
-                          className="skeleton"
-                          style={{ width: `${50 + Math.random() * 50}%` }}
-                        ></div>
-                      </td>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <TableCell key={j}>
+                        <div className="h-4 bg-muted/60 rounded animate-pulse w-full"></div>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
                 ))
               ) : entries.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="text-center p-4">
-                    <div className="alert alert-info mb-0">
-                      <i className="bi bi-info-circle me-2"></i>No se
-                      encontraron registros de historial.
-                    </div>
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground italic">
+                    No se encontraron registros en el historial.
+                  </TableCell>
+                </TableRow>
               ) : (
-                entries.map((entry, index) => {
+                entries.map((entry) => {
                   const actionKey = (entry.action || "").toUpperCase().trim();
-                  const actionColor = ACTION_COLORS[actionKey] || "secondary";
-                  const actionIcon = ACTION_ICONS[actionKey] || "bi-circle";
-
+                  const ActionIcon = ACTION_ICONS[actionKey] || Clock;
+                  
                   return (
-                    <tr key={entry.id || index}>
-                      <td className="text-center align-middle fw-bold text-muted">
-                        {entry.id}
-                      </td>
-                      <td className="align-middle">
-                        <span className="badge bg-light text-dark border">
+                    <TableRow key={entry.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 group">
+                      <TableCell className="text-center font-mono text-xs text-muted-foreground">{entry.id}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-bold bg-muted/30 border-border/50">
                           #{entry.reception_id || "N/A"}
-                        </span>
-                      </td>
-                      <td className="align-middle">
-                        {entry.client_name ? (
-                          <>
-                            {escapeHtml(entry.client_name)}
-                            <br />
-                            <small className="text-muted">
-                              {escapeHtml(entry.client_id || "")}
-                            </small>
-                          </>
-                        ) : (
-                          escapeHtml(entry.client_id || "N/A")
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm">{entry.client_name || "—"}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{entry.client_id || ""}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm truncate max-w-[200px]">{entry.device_description || "—"}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{entry.device_serial || ""}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge className={cn("px-2 py-0 h-6 text-[10px] font-bold uppercase tracking-tighter border", STATUS_COLORS[entry.status])}>
+                          {entry.status || "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-center">
+                        <Badge className={cn("px-2 py-0 h-6 text-[10px] font-bold uppercase tracking-tighter border", ACTION_COLORS[actionKey])}>
+                          <ActionIcon className="mr-1 h-3 w-3" />
+                          {entry.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                         <div className="flex flex-col">
+                          <span className="text-xs font-semibold">{formatDateTime(entry.event_timestamp || entry.created_at)}</span>
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <User className="h-2.5 w-2.5" />
+                            {entry.user_name || entry.username || "N/A"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {entry.reason && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                <Search className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-64">
+                              <div className="p-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Motivo / Nota</p>
+                                <p className={cn("text-xs leading-relaxed", entry.action === "DELETED" ? "text-red-500 font-medium" : "text-foreground")}>
+                                  {entry.reason}
+                                </p>
+                              </div>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
-                      </td>
-                      <td className="align-middle">
-                        {entry.device_description ? (
-                          <>
-                            {escapeHtml(entry.device_description)}
-                            <br />
-                            <small className="text-muted">
-                              {escapeHtml(entry.device_serial || "")}
-                            </small>
-                          </>
-                        ) : (
-                          escapeHtml(
-                            entry.device_serial || entry.device_id || "N/A",
-                          )
-                        )}
-                      </td>
-                      <td className="text-center align-middle">
-                        <span
-                          className={`badge bg-${STATUS_COLORS[entry.status] || "secondary"}`}
-                        >
-                          {escapeHtml(entry.status || "—")}
-                        </span>
-                      </td>
-                      <td className="text-center align-middle">
-                        <span className={`badge bg-${actionColor}`}>
-                          <i className={`bi ${actionIcon} me-1`}></i>
-                          {escapeHtml(entry.action || "Acción")}
-                        </span>
-                      </td>
-                      <td className="align-middle small">
-                        <i className="bi bi-person-circle me-1 text-muted"></i>
-                        {escapeHtml(
-                          entry.performed_by_username ||
-                            entry.user_name ||
-                            entry.username ||
-                            "N/A",
-                        )}
-                      </td>
-                      <td className="align-middle small">
-                        <i className="bi bi-calendar3 me-1 text-muted"></i>
-                        {formatDate(entry.reception_date)}
-                      </td>
-                      <td className="align-middle small">
-                        <i className="bi bi-clock me-1 text-muted"></i>
-                        {formatDateTime(
-                          entry.event_timestamp || entry.created_at,
-                        )}
-                      </td>
-                      <td className="align-middle small text-muted">
-                        {entry.reason ? (
-                           <span className={entry.action === "DELETED" ? "text-danger fw-semibold" : "fst-italic"}>
-                             {escapeHtml(entry.reason)}
-                           </span>
-                        ) : "—"}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {totalCount > 0 && (
-          <div className="d-flex justify-content-between align-items-center px-3 py-2 border-top">
-            <span className="text-muted small">
-              Mostrando {(pagination.currentPage - 1) * pagination.perPage + 1}–
-              {Math.min(
-                pagination.currentPage * pagination.perPage,
-                totalCount,
-              )}{" "}
-              de {totalCount}
-            </span>
-            <nav>
-              <ul className="pagination pagination-sm mb-0">
-                <li
-                  className={`page-item ${pagination.currentPage === 1 ? "disabled" : ""}`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => setPage(pagination.currentPage - 1)}
-                  >
-                    «
-                  </button>
-                </li>
+          <div className="flex flex-col sm:flex-row items-center justify-between p-6 gap-4 border-t border-border/40 bg-muted/20">
+            <p className="text-xs font-medium text-muted-foreground">
+              Mostrando <span className="text-foreground">{(pagination.currentPage - 1) * pagination.perPage + 1}</span>–
+              <span className="text-foreground">{Math.min(pagination.currentPage * pagination.perPage, totalCount)}</span> de{" "}
+              <span className="text-foreground font-bold">{totalCount}</span> registros
+            </p>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-lg"
+                disabled={pagination.currentPage === 1}
+                onClick={() => setPage(pagination.currentPage - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              <div className="flex items-center gap-1">
                 {pages.map((p) => (
-                  <li
+                  <Button
                     key={p}
-                    className={`page-item ${p === pagination.currentPage ? "active" : ""}`}
+                    variant={p === pagination.currentPage ? "default" : "outline"}
+                    size="sm"
+                    className={cn("h-8 w-8 p-0 rounded-lg font-bold text-xs", p === pagination.currentPage && "shadow-md shadow-primary/20")}
+                    onClick={() => setPage(p)}
                   >
-                    <button className="page-link" onClick={() => setPage(p)}>
-                      {p}
-                    </button>
-                  </li>
+                    {p}
+                  </Button>
                 ))}
-                <li
-                  className={`page-item ${pagination.currentPage === totalPages ? "disabled" : ""}`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => setPage(pagination.currentPage + 1)}
-                  >
-                    »
-                  </button>
-                </li>
-              </ul>
-            </nav>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-lg"
+                disabled={pagination.currentPage === totalPages}
+                onClick={() => setPage(pagination.currentPage + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

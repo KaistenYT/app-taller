@@ -17,4 +17,4 @@ COPY .env* ./
 EXPOSE 3001
 
 # Comando para ejecutar migraciones y luego iniciar el servidor
-CMD npx knex migrate:latest && npm run server
+CMD npx knex migrate:latest && node backend/server.js

@@ -21,10 +21,10 @@ export class ReceptionService {
     if (filters.general) {
       const searchTerm = `%${filters.general}%`;
       query.andWhere(function () {
-        this.where("c.name", "like", searchTerm)
-          .orWhere("d.serial_number", "like", searchTerm)
-          .orWhere("d.description", "like", searchTerm)
-          .orWhere("r.defect", "like", searchTerm);
+        this.where("c.name", "ilike", searchTerm)
+          .orWhere("d.serial_number", "ilike", searchTerm)
+          .orWhere("d.description", "ilike", searchTerm)
+          .orWhere("r.defect", "ilike", searchTerm);
       });
     }
 
@@ -214,7 +214,7 @@ export class ReceptionService {
       await SubscriptionService.checkQuota(company_id, "max_receptions", trx);
 
       // Usar 'value' que ya está validado y limpio
-      const { client_idNumber, client_name, client_phone } = value;
+      const { client_idNumber, client_name, client_phone, client_email } = value;
 
       let client = await Client.getById(client_idNumber, company_id, trx);
       if (!client) {
@@ -227,10 +227,21 @@ export class ReceptionService {
             idNumber: client_idNumber,
             name: client_name,
             phone: client_phone || null,
+            email: client_email || null,
             company_id,
           },
           trx,
         );
+      } else if (client_email || client_phone || client_name) {
+        // Opcional: Actualizar datos del cliente si se proporcionan nuevos
+        const updateData = {};
+        if (client_name && client_name !== client.name) updateData.name = client_name;
+        if (client_phone && client_phone !== client.phone) updateData.phone = client_phone;
+        if (client_email && client_email !== client.email) updateData.email = client_email;
+        
+        if (Object.keys(updateData).length > 0) {
+          await Client.update(client_idNumber, company_id, updateData, trx);
+        }
       }
 
       let deviceId = value.device_id;
@@ -238,8 +249,11 @@ export class ReceptionService {
 
       if (!deviceId) {
         const info =
-          value.device ||
-          (value.device_serial ? { serial_number: value.device_serial } : null);
+          value.device || {
+            serial_number: value.device_serial,
+            description: value.device_description,
+            features: value.device_features,
+          };
         if (!info?.serial_number)
           throw new Error("create-reception: serial del equipo es requerido");
 
@@ -250,11 +264,20 @@ export class ReceptionService {
               serial_number: info.serial_number,
               description: info.description || null,
               features: info.features || null,
-              company_id,
             },
             company_id,
             trx,
           );
+        } else if (info.description || info.features) {
+            // Actualizar descripción o características si se proporcionan
+            const deviceUpdate = {};
+            if (info.description && info.description !== device.description) deviceUpdate.description = info.description;
+            if (info.features && info.features !== device.features) deviceUpdate.features = info.features;
+            
+            if (Object.keys(deviceUpdate).length > 0) {
+              await Device.update(device.id, company_id, deviceUpdate, trx);
+              device = { ...device, ...deviceUpdate };
+            }
         }
 
         deviceId = device.id;
@@ -284,7 +307,7 @@ export class ReceptionService {
         device_id: deviceId,
         defect: value.defect || null,
         status: value.status || "PENDIENTE",
-        repair: value.repair || null,
+        repair: value.observations || value.repair || null,
         device_snapshot: snapshot,
         created_at: value.created_at || localNow(),
         updated_at: localNow(),
@@ -338,15 +361,28 @@ export class ReceptionService {
       if (!originalReception)
         throw new Error("Recepción no encontrada para actualizar");
 
-      if (value.client_idNumber && (value.client_name || value.client_phone)) {
+      if (value.client_idNumber && (value.client_name || value.client_phone || value.client_email)) {
         const update = {};
         if (value.client_name) update.name = value.client_name;
         if (value.client_phone) update.phone = value.client_phone;
+        if (value.client_email) update.email = value.client_email;
 
         if (Object.keys(update).length > 0) {
           await trx("client")
             .where({ idNumber: value.client_idNumber, company_id })
             .update(update);
+        }
+      }
+
+      const deviceIdToUpdate = value.device_id || originalReception.device_id;
+      if (deviceIdToUpdate && (value.device_description || value.device_features || value.device_serial)) {
+        const devUpdate = {};
+        if (value.device_description) devUpdate.description = value.device_description;
+        if (value.device_features) devUpdate.features = value.device_features;
+        if (value.device_serial) devUpdate.serial_number = value.device_serial;
+
+        if (Object.keys(devUpdate).length > 0) {
+          await Device.update(deviceIdToUpdate, company_id, devUpdate, trx);
         }
       }
 
@@ -361,7 +397,7 @@ export class ReceptionService {
         device_id: value.device_id,
         defect: value.defect,
         status: value.status,
-        repair: value.repair,
+        repair: value.observations || value.repair,
         device_snapshot: snapshot,
         updated_at: localNow(),
       };

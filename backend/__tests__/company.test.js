@@ -3,7 +3,7 @@ import app from "../server.js";
 import db from "../db/dbConfig.js";
 
 describe("Company & Onboarding API", () => {
-  const testCompanyName = `Test Company ${Date.now()}`;
+  const testCompanyName = `TC-${Date.now()}`;
   const testAdminUsername = `admin_${Date.now()}`;
   const testAdminPassword = "testpassword123";
   let token;

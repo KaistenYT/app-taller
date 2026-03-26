@@ -2,6 +2,17 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getReport, getReception, getClient } from "../api/httpApi";
 import LoadingSpinner from "../components/shared/LoadingSpinner";
+import { 
+  FileText, 
+  ChevronLeft, 
+  Receipt, 
+  Printer, 
+  AlertTriangle,
+  Eye,
+  EyeOff
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import "./ReportViewPage.css";
 
 export default function ReportViewPage() {
@@ -107,14 +118,16 @@ export default function ReportViewPage() {
 
   if (error) {
     return (
-      <div className="container mt-5">
-        <div className="alert alert-danger">
-          <i className="bi bi-exclamation-triangle me-2"></i>
-          {error}
-        </div>
-        <button className="btn btn-outline-secondary" onClick={handleBack}>
+      <div className="container max-w-2xl mx-auto mt-20 p-6">
+        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertTitle className="font-bold">Error de Carga</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button variant="outline" className="mt-6" onClick={handleBack}>
+          <ChevronLeft className="mr-2 h-4 w-4" />
           Regresar
-        </button>
+        </Button>
       </div>
     );
   }
@@ -130,28 +143,44 @@ export default function ReportViewPage() {
   const created = reception?.created_at || report?.created_at || "—";
 
   return (
-    <div className="report-container">
-      <div className="d-flex justify-content-between align-items-start mb-4 no-print">
-        <div>
-          <h4 className="mb-0">📄 Reporte</h4>
+    <div className="report-container animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-center bg-card/40 backdrop-blur-md border border-border/50 p-6 rounded-3xl mb-8 no-print shadow-xl gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 p-3 rounded-2xl">
+            <FileText className="text-primary h-6 w-6" />
+          </div>
+          <h4 className="text-2xl font-black tracking-tighter italic">Reporte Técnico</h4>
         </div>
-        <div className="d-flex gap-2">
-          <button
-            className="btn btn-sm btn-outline-secondary"
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-xl font-bold text-muted-foreground hover:text-foreground"
             onClick={handleBack}
           >
+            <ChevronLeft className="mr-2 h-4 w-4" />
             Regresar
-          </button>
-          <button
-            className={`btn btn-sm ${showPreview ? "btn-warning" : "btn-outline-dark"}`}
+          </Button>
+          <Button
+            variant={showPreview ? "warning" : "outline"}
+            size="sm"
+            className="rounded-xl font-bold"
             onClick={() => setShowPreview((v) => !v)}
           >
-            <i className="bi bi-receipt me-1"></i>
-            {showPreview ? "Ocultar preview" : "👁 Vista previa ticket"}
-          </button>
-          <button className="btn btn-sm btn-primary" onClick={handlePrint}>
-            <i className="bi bi-printer me-1"></i> Imprimir
-          </button>
+            {showPreview ? (
+              <><EyeOff className="mr-2 h-4 w-4" /> Ocultar ticket</>
+            ) : (
+              <><Receipt className="mr-2 h-4 w-4" /> Vista previa ticket</>
+            )}
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="rounded-xl font-black shadow-lg shadow-primary/20"
+            onClick={handlePrint}
+          >
+            <Printer className="mr-2 h-4 w-4" /> Imprimir
+          </Button>
         </div>
       </div>
 
@@ -213,25 +242,32 @@ export default function ReportViewPage() {
         </div>
       </div>
 
-      <div className="row mb-3">
-        <div className="col-md-4">
-          <div className="card p-2 mb-2 report-card">
-            <div className="fw-bold">Cliente</div>
-            <div>{client?.name}</div>
-            <div className="text-muted small">{client?.phone}</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="col-span-1">
+          <div className="p-6 rounded-3xl bg-muted/30 border border-border/40 hover:border-primary/20 transition-colors h-full">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Cliente</p>
+            <div className="space-y-1">
+              <p className="font-black text-lg tracking-tight">{client?.name}</p>
+              <p className="text-sm font-medium text-muted-foreground">{client?.phone}</p>
+            </div>
           </div>
         </div>
-        <div className="col-md-4">
-          <div className="card p-2 mb-2 report-card">
-            <div className="fw-bold">Equipo</div>
-            <div>{deviceSerial}</div>
-            <div className="text-muted small">Estado: {status}</div>
+        <div className="col-span-1">
+          <div className="p-6 rounded-3xl bg-muted/30 border border-border/40 hover:border-primary/20 transition-colors h-full">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Equipo</p>
+            <div className="space-y-1">
+              <p className="font-black text-lg tracking-tight">{deviceSerial}</p>
+              <p className="text-sm font-medium text-primary uppercase tracking-tighter">{status}</p>
+            </div>
           </div>
         </div>
-        <div className="col-md-4">
-          <div className="card p-2 mb-2 report-card">
-            <div className="fw-bold">Reporte</div>
-            <div className="text-muted small">ID: {report.id}</div>
+        <div className="col-span-1">
+          <div className="p-6 rounded-3xl bg-muted/30 border border-border/40 hover:border-primary/20 transition-colors h-full">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Documento</p>
+            <div className="space-y-1">
+              <p className="font-black text-lg tracking-tight">Reporte #{report.id}</p>
+              <p className="text-sm font-medium text-muted-foreground italic">Referencia Oficial</p>
+            </div>
           </div>
         </div>
       </div>

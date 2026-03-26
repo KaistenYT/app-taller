@@ -1,19 +1,42 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { registerCompany } from "../api/httpApi";
+import { useAuth } from "../context/AuthContext";
 import { getFriendlyErrorMessage } from "../utils/helpers";
+import { 
+  Building2, 
+  UserCircle, 
+  ShieldCheck, 
+  ChevronRight, 
+  ChevronLeft, 
+  CheckCircle2, 
+  Store, 
+  Smartphone, 
+  Mail, 
+  MapPin, 
+  Fingerprint,
+  RotateCw,
+  Sparkles,
+  ArrowRight,
+  Calculator,
+  Zap,
+  Star
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Card, CardContent } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { cn } from "../utils/cn";
 
 export default function RegisterCompanyPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [searchParams] = useSearchParams();
 
-  // Wizard step (0 = Plan, 1 = Company, 2 = Admin)
   const [step, setStep] = useState(0);
-
-  // Seleccion de plan (por defecto 2 = Profesional)
   const [planId, setPlanId] = useState(2);
 
-  // Usar query param ?plan=X si viene de la landing
   useEffect(() => {
     const p = searchParams.get("plan");
     if (p && !isNaN(p)) {
@@ -22,25 +45,37 @@ export default function RegisterCompanyPage() {
     }
   }, [searchParams]);
 
-  // Company data
-  const [companyName, setCompanyName] = useState("");
-  const [rif, setRif] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState({
+    name: "",
+    rif: "",
+    phone: "",
+    address: "",
+    email: "",
+  });
 
-  // Admin data
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [admin, setAdmin] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const handleCompanyChange = (e) => {
+    const { name, value } = e.target;
+    setCompany(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAdminChange = (e) => {
+    const { name, value } = e.target;
+    setAdmin(prev => ({ ...prev, [name]: value }));
+  };
+
   function nextStep() {
-    if (step === 1 && !companyName.trim()) {
-      setError("El nombre del taller es obligatorio");
+    if (step === 1 && !company.name.trim()) {
+      setError("El nombre comercial es un requisito obligatorio.");
       return;
     }
     setError("");
@@ -54,39 +89,45 @@ export default function RegisterCompanyPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (step !== 2) return; // solo permitir submit en el paso final
+    if (step !== 2) return;
     setError("");
 
-    if (!username.trim()) {
-      setError("El nombre de usuario es obligatorio");
+    if (!admin.username.trim()) {
+      setError("Indica un nombre de usuario para el administrador.");
       return;
     }
-    if (password.length < 4) {
-      setError("La contraseña debe tener al menos 4 caracteres");
+    if (admin.password.length < 4) {
+      setError("La seguridad es primero. Define una contraseña de al menos 4 caracteres.");
       return;
     }
-    if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden");
+    if (admin.password !== admin.confirmPassword) {
+      setError("Las contraseñas no coinciden. Verifícalas e intenta nuevamente.");
       return;
     }
 
     setLoading(true);
     try {
+      // 1. Registrar la empresa y el admin
       await registerCompany({
         company: {
-          name: companyName.trim(),
-          rif: rif.trim() || null,
-          phone: phone.trim() || null,
-          address: address.trim() || null,
-          email: email.trim() || null,
+          name: company.name.trim(),
+          rif: company.rif.trim() || null,
+          phone: company.phone.trim() || null,
+          address: company.address.trim() || null,
+          email: company.email.trim() || null,
         },
         admin: {
-          username: username.trim(),
-          password,
+          username: admin.username.trim(),
+          password: admin.password,
         },
         planId: planId
       });
-      navigate("/login?registered=1");
+      
+      // 2. Login automático después del registro
+      await login(admin.username.trim(), admin.password);
+      
+      // 3. Redirigir al dashboard directamente
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(getFriendlyErrorMessage(err));
     } finally {
@@ -94,260 +135,343 @@ export default function RegisterCompanyPage() {
     }
   }
 
-  // Helper arrays for plans UI
-  const planes = [
+  const plans = [
     { 
       id: 1, 
       name: "Emprendedor", 
       price: "$0", 
-      desc: "Para empezar",
-      features: ["1 Usuario Admin", "50 Recepciones al mes", "Presupuestos básicos"]
+      desc: "Gestión Esencial",
+      features: ["1 Usuario Admin", "50 Recepciones / mes", "Presupuestos"],
+      icon: <Zap className="h-5 w-5" />
     },
     { 
       id: 2, 
       name: "Profesional", 
       price: "$29", 
-      desc: "El más popular",
-      features: ["Hasta 5 Usuarios Técnicos", "Recepciones ilimitadas", "Soporte prioritario"]
+      desc: "Escalamiento",
+      features: ["5 Técnicos", "Sin límites", "PDFs Premium"],
+      icon: <Star className="h-5 w-5" />
     },
     { 
       id: 3, 
       name: "Empresarial", 
       price: "$89", 
-      desc: "Sin límites",
-      features: ["Usuarios Ilimitados", "Gestión Multi-Sucursal", "Manager dedicado"]
+      desc: "Infraestructura",
+      features: ["Ilimitado", "Multi-Sucursal", "Soporte 24/7"],
+      icon: <Building2 className="h-5 w-5" />
     },
   ];
 
+  const steps = [
+    { title: "Selección de Plan", icon: Sparkles },
+    { title: "Perfil del Taller", icon: Building2 },
+    { title: "Control Maestro", icon: ShieldCheck },
+  ];
+
   return (
-    <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light py-5">
-      <div className="card shadow border-0" style={{ width: "100%", maxWidth: step === 0 ? "800px" : "520px", transition: 'max-width 0.3s ease' }}>
-        <div className="card-body p-4 p-md-5">
-          <div className="text-center mb-4">
-            <i className="bi bi-building display-4 text-primary"></i>
-            <h3 className="mt-2 fw-bold">Registro de Empresa</h3>
-            <p className="text-muted">
-              Paso {step + 1} de 3 &mdash;{" "}
-              {step === 0 ? "Elige tu Plan" : step === 1 ? "Datos de la Empresa" : "Cuenta de Administrador"}
-            </p>
-          </div>
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden selection:bg-primary/30 font-sans">
+      {/* Dynamic BG */}
+      <div className="absolute top-0 -left-1/4 w-full h-full bg-primary/10 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+      <div className="absolute bottom-0 -right-1/4 w-[80%] h-[80%] bg-blue-600/5 rounded-full blur-[100px] pointer-events-none" />
 
-          {/* Progress */}
-          <div className="progress mb-4" style={{ height: "6px" }}>
-            <div
-              className="progress-bar bg-primary"
-              style={{ width: `${((step + 1) / 3) * 100}%`, transition: "width 0.3s ease" }}
-            ></div>
-          </div>
-
-          {error && (
-            <div className="alert alert-danger alert-dismissible fade show" role="alert">
-              {error}
-              <button type="button" className="btn-close" onClick={() => setError("")}></button>
+      <div className="w-full max-w-[900px] space-y-8 animate-in-fade relative z-10 transition-all duration-500">
+        {/* Progress Timeline */}
+        <div className="flex justify-between items-center relative max-w-[600px] mx-auto mb-12">
+          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-white/5 -translate-y-1/2 -z-10" />
+          <div 
+            className="absolute top-1/2 left-0 h-0.5 bg-primary -translate-y-1/2 -z-10 transition-all duration-500" 
+            style={{ width: `${(step / (steps.length - 1)) * 100}%` }}
+          />
+          
+          {steps.map((s, i) => (
+            <div key={i} className="flex flex-col items-center gap-2">
+              <div className={cn(
+                "h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 shadow-xl",
+                i <= step 
+                  ? "bg-primary border-primary text-white scale-110 shadow-primary/20" 
+                  : "bg-slate-900 border-white/10 text-white/40"
+              )}>
+                <s.icon className="h-5 w-5" />
+              </div>
+              <span className={cn(
+                "text-[10px] font-black uppercase tracking-widest transition-colors duration-500",
+                i <= step ? "text-primary" : "text-white/20"
+              )}>
+                {s.title}
+              </span>
             </div>
-          )}
+          ))}
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            {step === 0 && (
-              <div className="animate-fade-in-up">
-                <div className="row g-3 justify-content-center mb-4">
-                  {planes.map((p) => (
-                    <div className="col-md-4" key={p.id}>
+        <Card className={cn(
+          "border-white/5 bg-card/40 backdrop-blur-2xl shadow-3xl overflow-hidden transition-all duration-500 mx-auto",
+          step === 0 ? "max-w-[850px]" : "max-w-[550px]"
+        )}>
+          <div className="h-1 bg-linear-to-r from-primary via-blue-400 to-primary/50" />
+          
+          <CardContent className="p-8 md:p-12">
+            {error && (
+              <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300 font-bold text-sm">
+                <CheckCircle2 className="h-5 w-5 shrink-0 rotate-180" />
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {step === 0 && (
+                <div className="space-y-8 animate-in-fade animate-in-slide-up">
+                  <div className="text-center space-y-2">
+                    <h3 className="text-4xl font-black tracking-tighter text-white italic">Elige la potencia de tu taller.</h3>
+                    <p className="text-white/40 font-medium">Cada plan incluye una partición lógica aislada (Multi-Tenant).</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {plans.map((p) => (
                       <div 
-                        className={`card h-100 cursor-pointer transition-all border-2 ${
-                          planId === p.id ? 'border-primary shadow bg-primary bg-opacity-10' : 'border-light shadow-sm hover-lift'
-                        }`}
+                        key={p.id}
+                        className={cn(
+                          "relative p-6 rounded-3xl border-2 transition-all duration-300 cursor-pointer flex flex-col h-full group",
+                          planId === p.id 
+                            ? "bg-primary/20 border-primary shadow-2xl shadow-primary/20 scale-[1.02]" 
+                            : "bg-white/5 border-transparent hover:border-white/10"
+                        )}
                         onClick={() => setPlanId(p.id)}
-                        role="button"
                       >
-                        <div className="card-body text-center p-4 d-flex flex-column">
-                          {planId === p.id && (
-                            <div className="position-absolute top-0 end-0 mt-2 me-2">
-                              <i className="bi bi-check-circle-fill text-primary fs-5"></i>
-                            </div>
-                          )}
-                          <h5 className="fw-bold">{p.name}</h5>
-                          <h3 className="text-primary my-3">{p.price}<small className="text-muted fs-6">/mes</small></h3>
-                          <p className="text-muted small mb-3">{p.desc}</p>
-                          <ul className="list-unstyled text-start small mt-auto mb-0 bg-light p-3 rounded text-muted">
-                             {p.features.map((feature, idx) => (
-                                <li key={idx} className="mb-2"><i className="bi bi-check2 text-primary me-2 fw-bold"></i>{feature}</li>
-                             ))}
-                          </ul>
+                        {planId === p.id && (
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full text-white shadow-xl">
+                            Seleccionado
+                          </div>
+                        )}
+                        <div className="mb-4">
+                          <div className={cn("inline-flex p-3 rounded-xl mb-4", planId === p.id ? "bg-primary text-white" : "bg-white/10 text-white/40 group-hover:text-primary transition-colors")}>
+                            {p.icon}
+                          </div>
+                          <h4 className="text-xl font-bold text-white">{p.name}</h4>
+                          <div className="flex items-baseline gap-1 mt-1">
+                            <span className="text-2xl font-black text-white">{p.price}</span>
+                            <span className="text-white/40 text-xs">/mes</span>
+                          </div>
+                        </div>
+                        <ul className="space-y-3 flex-grow mb-6">
+                          {p.features.map((f, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-[11px] font-bold text-white/60">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="pt-4">
+                    <Button 
+                      type="button" 
+                      onClick={nextStep}
+                      className="w-full h-14 rounded-2xl group text-base font-black shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      Continuar con {plans.find(p => p.id === planId)?.name}
+                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                    <p className="text-center mt-6 text-sm font-medium text-white/20">
+                      ¿Ya posees una suscripción? <Link to="/login" className="text-primary hover:underline font-bold">Entra aquí</Link>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {step === 1 && (
+                <div className="space-y-8 animate-in-fade animate-in-slide-up">
+                  <div className="text-center space-y-2">
+                    <h3 className="text-3xl font-black tracking-tighter text-white italic">Identidad de tu Negocio.</h3>
+                    <p className="text-white/40 font-medium">Estos datos aparecerán en todos tus reportes oficiales.</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Nombre Comercial <span className="text-primary">*</span></Label>
+                      <div className="relative group">
+                        <Calculator className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 group-focus-within:text-primary transition-colors" />
+                        <Input
+                          name="name"
+                          value={company.name}
+                          onChange={handleCompanyChange}
+                          className="pl-11 h-12 bg-white/5 border-transparent focus:bg-white/[0.07] focus:border-primary/50 text-white rounded-xl transition-all placeholder:text-white/40"
+                          placeholder="Ej: Taller Mecánico Central"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">RUT / NIT / RIF / CUIT</Label>
+                      <div className="relative group">
+                        <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 group-focus-within:text-primary transition-colors" />
+                        <Input
+                          name="rif"
+                          value={company.rif}
+                          onChange={handleCompanyChange}
+                          className="pl-11 h-12 bg-white/5 border-transparent focus:bg-white/[0.07] focus:border-primary/50 text-white rounded-xl transition-all placeholder:text-white/40"
+                          placeholder="Identificación fiscal legal"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Teléfono Corporativo</Label>
+                        <div className="relative group">
+                          <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 group-focus-within:text-primary transition-colors" />
+                          <Input
+                            name="phone"
+                            value={company.phone}
+                            onChange={handleCompanyChange}
+                            className="pl-11 h-12 bg-white/5 border-transparent focus:bg-white/[0.07] focus:border-primary/50 text-white rounded-xl transition-all placeholder:text-white/40"
+                            placeholder="+1 234 567 8900"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Email de Negocio</Label>
+                        <div className="relative group">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 group-focus-within:text-primary transition-colors" />
+                          <Input
+                            name="email"
+                            type="email"
+                            value={company.email}
+                            onChange={handleCompanyChange}
+                            className="pl-11 h-12 bg-white/5 border-transparent focus:bg-white/[0.07] focus:border-primary/50 text-white rounded-xl transition-all placeholder:text-white/40"
+                            placeholder="contacto@empresa.com"
+                          />
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="text-center">
-                  <button type="button" className="btn btn-primary btn-lg px-5 rounded-pill shadow-sm hover-lift" onClick={nextStep}>
-                    Continuar con este Plan <i className="bi bi-arrow-right ms-2"></i>
-                  </button>
-                  <div className="mt-3">
-                    <span className="text-muted">¿Ya tienes cuenta? </span>
-                    <Link to="/login" className="text-decoration-none fw-semibold">Iniciar Sesión</Link>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {step === 1 && (
-              <div className="animate-fade-in-up">
-                <div className="mb-3">
-                  <label htmlFor="company-name" className="form-label fw-semibold">
-                    Nombre de Empresa <span className="text-danger">*</span>
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-white"><i className="bi bi-shop text-muted"></i></span>
-                    <input
-                      id="company-name"
-                      className="form-control"
-                      placeholder="Ej: Taller Electrónico Central"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      autoFocus
-                    />
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Dirección Física</Label>
+                      <div className="relative group">
+                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 group-focus-within:text-primary transition-colors" />
+                        <Input
+                          name="address"
+                          value={company.address}
+                          onChange={handleCompanyChange}
+                          className="pl-11 h-12 bg-white/5 border-transparent focus:bg-white/[0.07] focus:border-primary/50 text-white rounded-xl transition-all placeholder:text-white/40"
+                          placeholder="Av. Principal, Edificio, Oficina..."
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="rif" className="form-label fw-semibold">RUT / NIT / RIF / CUIT</label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-white"><i className="bi bi-card-text text-muted"></i></span>
-                    <input
-                      id="rif"
-                      className="form-control"
-                      placeholder="Documento legal de la empresa"
-                      value={rif}
-                      onChange={(e) => setRif(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="row g-3 mb-3">
-                  <div className="col-md-6">
-                    <label htmlFor="company-phone" className="form-label fw-semibold">Teléfono</label>
-                    <input
-                      id="company-phone"
-                      className="form-control"
-                      placeholder="Ej: +1 234 567 8900"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label htmlFor="company-email" className="form-label fw-semibold">Email de Contacto</label>
-                    <input
-                      id="company-email"
-                      className="form-control"
-                      type="email"
-                      placeholder="contacto@empresa.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <label htmlFor="company-address" className="form-label fw-semibold">Dirección Física</label>
-                  <input
-                    id="company-address"
-                    className="form-control"
-                    placeholder="Av. Principal, Edificio, País"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                </div>
-                
-                <div className="d-flex gap-2">
-                  <button type="button" className="btn btn-outline-secondary" onClick={prevStep}>
-                    <i className="bi bi-arrow-left me-1"></i>Atrás
-                  </button>
-                  <button type="button" className="btn btn-primary flex-fill fw-semibold shadow-sm hover-lift" onClick={nextStep}>
-                    Siguiente <i className="bi bi-arrow-right ms-2"></i>
-                  </button>
-                </div>
-              </div>
-            )}
 
-            {step === 2 && (
-              <div className="animate-fade-in-up">
-                <div className="alert alert-info border-0 bg-info bg-opacity-10 d-flex gap-3 mb-4">
-                   <i className="bi bi-info-circle-fill fs-4 text-info"></i>
-                   <div>
-                     <p className="mb-0 small text-dark">
-                       Este usuario será el <strong>Administrador Principal</strong> del sistema. Podrá configurar roles, crear otros usuarios e invitar técnicos según las capacidades de su Plan {planes.find(p => p.id === planId)?.name}.
-                     </p>
-                   </div>
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="admin-username" className="form-label fw-semibold">
-                    Usuario Administrador <span className="text-danger">*</span>
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-white"><i className="bi bi-person-badge text-muted"></i></span>
-                    <input
-                      id="admin-username"
-                      className="form-control"
-                      placeholder="admin"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      autoFocus
-                    />
+                  <div className="flex gap-4 pt-4">
+                    <Button type="button" variant="ghost" onClick={prevStep} className="h-14 px-8 rounded-2xl text-white/40 hover:text-white font-bold transition-all">
+                      <ChevronLeft className="mr-2 h-5 w-5" />
+                      Atrás
+                    </Button>
+                    <Button type="button" onClick={nextStep} className="flex-grow h-14 rounded-2xl font-black shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                      Confirmar y Avanzar 
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Button>
                   </div>
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="admin-password" className="form-label fw-semibold">
-                    Contraseña Fuerte <span className="text-danger">*</span>
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-white"><i className="bi bi-shield-lock text-muted"></i></span>
-                    <input
-                      id="admin-password"
-                      type={showPassword ? "text" : "password"}
-                      className="form-control"
-                      placeholder="Mínimo 4 caracteres"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button
-                      className="btn btn-outline-secondary bg-white"
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+              )}
+
+              {step === 2 && (
+                <div className="space-y-8 animate-in-fade animate-in-slide-up">
+                  <div className="text-center space-y-2">
+                    <h3 className="text-3xl font-black tracking-tighter text-white italic">Acceso Administrador.</h3>
+                    <p className="text-white/40 font-medium">El usuario maestro con control total sobre el sistema.</p>
+                  </div>
+
+                  <div className="p-4 bg-primary/10 border border-primary/20 rounded-2xl flex gap-4">
+                    <ShieldCheck className="h-6 w-6 text-primary shrink-0" />
+                    <p className="text-[11px] text-white/70 font-medium leading-relaxed">
+                      Como Administrador Principal, podrás gestionar roles, técnicos y sucursales según tu plan <strong>{plans.find(p => p.id === planId)?.name}</strong>.
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Admin Username <span className="text-primary">*</span></Label>
+                      <div className="relative group">
+                        <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 group-focus-within:text-primary transition-colors" />
+                        <Input
+                          name="username"
+                          value={admin.username}
+                          onChange={handleAdminChange}
+                          className="pl-11 h-12 bg-white/5 border-transparent focus:bg-white/[0.07] focus:border-primary/50 text-white rounded-xl transition-all placeholder:text-white/40"
+                          placeholder="Ej: admin_master"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Contraseña Maestro <span className="text-primary">*</span></Label>
+                        <div className="relative group">
+                          <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 group-focus-within:text-primary transition-colors" />
+                          <Input
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            value={admin.password}
+                            onChange={handleAdminChange}
+                            className="pl-11 h-12 bg-white/5 border-transparent focus:bg-white/[0.07] focus:border-primary/50 text-white rounded-xl transition-all placeholder:text-white/40"
+                            placeholder="••••••••"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 ml-1">Confirmar Contraseña <span className="text-primary">*</span></Label>
+                        <Input
+                          name="confirmPassword"
+                          type={showPassword ? "text" : "password"}
+                          value={admin.confirmPassword}
+                          onChange={handleAdminChange}
+                          className="h-12 bg-white/5 border-transparent focus:bg-white/[0.07] focus:border-primary/50 text-white rounded-xl transition-all placeholder:text-white/40"
+                          placeholder="Repite la clave"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <Button type="button" variant="ghost" onClick={prevStep} className="h-14 px-8 rounded-2xl text-white/40 hover:text-white font-bold transition-all">
+                      <ChevronLeft className="mr-2 h-5 w-5" />
+                      Atrás
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={loading}
+                      className="flex-grow h-14 rounded-2xl font-black shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all bg-linear-to-br from-primary to-blue-600 border-none"
                     >
-                      <i className={`bi ${showPassword ? "bi-eye-slash text-muted" : "bi-eye text-primary"}`}></i>
-                    </button>
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <RotateCw className="h-5 w-5 animate-spin" />
+                          Segurizando Datos...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          Finalizar y Desplegar
+                          <ChevronRight className="h-5 w-5" />
+                        </div>
+                      )}
+                    </Button>
                   </div>
                 </div>
-                <div className="mb-4">
-                  <label htmlFor="confirm-password" className="form-label fw-semibold">
-                    Confirmar Contraseña <span className="text-danger">*</span>
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-white"><i className="bi bi-check2-circle text-muted"></i></span>
-                    <input
-                      id="confirm-password"
-                      type={showPassword ? "text" : "password"}
-                      className="form-control"
-                      placeholder="Repite la contraseña"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="d-flex gap-2 mt-3">
-                  <button type="button" className="btn btn-outline-secondary" onClick={prevStep}>
-                    <i className="bi bi-arrow-left me-1"></i>Atrás
-                  </button>
-                  <button type="submit" className="btn btn-primary flex-fill fw-bold shadow-sm hover-lift" disabled={loading}>
-                    {loading ? (
-                      <><span className="spinner-border spinner-border-sm me-2"></span>Registrando...</>
-                    ) : (
-                      <><i className="bi bi-send me-1"></i>Finalizar Registro</>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </form>
+              )}
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Branding Footer */}
+        <div className="text-center space-y-4 opacity-40">
+          <p className="text-[10px] font-mono tracking-[0.4em] uppercase text-white/60">
+            Secure multi-tenant environment v1.0.0
+          </p>
+          <div className="flex items-center justify-center gap-2 text-xs font-bold text-white/40">
+            <Building2 className="h-4 w-4" />
+            <span>AppTaller Cloud Infrastructure</span>
+          </div>
         </div>
       </div>
     </div>

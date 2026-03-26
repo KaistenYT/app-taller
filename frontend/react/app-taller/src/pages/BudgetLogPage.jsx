@@ -1,21 +1,37 @@
 import { useState, useEffect } from "react";
 import { getBudgetLog, getAllBudgetLogs } from "../api/httpApi";
-import LoadingSpinner from "../components/shared/LoadingSpinner";
+import { 
+  History, 
+  RotateCw, 
+  Search, 
+  User, 
+  FilterX, 
+  ShieldAlert, 
+  Clock, 
+  ArrowRightCircle,
+  Database
+} from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Badge } from "../components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
 import Toast from "../components/shared/Toast";
 import { formatDate } from "../utils/helpers";
+import { cn } from "../utils/cn";
 
-const ACTION_COLORS = {
-  CREATED: "success",
-  UPDATED: "primary",
-  STATUS_CHANGED: "info",
-  DELETED: "danger",
-};
-
-const ACTION_LABELS = {
-  CREATED: "Creado",
-  UPDATED: "Actualizado",
-  STATUS_CHANGED: "Cambio de Estado",
-  DELETED: "Eliminado",
+const ACTION_CONFIG = {
+  CREATED: { label: "Creado", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  UPDATED: { label: "Actualizado", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  STATUS_CHANGED: { label: "Estado", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  DELETED: { label: "Eliminado", color: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 export default function BudgetLogPage() {
@@ -36,7 +52,7 @@ export default function BudgetLogPage() {
       setLogs(res || []);
     } catch (err) {
       setToast({
-        message: "Error al cargar historial: " + err.message,
+        message: "Error al cargar el historial de auditoría: " + err.message,
         type: "danger",
       });
       setLogs([]);
@@ -54,122 +70,161 @@ export default function BudgetLogPage() {
     loadLogs(budgetId);
   };
 
+  const handleClear = () => {
+    setBudgetId("");
+    loadLogs("");
+  };
+
   return (
-    <div className="container-fluid py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2>
-            <i className="bi bi-journal-text me-2"></i>Auditoría de Presupuestos
+    <div className="space-y-8 animate-in-fade pb-10">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-1">
+          <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
+            <History className="h-8 w-8 text-primary" />
+            Auditoría de Presupuestos
           </h2>
-          <span className="text-muted">
-            Historial de cambios y eliminaciones de presupuestos
-          </span>
+          <p className="text-muted-foreground font-medium pl-11">
+            Trazabilidad completa de modificaciones, estados y eliminaciones.
+          </p>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => loadLogs(budgetId)}
+          className="rounded-xl h-10 w-10 hover:bg-primary/10 hover:text-primary transition-all"
+        >
+          <RotateCw className={cn("h-5 w-5", loading && "animate-spin")} />
+        </Button>
       </div>
 
-      <div className="card shadow-sm mb-4">
-        <div className="card-body">
-          <form className="d-flex gap-2" onSubmit={handleSearch}>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="ID del Presupuesto (Opcional)"
-              value={budgetId}
-              onChange={(e) => setBudgetId(e.target.value)}
-              style={{ maxWidth: "250px" }}
-            />
-            <button type="submit" className="btn btn-primary">
-              <i className="bi bi-search me-1"></i> Buscar
-            </button>
-            {budgetId && (
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={() => {
-                  setBudgetId("");
-                  loadLogs();
-                }}
-              >
-                Limpiar Filtro
-              </button>
-            )}
+      {/* Filter Card */}
+      <Card className="border-none shadow-xl glass-card overflow-hidden">
+        <CardContent className="p-6">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-grow space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">
+                Filtrar por ID de Presupuesto
+              </label>
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  type="number"
+                  placeholder="Ej: 1045"
+                  className="pl-10 bg-muted/20 border-transparent focus:bg-background h-11 rounded-xl transition-all"
+                  value={budgetId}
+                  onChange={(e) => setBudgetId(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <Button type="submit" className="h-11 px-8 rounded-xl font-bold shadow-xl shadow-primary/20">
+                Buscar
+              </Button>
+              {budgetId && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleClear}
+                  className="h-11 px-6 rounded-xl border-dashed border-border/60 hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 transition-all font-bold gap-2"
+                >
+                  <FilterX className="h-4 w-4" />
+                  Limpiar
+                </Button>
+              )}
+            </div>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="card shadow-sm">
-        <div className="card-body p-0">
-          {loading ? (
-            <div className="p-5">
-              <LoadingSpinner text="Consultando historial..." />
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-5 text-muted">
-              {budgetId
-                ? "No se encontraron registros para este presupuesto."
-                : "Ingresa un ID de presupuesto para ver su historial."}
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th>Presupuesto ID</th>
-                    <th>Fecha</th>
-                    <th>Acción</th>
-                    <th>Estado Anterior</th>
-                    <th>Usuario</th>
-                    <th>Motivo (Razón)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => (
-                    <tr key={log.id}>
-                      <td className="fw-bold text-primary">
-                        #{log.budget_id || log.snapshot?.id || "N/A"}
-                      </td>
-                      <td className="text-nowrap">
-                        {formatDate(log.event_timestamp)}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge bg-${
-                            ACTION_COLORS[log.action] || "secondary"
-                          }`}
-                        >
-                          {ACTION_LABELS[log.action] || log.action}
-                        </span>
-                      </td>
-                      <td>
-                        {log.previous_status ? (
-                          <span className="badge bg-secondary">
-                            {log.previous_status}
-                          </span>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
-                      <td>
-                        <i className="bi bi-person me-1"></i>
-                        {log.performed_by || `ID: ${log.user_id}`}
-                      </td>
-                      <td>
-                        {log.reason ? (
-                          <span className="text-danger fw-semibold">
-                            {log.reason}
-                          </span>
-                        ) : (
-                          <span className="text-muted">N/A</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Logs Table Card */}
+      <Card className="border-none shadow-2xl glass-card overflow-hidden">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-transparent border-b border-border/50">
+                  <TableHead className="w-[120px] pl-8">Presupuesto</TableHead>
+                  <TableHead className="w-[180px]">Fecha / Hora</TableHead>
+                  <TableHead className="w-[150px]">Acción Realizada</TableHead>
+                  <TableHead className="w-[150px]">Usuario</TableHead>
+                  <TableHead>Descripción / Razón</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-64 text-center">
+                      <div className="flex flex-col items-center justify-center gap-4 py-20">
+                        <RotateCw className="h-12 w-12 text-primary animate-spin" />
+                        <p className="text-muted-foreground font-medium animate-pulse">Consultando registros históricos...</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-64 text-center">
+                      <div className="flex flex-col items-center gap-3 text-muted-foreground opacity-40">
+                        <Database className="h-12 w-12" />
+                        <p className="font-medium italic">
+                          {budgetId ? "No existen registros para este presupuesto." : "No hay actividad registrada aún."}
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((log) => {
+                    const config = ACTION_CONFIG[log.action] || { label: log.action, color: "bg-muted text-muted-foreground border-transparent" };
+                    
+                    return (
+                      <TableRow key={log.id} className="group border-b border-border/30 last:border-0 hover:bg-primary/5 transition-colors">
+                        <TableCell className="pl-8 py-5 font-bold text-primary">
+                          #{log.budget_id || log.snapshot?.id || "N/A"}
+                        </TableCell>
+                        <TableCell className="text-xs font-medium text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3.5 w-3.5" />
+                            {formatDate(log.event_timestamp)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cn("px-2.5 py-0.5 rounded-full font-bold text-[9px] tracking-widest uppercase", config.color)}>
+                            {config.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 text-xs font-bold">
+                            <User className="h-3.5 w-3.5 text-primary/60" />
+                            {log.performed_by || `ID: ${log.user_id}`}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-5 pr-8">
+                          <div className="space-y-1.5 min-w-[200px]">
+                            {log.reason ? (
+                              <div className="flex items-start gap-2 text-xs font-bold text-destructive/80 bg-destructive/5 p-2 rounded-lg border border-destructive/10">
+                                <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                {log.reason}
+                              </div>
+                            ) : log.previous_status ? (
+                              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                                <span className="px-2 py-0.5 rounded-full bg-muted border border-border/40 text-muted-foreground">{log.previous_status}</span>
+                                <ArrowRightCircle className="h-3 w-3" />
+                                <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">{log.snapshot?.status || "Nuevo"}</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-medium text-muted-foreground/40 italic">Registro automático del sistema</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Toast
         message={toast.message}
