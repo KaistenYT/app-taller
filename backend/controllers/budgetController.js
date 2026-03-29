@@ -46,7 +46,68 @@ export const getBudgetLog = async (req, res) => {
   res.json(log);
 };
 
+/** GET /api/budgets/logs — Obtener TODO el historial de auditoría (solo admin) */
 export const getAllBudgetLogs = async (req, res) => {
   const logs = await BudgetService.getAllBudgetLogs(req.user.company_id);
   res.json(logs);
+};
+
+// ── DASHBOARD: Estadísticas financieras de presupuestos ───────────────────────────────────────────────────────
+/** GET /api/budgets/dashboard — Dashboard financiero de presupuestos */
+export const getBudgetDashboard = async (req, res) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+    const filters = {
+      dateFrom: dateFrom || null,
+      dateTo: dateTo || null,
+    };
+    
+    const dashboard = await BudgetService.getBudgetDashboard(req.user.company_id, filters);
+    res.json(dashboard);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ── DASHBOARD: Listar presupuestos con detalles financieros ───────────────────────────────────────────────────
+/** GET /api/budgets/financial — Listar presupuestos con estado financiero */
+export const listBudgetsFinancial = async (req, res) => {
+  try {
+    const filters = {
+      ...req.query,
+      limit: Number(req.query.limit) || 20,
+      offset: Number(req.query.offset) || 0,
+    };
+    
+    const budgets = await BudgetService.listBudgetsWithFinancialDetails(
+      req.user.company_id,
+      filters
+    );
+    res.json(budgets);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ── DASHBOARD: Actualizar estado de pago ─────────────────────────────────────────────────────────────────────
+/** PUT /api/budgets/:id/payment — Actualizar estado de pago de presupuesto */
+export const updateBudgetPayment = async (req, res) => {
+  try {
+    const { paid_amount, payment_status, reason } = req.body;
+    
+    if (!payment_status) {
+      return res.status(400).json({ error: "payment_status es requerido" });
+    }
+    
+    const updated = await BudgetService.updateBudgetPayment(
+      req.params.id,
+      { paid_amount, payment_status, reason },
+      req.user.id,
+      req.user.company_id
+    );
+    
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };

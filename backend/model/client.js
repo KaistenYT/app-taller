@@ -62,4 +62,62 @@ export class Client {
       throw new Error("Error al eliminar cliente (soft delete)");
     }
   }
+
+  // ── OPTIMIZACIÓN: Obtener clientes con sus recepciones (evita N+1) ────────────────────────────────────────────
+  static async getAllWithReceptions(company_id) {
+    try {
+      const query = db("client as c")
+        .whereNull("c.deleted_at")
+        .leftJoin("reception as r", function () {
+          this.on("c.idNumber", "=", "r.client_idNumber").andOn(
+            "c.company_id",
+            "=",
+            "r.company_id",
+          );
+        })
+        .select(
+          "c.*",
+          "r.id as reception_id",
+          "r.status as reception_status",
+          "r.defect as reception_defect",
+          "r.created_at as reception_date",
+          "r.archived as reception_archived",
+        )
+        .orderBy("c.name", "asc")
+        .orderBy("r.created_at", "desc");
+      if (company_id) query.where({ "c.company_id": company_id });
+      return await query;
+    } catch (error) {
+      throw new Error("Error al obtener clientes con recepciones");
+    }
+  }
+
+  // ── OPTIMIZACIÓN: Obtener cliente con detalles completos (recepciones + historial) ───────────────────────────
+  static async getWithDetails(idNumber, company_id) {
+    try {
+      const query = db("client as c")
+        .whereNull("c.deleted_at")
+        .leftJoin("reception as r", function () {
+          this.on("c.idNumber", "=", "r.client_idNumber").andOn(
+            "c.company_id",
+            "=",
+            "r.company_id",
+          );
+        })
+        .where({ "c.idNumber": idNumber })
+        .select(
+          "c.*",
+          "r.id as reception_id",
+          "r.status as reception_status",
+          "r.defect as reception_defect",
+          "r.repair as reception_repair",
+          "r.created_at as reception_date",
+          "r.archived as reception_archived",
+        );
+      if (company_id) query.where({ "c.company_id": company_id });
+      return await query;
+    } catch (error) {
+      throw new Error("Error al obtener cliente con detalles");
+    }
+  }
 }

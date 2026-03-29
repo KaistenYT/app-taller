@@ -15,7 +15,8 @@ export class ClientService {
     if (cached) return cached;
 
     try {
-      const clients = await Client.getAll(company_id);
+      // OPTIMIZACIÓN: Usar getAllWithReceptions en lugar de getAll para evitar N+1
+      const clients = await Client.getAllWithReceptions(company_id);
       await cache.set(cacheKey, clients, 1800); // 30 min de caché
       return clients;
     } catch (err) {
@@ -26,7 +27,8 @@ export class ClientService {
   static async getClient(idNumber, company_id) {
     if (!idNumber) throw new Error("getClient: idNumber es requerido");
     try {
-      return await Client.getById(idNumber, company_id);
+      // OPTIMIZACIÓN: Usar getWithDetails en lugar de getById para obtener datos completos
+      return await Client.getWithDetails(idNumber, company_id);
     } catch (err) {
       throw new Error("Error al obtener cliente");
     }

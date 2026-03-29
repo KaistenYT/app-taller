@@ -1,11 +1,15 @@
 .report-container {
-  font-family: Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  background-color: white;
-  padding: 20px;
-  max-width: 900px;
+  padding: 24px;
+  max-width: 100%;
   margin: 0 auto;
+  background: linear-gradient(135deg, 
+    hsl(var(--background)) 0%, 
+    hsl(var(--muted) / 0.4) 50%, 
+    hsl(var(--background)) 100%);
+  min-height: 100vh;
 }
 
 .report-container h4 {
@@ -16,14 +20,14 @@
   margin: 0.5rem 0;
 }
 
+/* Print styles - Thermal paper 80mm */
 @media print {
-  /* Papel térmico 80mm — ajustar a 58mm si tu impresora es más estrecha */
   @page {
     size: 80mm auto;
     margin: 3mm 4mm;
   }
 
-  /* Ocultar todo lo que no es el ticket */
+  /* Hide everything except ticket */
   .no-print,
   nav, header, footer,
   .report-header,
@@ -33,6 +37,8 @@
 
   body, html {
     background: #fff !important;
+    margin: 0;
+    padding: 0;
   }
 
   .report-container {
@@ -44,10 +50,10 @@
     margin: 0;
     padding: 0;
     box-shadow: none !important;
+    background: #fff !important;
     color: #000;
   }
 
-  /* Encabezado del ticket */
   .report-body h4 {
     font-size: 12px;
     font-weight: bold;
@@ -76,77 +82,223 @@
   }
 }
 
-
-.report-header h3 { font-size: 1.1rem; }
-.report-card { background: #fbfbfb; border: 1px solid #eee; }
-.report-body { margin-top: 1rem; }
-.report-meta span { margin-right: .5rem; }
-
-/* ── Ticket Preview Panel ─────────────────────────────── */
+/* Ticket Preview Panel */
 .ticket-preview-wrapper {
   display: flex;
   justify-content: center;
   margin-bottom: 1.5rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ticket-preview {
   font-family: 'Courier New', Courier, monospace;
   font-size: 11px;
   line-height: 1.5;
-  width: 302px;           /* 80mm ≈ 302px en pantalla */
-  background: #fff;
-  border: 1px dashed #aaa;
-  padding: 10px 12px;
-  border-radius: 4px;
-  box-shadow: 2px 2px 8px rgba(0,0,0,0.12);
-  color: #111;
+  width: 302px;           /* 80mm ≈ 302px */
+  background: linear-gradient(to bottom, #ffffff, #fefefe);
+  border: 2px dashed hsl(var(--border));
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 
+    0 10px 15px -3px hsl(var(--foreground) / 0.1),
+    0 4px 6px -4px hsl(var(--foreground) / 0.1);
+  color: hsl(var(--foreground));
+  position: relative;
+  overflow: hidden;
+}
+
+.ticket-preview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    hsl(var(--primary)) 0px,
+    hsl(var(--primary)) 2px,
+    transparent 2px,
+    transparent 4px
+  );
 }
 
 .ticket-title {
   text-align: center;
   font-size: 14px;
-  font-weight: bold;
+  font-weight: 900;
   letter-spacing: 2px;
   margin-bottom: 2px;
+  color: hsl(var(--foreground));
+  text-transform: uppercase;
 }
 
 .ticket-subtitle {
   text-align: center;
   font-size: 10px;
   margin-bottom: 4px;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
 }
 
 .ticket-divider {
-  color: #888;
+  color: hsl(var(--muted-foreground) / 0.4);
   font-size: 10px;
   margin: 4px 0;
   overflow: hidden;
   white-space: nowrap;
+  letter-spacing: 1px;
 }
 
 .ticket-section {
-  font-weight: bold;
+  font-weight: 900;
   font-size: 11px;
   margin: 6px 0 2px;
+  color: hsl(var(--foreground));
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .ticket-row {
   display: flex;
+  justify-content: space-between;
   gap: 4px;
   margin: 1px 0;
   font-size: 10.5px;
+  color: hsl(var(--foreground));
 }
 
 .ticket-row span:first-child {
-  font-weight: bold;
+  font-weight: 700;
   white-space: nowrap;
+  color: hsl(var(--muted-foreground));
 }
 
 .ticket-date {
   text-align: center;
   font-size: 10px;
   margin-top: 6px;
-  color: #444;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.ticket-footer {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 900;
+  margin-top: 8px;
+  color: hsl(var(--primary));
+  letter-spacing: 0.5px;
+}
+
+.ticket-cut {
+  text-align: center;
+  font-size: 8px;
+  color: hsl(var(--muted-foreground) / 0.5);
+  margin-top: 4px;
+  letter-spacing: 2px;
+}
+
+/* Card hover effects */
+.card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+/* Badge animations */
+.badge {
+  transition: all 0.2s ease;
+}
+
+/* Button improvements */
+button {
+  transition: all 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .report-container {
+    padding: 12px;
+  }
+  
+  .ticket-preview {
+    width: 100%;
+    max-width: 302px;
+  }
+}
+
+/* Loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted) / 0.8) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Light mode specific improvements */
+@media (prefers-color-scheme: light) {
+  .ticket-preview {
+    background: linear-gradient(to bottom, #ffffff, #fafafa);
+    border-color: #e5e7eb;
+  }
+  
+  .ticket-title {
+    color: #111827;
+  }
+  
+  .ticket-section {
+    color: #374151;
+  }
+}
+
+/* Dark mode specific improvements */
+@media (prefers-color-scheme: dark) {
+  .ticket-preview {
+    background: linear-gradient(to bottom, #18181b, #1f1f22);
+    border-color: #3f3f46;
+  }
+  
+  .ticket-title {
+    color: #f4f4f5;
+  }
+  
+  .ticket-section {
+    color: #e4e4e7;
+  }
 }
 
 .ticket-footer {

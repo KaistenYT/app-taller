@@ -22,6 +22,7 @@ export class BudgetService {
         items: data.items || [],
         notes: data.notes || "",
         status: data.status || "BORRADOR",
+        total_amount: data.total_amount !== undefined ? data.total_amount : 0,
       };
       if (company_id) payload.company_id = company_id;
 
@@ -47,13 +48,14 @@ export class BudgetService {
     return await Budget.getByReceptionId(reception_id, company_id);
   }
 
-  /** Lista todos los presupuestos con caché distribuida. */
+  /** Lista todos los presupuestos con caché distribuida y detalles optimizados. */
   static async listBudgets(company_id) {
     const cacheKey = `budgets:list:${company_id}`;
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
 
-    const budgets = await Budget.list(company_id);
+    // OPTIMIZACIÓN: Usar listWithDetails en lugar de list para evitar N+1
+    const budgets = await Budget.listWithDetails(company_id);
     await cache.set(cacheKey, budgets, 600); // 10 min de caché
     return budgets;
   }
@@ -151,5 +153,79 @@ export class BudgetService {
     if (!budget) throw new Error("Presupuesto no encontrado");
     const reception = await ReceptionService.getReceptionDetails(budget.reception_id, company_id);
     return { ...budget, reception };
+  }
+
+  // ── DASHBOARD: Obtener estadísticas financieras de presupuestos ─────────────────────────────────────────────
+  static async getBudgetDashboard(company_id, filters = {}) {
+    try {
+      return await Budget.getFinancialDashboard(company_id, filters);
+    } catch (err) {
+      throw new Error("Error al obtener dashboard de presupuestos");
+    }
+  }
+
+  // ── DASHBOARD: Listar presupuestos con detalles financieros ──────────────────────────────────────────────────
+  static async listBudgetsWithFinancialDetails(company_id, filters = {}) {
+    try {
+      return await Budget.listWithFinancialDetails(company_id, filters);
+    } catch (err) {
+      throw new Error("Error al listar presupuestos con detalles financieros");
+    }
+  }
+
+  // ── DASHBOARD: Actualizar estado de pago de presupuesto ────────────────────────────────────────────────────
+  static async updateBudgetPayment(id, paymentData, user_id, company_id) {
+    const trx = await db.transaction();
+    try {
+      const current = await Budget.getById(id, company_id, trx);
+      if (!current) throw new Error("Presupuesto no encontrado");
+
+      const { paid_amount, payment_status, reason } = paymentData;
+      
+      // Validaciones
+      const paidNum = Number(paid_amount);
+      const totalNum = Number(current.total_amount);
+      if (payment_status === "PAGADO" && Math.abs(paidNum - totalNum) > 0.01) {
+        throw new Error("El monto pagado debe coincidir con el total para marcar como PAGADO");
+      }
+      
+      if (payment_status === "PARCIAL" && (!paid_amount || paid_amount <= 0)) {
+        throw new Error("Debe especificar un monto pagado para estado PARCIAL");
+      }
+
+      // Actualizar presupuesto
+      const now = new Date();
+      const updateData = {
+        paid_amount: paid_amount ?? current.paid_amount,
+        payment_status: payment_status || current.payment_status,
+        paid_at: payment_status === "PAGADO" ? now : current.paid_at,
+      };
+
+      await Budget.update(id, company_id, updateData, trx);
+
+      // Registrar en log
+      await Budget.log(
+        {
+          budget_id: id,
+          user_id,
+          action: "PAYMENT_UPDATED",
+          snapshot: { ...current, ...updateData },
+          reason: reason || "Actualización de pago",
+          company_id,
+        },
+        trx
+      );
+
+      const updated = await Budget.getById(id, company_id, trx);
+      await trx.commit();
+      
+      await BudgetService._invalidateCache(company_id);
+      emitToCompany(company_id, "budgetPaymentUpdated", updated);
+      
+      return updated;
+    } catch (err) {
+      await trx.rollback();
+      throw err;
+    }
   }
 }

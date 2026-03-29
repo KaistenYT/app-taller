@@ -164,6 +164,14 @@ export const getBudgetLog = (budgetId) =>
   request(api.get(`/budgets/${budgetId}/log`));
 export const getAllBudgetLogs = () => request(api.get(`/budgets/logs/all`));
 
+// --- Financial Budgets ---
+export const getBudgetDashboard = (filters) =>
+  request(api.get("/budgets/dashboard", { params: filters }));
+export const listBudgetsFinancial = (filters) =>
+  request(api.get("/budgets/financial", { params: filters }));
+export const updateBudgetPayment = ({ id, data }) =>
+  request(api.put(`/budgets/${id}/payment`, data));
+
 // --- Ventanas / Compatibilidad (Opcional, ahora la app manejará rutas web) ---
 export const openReport = (reportId) => {
   // En vez de ipcRenderer, abrimos una nueva pestaña (o el router lo manejará vía link)

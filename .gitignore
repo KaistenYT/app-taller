@@ -46,3 +46,5 @@ implementation_plan_saas.md
 backend/db/migrations/pg/table_company_saas.js
 MEJORAS_PROYECTO.md
 STRIPE_INTEGRATION_PLAN.md
+DASHBOARD_FINANCIERO_GUIDE.md
+OPTIMIZACION_N_PLUS_1.md

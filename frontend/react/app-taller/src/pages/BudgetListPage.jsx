@@ -200,14 +200,18 @@ export default function BudgetListPage() {
                         </TableCell>
                         <TableCell className="text-right pr-8 py-5">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
-                              onClick={() => navigate(`/budgets/${b.id}/edit`)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
+                            {/* Editar - Solo admin */}
+                            {user?.role === "admin" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+                                onClick={() => navigate(`/budgets/${b.id}/edit`)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {/* Imprimir - Todos los usuarios */}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -216,6 +220,7 @@ export default function BudgetListPage() {
                             >
                               <Printer className="h-4 w-4" />
                             </Button>
+                            {/* Eliminar - Solo admin */}
                             {user?.role === "admin" && (
                               <Button
                                 variant="ghost"

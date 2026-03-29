@@ -60,6 +60,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/reports", label: "Reportes", icon: FileText },
     { to: "/budgets", label: "Presupuestos", icon: Calculator },
+    { to: "/budgets/dashboard", label: "Finanzas", icon: ShieldCheck },
   ];
 
   const adminLinks = [
@@ -122,18 +123,21 @@ export default function Sidebar({ isOpen, onClose }) {
             </div>
           )}
 
-          <div>
-            <SectionHeader label="Configuración" />
-            <div className="space-y-1">
-              <NavLink
-                to="/settings"
-                icon={Settings}
-                label="Ajustes del Sistema"
-                active={isActive("/settings")}
-                onClick={() => window.innerWidth < 768 && onClose()}
-              />
+          {/* Settings - Solo para admin */}
+          {user?.role === "admin" && (
+            <div>
+              <SectionHeader label="Configuración" />
+              <div className="space-y-1">
+                <NavLink
+                  to="/settings"
+                  icon={Settings}
+                  label="Ajustes del Sistema"
+                  active={isActive("/settings")}
+                  onClick={() => window.innerWidth < 768 && onClose()}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </nav>
 
         {/* User Info / Footer  y que se mantenga aun asi yo haga scroll*/}

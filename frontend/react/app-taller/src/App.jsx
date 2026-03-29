@@ -18,6 +18,7 @@ import BudgetViewPage from "./pages/BudgetViewPage";
 import BudgetListPage from "./pages/BudgetListPage";
 import BudgetLogPage from "./pages/BudgetLogPage";
 import SettingsPage from "./pages/SettingsPage";
+import BudgetDashboardPage from "./pages/BudgetDashboardPage";
 
 export default function App() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/receptions/:receptionId/budgets/new" element={<BudgetFormPage />} />
                   <Route path="/budgets/:budgetId/edit" element={<BudgetFormPage />} />
+                  <Route path="/budgets/dashboard" element={<BudgetDashboardPage />} />
                 </Route>
               </Route>
 

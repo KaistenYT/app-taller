@@ -138,10 +138,11 @@ export default function BudgetFormPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const totalNumber = Number(total);
       if (budget) {
         await updateBudget({
           id: budget.id,
-          data: { items, notes, status, reason },
+          data: { items, notes, status, reason, total_amount: totalNumber },
         });
         setToast({ message: "Presupuesto actualizado correctamente", type: "success" });
       } else {
@@ -151,6 +152,7 @@ export default function BudgetFormPage() {
           notes,
           status,
           reason,
+          total_amount: totalNumber,
         });
         setToast({ message: "Presupuesto creado correctamente", type: "success" });
         setTimeout(() => navigate(`/budgets/${newBudget.id}/edit`, { replace: true }), 1000);

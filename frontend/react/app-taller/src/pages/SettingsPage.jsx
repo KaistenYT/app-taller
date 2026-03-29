@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { getMyCompany, updateMyCompany } from "../api/httpApi";
 import { getFriendlyErrorMessage } from "../utils/helpers";
+import { useAuth } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
 import { 
   Settings, 
   Building2, 
@@ -22,10 +24,16 @@ import { Label } from "../components/ui/label";
 import Toast from "../components/shared/Toast";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
+
+  // Redirigir si no es admin
+  if (user?.role !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   // Form fields
   const [form, setForm] = useState({

@@ -96,4 +96,60 @@ export class Device {
       throw new Error("Error al eliminar dispositivo");
     }
   }
+
+  // ── OPTIMIZACIÓN: Obtener dispositivos con conteo de recepciones (evita N+1) ─────────────────────────────────
+  static async getAllWithReceptionCount(company_id) {
+    const q = trx || db;
+    try {
+      const query = q("device as d")
+        .whereNull("d.deleted_at")
+        .leftJoin("reception as r", "d.id", "r.device_id")
+        .groupBy("d.id", "d.serial_number", "d.description", "d.features", "d.company_id", "d.created_at", "d.updated_at")
+        .select(
+          "d.*",
+          db.raw("COUNT(r.id) as reception_count"),
+          db.raw("MAX(r.created_at) as last_reception_date"),
+        )
+        .orderBy("d.serial_number", "asc");
+      if (company_id) query.where({ "d.company_id": company_id });
+      return await query;
+    } catch (err) {
+      throw new Error("Error al obtener dispositivos con conteo de recepciones");
+    }
+  }
+
+  // ── OPTIMIZACIÓN: Obtener dispositivo con historial completo de recepciones ──────────────────────────────────
+  static async getWithReceptionHistory(id, company_id) {
+    const q = trx || db;
+    try {
+      const query = q("device as d")
+        .whereNull("d.deleted_at")
+        .leftJoin("reception as r", "d.id", "r.device_id")
+        .leftJoin("client as c", function () {
+          this.on("r.client_idNumber", "=", "c.idNumber").andOn(
+            "r.company_id",
+            "=",
+            "c.company_id",
+          );
+        })
+        .where({ "d.id": id })
+        .select(
+          "d.*",
+          "r.id as reception_id",
+          "r.status as reception_status",
+          "r.defect as reception_defect",
+          "r.repair as reception_repair",
+          "r.created_at as reception_date",
+          "r.archived as reception_archived",
+          "c.name as client_name",
+          "c.phone as client_phone",
+          "c.idNumber as client_idNumber",
+        )
+        .orderBy("r.created_at", "desc");
+      if (company_id) query.where({ "d.company_id": company_id });
+      return await query;
+    } catch (err) {
+      throw new Error("Error al obtener dispositivo con historial de recepciones");
+    }
+  }
 }

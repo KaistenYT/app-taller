@@ -4,7 +4,8 @@ import { deviceSchema } from "../validation/schemas.js";
 export class DeviceService {
   static async listDevices(company_id) {
     try {
-      return await Device.getAll(company_id);
+      // OPTIMIZACIÓN: Usar getAllWithReceptionCount en lugar de getAll para evitar N+1
+      return await Device.getAllWithReceptionCount(company_id);
     } catch (err) {
       throw err;
     }
@@ -12,7 +13,8 @@ export class DeviceService {
 
   static async getDevice(id, company_id) {
     try {
-      return await Device.getById(id, company_id);
+      // OPTIMIZACIÓN: Usar getWithReceptionHistory para obtener historial completo
+      return await Device.getWithReceptionHistory(id, company_id);
     } catch (err) {
       throw err;
     }

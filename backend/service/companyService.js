@@ -57,9 +57,15 @@ export class CompanyService {
   }
 
   static async getCompany(id) {
-    const company = await Company.getById(id);
+    // OPTIMIZACIÓN: Usar getWithDetails en lugar de getById para obtener estadísticas completas
+    const company = await Company.getWithDetails(id);
     if (!company) throw new Error("Empresa no encontrada");
     return company;
+  }
+
+  static async listCompanies() {
+    // OPTIMIZACIÓN: Usar listWithStats para obtener empresas con estadísticas sin N+1
+    return await Company.listWithStats();
   }
 
   static async updateCompany(id, data) {

@@ -101,6 +101,27 @@ export function getFriendlyErrorMessage(err) {
   if (msg.includes("user not found") || msg.includes("usuario no encontrado")) {
     return "El usuario no existe.";
   }
+  if (msg.includes("foreign key constraint")) {
+    return "No se puede eliminar este registro porque está siendo utilizado en otra parte del sistema.";
+  }
 
   return "Ocurrió un problema al procesar su solicitud. Por favor intente nuevamente.";
+}
+
+/**
+ * Formatea un número a moneda (USD por defecto).
+ * @param {number} amount El monto a formatear.
+ * @param {Object} options Opciones de formato (opcional).
+ * @returns {string} El monto formateado.
+ */
+export function formatCurrency(amount, options = {}) {
+  const { currency = "USD", locale = "es-VE" } = options;
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency,
+    }).format(amount || 0);
+  } catch (e) {
+    return `$ ${(amount || 0).toFixed(2)}`;
+  }
 }
