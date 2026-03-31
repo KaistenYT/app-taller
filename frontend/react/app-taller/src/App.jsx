@@ -28,6 +28,7 @@ export default function App() {
           <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
               {/* Rutas públicas */}
+              <Route path="/" element={<LandingPage />} />
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register-company" element={<RegisterCompanyPage />} />
@@ -37,7 +38,6 @@ export default function App() {
               {/* Rutas protegidas */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
-                  <Route path="/" element={<DashboardPage />} />
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/reception/new" element={<ReceptionFormPage />} />
                   <Route path="/receptions/new" element={<ReceptionFormPage />} />

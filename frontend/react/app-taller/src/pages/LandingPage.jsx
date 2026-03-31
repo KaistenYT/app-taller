@@ -20,6 +20,8 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
 
+import { cn } from "../utils/cn";
+
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
 
@@ -28,8 +30,8 @@ export default function LandingPage() {
       icon: <Building2 className="h-6 w-6" />,
       title: "Arquitectura Multi-Tenant",
       desc: "Instancias aisladas para cada empresa. Tus datos y configuraciones están 100% seguros y separados.",
-      color: "text-blue-500",
-      bg: "bg-blue-500/10"
+      color: "text-yellow-500",
+      bg: "bg-yellow-500/10"
     },
     {
       icon: <Laptop className="h-6 w-6" />,
@@ -132,7 +134,7 @@ export default function LandingPage() {
       <section className="relative pt-40 pb-20 overflow-hidden">
         {/* Abstract background */}
         <div className="absolute top-0 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -z-10 animate-pulse" />
-        <div className="absolute bottom-0 -right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] -z-10" />
+        <div className="absolute bottom-0 -right-20 w-96 h-96 bg-yellow-500/10 rounded-full blur-[100px] -z-10" />
 
         <div className="max-w-7xl mx-auto px-6 text-center space-y-8">
           <Badge variant="outline" className="rounded-full px-4 py-1.5 border-primary/20 bg-primary/5 text-primary text-xs font-bold gap-2 animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -160,7 +162,7 @@ export default function LandingPage() {
           {/* Visual Concept */}
           <div className="mt-20 relative max-w-5xl mx-auto animate-in fade-in zoom-in duration-1000 delay-500">
             <div className="absolute inset-0 bg-primary/5 rounded-3xl -rotate-2 scale-[1.02] blur-xl" />
-            <div className="relative glass-card border border-white/20 rounded-[2.5rem] shadow-3xl overflow-hidden aspect-[16/9] md:aspect-[21/9]">
+            <div className="relative glass-card border border-white/20 rounded-[2.5rem] shadow-3xl overflow-hidden aspect-video md:aspect-21/9">
               <div className="bg-muted/40 h-10 border-b border-border/40 flex items-center px-6 gap-2">
                 <div className="h-3 w-3 bg-red-400 rounded-full" />
                 <div className="h-3 w-3 bg-amber-400 rounded-full" />
@@ -256,7 +258,7 @@ export default function LandingPage() {
                   <p className="text-sm font-medium text-muted-foreground">{p.desc}</p>
                 </div>
                 
-                <ul className="space-y-5 mb-10 flex-grow">
+                <ul className="space-y-5 mb-10 grow">
                   {p.features.map((feat, idx) => (
                     <li key={idx} className="flex items-start gap-3 text-sm font-bold">
                       <CheckCircle2 className={cn("h-5 w-5 shrink-0", p.highlight ? "text-primary" : "text-primary/60")} />
@@ -294,14 +296,14 @@ export default function LandingPage() {
             <div className="space-y-4 relative z-10">
               <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">
                 ¿Listo para transformar tu taller?<br/> 
-                <span className="opacity-80 italic italic">Tarda menos de 2 minutos.</span>
+                <span className="opacity-80 italic">Tarda menos de 2 minutos.</span>
               </h2>
               <p className="text-lg text-white/80 font-bold max-w-xl mx-auto">
                 Únete a los técnicos que ya están escalando su negocio con inteligencia técnica.
               </p>
             </div>
             
-            <Button size="lg" asChild className="relative z-10 bg-white text-primary hover:bg-white/90 rounded-[2rem] px-12 py-8 text-xl font-black shadow-2xl hover:scale-[1.05] transition-all">
+            <Button size="lg" asChild className="relative z-10 bg-white text-primary hover:bg-white/90 rounded-4xl px-12 py-8 text-xl font-black shadow-2xl hover:scale-[1.05] transition-all">
               <Link to="/register-company">Crear Mi Empresa Ahora</Link>
             </Button>
             
@@ -322,7 +324,7 @@ export default function LandingPage() {
             </div>
             <p className="text-sm font-bold text-muted-foreground opacity-60">
               &copy; {new Date().getFullYear()} Software Multi-Tenant para Gestión Técnica. <br/>
-              Producido por Nanologic. Todos los derechos reservados.
+              Producido por kaistendev. Todos los derechos reservados.
             </p>
           </div>
           
