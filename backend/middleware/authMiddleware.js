@@ -18,7 +18,7 @@ export const authenticate = (req, res, next) => {
   }
 
   if (!token) {
-    return res.status(401).json({ error: "No autenticado" });
+    return res.status(401).json({ error: { code: 401, message: "No autenticado" } });
   }
 
   try {
@@ -26,7 +26,7 @@ export const authenticate = (req, res, next) => {
     req.user = payload; 
     next();
   } catch (err) {
-    return res.status(403).json({ error: "Sesión expirada o inválida" });
+    return res.status(403).json({ error: { code: 403, message: "Sesión expirada o inválida" } });
   }
 };
 
@@ -35,7 +35,7 @@ export const authenticate = (req, res, next) => {
  */
 export const requireAdmin = (req, res, next) => {
   if (req.user?.role !== "admin") {
-    return res.status(403).json({ error: "Acceso restringido a administradores" });
+    return res.status(403).json({ error: { code: 403, message: "Acceso restringido a administradores" } });
   }
   next();
 };

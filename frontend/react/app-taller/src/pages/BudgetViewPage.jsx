@@ -61,11 +61,11 @@ export default function BudgetViewPage() {
   const clientPhone = reception?.client?.phone || reception?.client_phone || "—";
   const deviceSerial = reception?.device_snapshot?.serial_number || reception?.device?.serial_number || "—";
   const deviceDesc = reception?.device_snapshot?.description || reception?.device?.description || "—";
-  const items = data.items || [];
-  const total = items.reduce((s, it) => s + (parseFloat(it.subtotal) || 0), 0);
-  const createdDate = new Date(data.created_at).toLocaleDateString("es-VE", {
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const total = items.reduce((s, it) => s + (parseFloat(it.subtotal || it.price || 0) || 0), 0);
+  const createdDate = data?.created_at ? new Date(data.created_at).toLocaleDateString("es-VE", {
     year: "numeric", month: "long", day: "numeric",
-  });
+  }) : "—";
 
   const STATUS_MAP = { BORRADOR: "Borrador", APROBADO: "Aprobado", RECHAZADO: "Rechazado" };
 

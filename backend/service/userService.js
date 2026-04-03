@@ -27,7 +27,10 @@ export class UserService {
       await SubscriptionService.checkQuota(company_id, "max_users", trx);
 
       // 2. Crear usuario si pasa la validación
-      const user = await User.create({ username, password, role, company_id }, trx);
+      const user = await User.create(
+        { username, password, role, company_id },
+        trx,
+      );
       await trx.commit();
       return user;
     } catch (err) {
@@ -90,7 +93,10 @@ export class UserService {
       const updatedUser = await User.update(user.id, { password: newPassword });
       return updatedUser;
     } catch (error) {
-      logger.error("Error in UserService.resetPassword:", { error: error.message, stack: error.stack });
+      logger.error("Error in UserService.resetPassword:", {
+        error: error.message,
+        stack: error.stack,
+      });
       throw error;
     }
   }

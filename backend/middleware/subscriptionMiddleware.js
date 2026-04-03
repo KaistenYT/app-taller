@@ -9,13 +9,23 @@ export const checkSubscriptionQuota = (resourceName) => {
     try {
       const company_id = req.user.company_id;
       if (!company_id) {
-        return res.status(403).json({ error: "No se encontró el ID de empresa para verificar suscripción." });
+        return res.status(403).json({ 
+          error: { 
+            code: 403, 
+            message: "No se encontró el ID de empresa para verificar suscripción." 
+          } 
+        });
       }
 
       await SubscriptionService.checkQuota(company_id, resourceName);
       next();
     } catch (err) {
-      res.status(403).json({ error: err.message });
+      res.status(403).json({ 
+        error: { 
+          code: 403, 
+          message: err.message 
+        } 
+      });
     }
   };
 };

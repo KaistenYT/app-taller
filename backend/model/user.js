@@ -14,14 +14,20 @@ export class User {
       const newUserId = row.id ?? row;
       return await q("user").where({ id: newUserId }).first();
     } catch (error) {
-      logger.error("Error creating user:", { error: error.message, stack: error.stack });
+      logger.error("Error creating user:", {
+        error: error.message,
+        stack: error.stack,
+      });
       return null;
     }
   }
 
   static async getByUsername(username) {
     try {
-      return await db("user").where({ username }).whereNull("deleted_at").first();
+      return await db("user")
+        .where({ username })
+        .whereNull("deleted_at")
+        .first();
     } catch (error) {
       return null;
     }
@@ -47,7 +53,9 @@ export class User {
 
   static async getAll(company_id) {
     try {
-      const query = db("user").select("id", "username", "role", "company_id").whereNull("deleted_at");
+      const query = db("user")
+        .select("id", "username", "role", "company_id")
+        .whereNull("deleted_at");
       if (company_id) query.where({ company_id });
       return await query;
     } catch (error) {
@@ -75,10 +83,16 @@ export class User {
         updatedData.password = await bcrypt.hash(updatedData.password, 10);
       }
 
-      await db("user").where({ id }).whereNull("deleted_at").update(updatedData);
+      await db("user")
+        .where({ id })
+        .whereNull("deleted_at")
+        .update(updatedData);
       return await db("user").where({ id }).first();
     } catch (error) {
-      logger.error("Error in User.update:", { error: error.message, stack: error.stack });
+      logger.error("Error in User.update:", {
+        error: error.message,
+        stack: error.stack,
+      });
       throw error;
     }
   }

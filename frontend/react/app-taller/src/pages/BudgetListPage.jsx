@@ -216,7 +216,11 @@ export default function BudgetListPage() {
                               variant="ghost"
                               size="icon"
                               className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
-                              onClick={() => window.open(`/#/budget/${b.id}`, "_blank")}
+                              onClick={() => {
+                                const base = window.location.origin + window.location.pathname;
+                                const cleanBase = base.endsWith('/') ? base : base + '/';
+                                window.open(`${cleanBase}#/budget/${b.id}`, "_blank");
+                              }}
                             >
                               <Printer className="h-4 w-4" />
                             </Button>

@@ -4,9 +4,10 @@ import logger from "./utils/logger.js";
 let io;
 
 export const initSocket = (httpServer, corsOrigin) => {
+  const allowedOrigins = corsOrigin.split(",").map(o => o.trim());
   io = new Server(httpServer, {
     cors: {
-      origin: corsOrigin,
+      origin: allowedOrigins,
       methods: ["GET", "POST"],
       credentials: true
     }

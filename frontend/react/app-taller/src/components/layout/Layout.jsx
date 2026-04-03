@@ -3,14 +3,7 @@ import { Outlet, Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import {
-  Menu,
-  Sun,
-  Moon,
-  LogOut,
-  Bell,
-  Search,
-} from "lucide-react";
+import { Menu, Sun, Moon, LogOut, Bell, Search } from "lucide-react";
 import { Button } from "../ui/button";
 
 export default function Layout() {
@@ -41,15 +34,6 @@ export default function Layout() {
             >
               <Menu className="h-5 w-5" />
             </Button>
-
-            <div className="hidden md:flex relative w-64 lg:w-96 group">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <input
-                type="text"
-                placeholder="Búsqueda rápida..."
-                className="w-full bg-muted/30 border border-transparent rounded-xl py-1.5 pl-10 pr-4 text-sm focus:bg-background focus:border-primary/30 focus:ring-4 focus:ring-primary/5 transition-all outline-none"
-              />
-            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -98,8 +82,12 @@ export default function Layout() {
           <div className="container flex flex-col items-center justify-between gap-4 md:flex-row text-[10px] text-muted-foreground/60 uppercase tracking-[0.2em] font-semibold">
             <p>© 2026 App Taller — Workshop Management Pro</p>
             <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-primary transition-colors">Soporte</a>
-              <a href="#" className="hover:text-primary transition-colors">Privacidad</a>
+              <a href="#" className="hover:text-primary transition-colors">
+                Soporte
+              </a>
+              <a href="#" className="hover:text-primary transition-colors">
+                Privacidad
+              </a>
             </div>
           </div>
         </footer>

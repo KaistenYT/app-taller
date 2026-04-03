@@ -259,6 +259,14 @@ export default function LoginPage() {
               Crear una cuenta nueva
             </Button>
           </Link>
+          <Link to="/" className="w-full">
+            <Button
+              variant="outline"
+              className="w-full h-12 border-border/50 bg-muted/10 hover:bg-muted/20 transition-all font-bold text-sm tracking-tight rounded-2xl"
+            >
+              Volver a la landing page
+            </Button>
+          </Link>
         </CardFooter>
       </Card>
 

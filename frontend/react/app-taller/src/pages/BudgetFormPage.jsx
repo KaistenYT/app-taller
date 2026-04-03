@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { cn } from "../utils/cn";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -80,6 +81,7 @@ export default function BudgetFormPage() {
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("BORRADOR");
+  const [errors, setErrors] = useState({ items: {} });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
@@ -113,6 +115,33 @@ export default function BudgetFormPage() {
     load();
   }, [budgetId, receptionId]);
 
+  const validateField = (name, value, index = null) => {
+    let error = "";
+    if (index !== null) {
+      // Validar campos de ítems
+      if (name === "description" && !value) error = "Obligatorio";
+      if (name === "quantity" && (value === "" || isNaN(value) || parseFloat(value) <= 0)) error = "Inválido";
+      if (name === "unit_price" && (value === "" || isNaN(value) || parseFloat(value) < 0)) error = "Inválido";
+
+      setErrors((prev) => ({
+        ...prev,
+        items: {
+          ...prev.items,
+          [index]: {
+            ...(prev.items?.[index] || {}),
+            [name]: error,
+          },
+        },
+      }));
+    } else {
+      // Validar campos generales
+      if (name === "reason" && !value) error = "El motivo es obligatorio";
+      
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    }
+    return error;
+  };
+
   const handleItemChange = (index, field, value) => {
     setItems((prev) =>
       prev.map((item, i) => {
@@ -124,11 +153,26 @@ export default function BudgetFormPage() {
         return updated;
       }),
     );
+    validateField(field, value, index);
   };
 
   const addItem = () => setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
-  const removeItem = (index) =>
+  const removeItem = (index) => {
     setItems((prev) => prev.filter((_, i) => i !== index));
+    // Limpiar errores del ítem eliminado
+    setErrors((prev) => {
+      const newItemsErrors = { ...prev.items };
+      delete newItemsErrors[index];
+      // Re-indexar errores
+      const indexedErrors = {};
+      Object.entries(newItemsErrors).forEach(([key, val]) => {
+        const k = parseInt(key);
+        if (k > index) indexedErrors[k - 1] = val;
+        else if (k < index) indexedErrors[k] = val;
+      });
+      return { ...prev, items: indexedErrors };
+    });
+  };
 
   const total = items.reduce(
     (sum, it) => sum + (parseFloat(it.subtotal) || 0),
@@ -136,6 +180,24 @@ export default function BudgetFormPage() {
   );
 
   const handleSave = async () => {
+    // Validar todo antes de guardar
+    let hasErrors = false;
+    
+    // Validar motivo
+    if (validateField("reason", reason)) hasErrors = true;
+    
+    // Validar ítems
+    items.forEach((item, index) => {
+      if (validateField("description", item.description, index)) hasErrors = true;
+      if (validateField("quantity", item.quantity, index)) hasErrors = true;
+      if (validateField("unit_price", item.unit_price, index)) hasErrors = true;
+    });
+
+    if (hasErrors) {
+      setToast({ message: "Por favor corrige los errores antes de guardar", type: "warning" });
+      return;
+    }
+
     setSaving(true);
     try {
       const totalNumber = Number(total);
@@ -283,30 +345,60 @@ export default function BudgetFormPage() {
                     {items.map((item, i) => (
                       <TableRow key={i} className="group border-b border-border/30 last:border-0">
                         <TableCell className="px-6 py-4">
-                          <Input
-                            className="bg-muted/30 border-transparent focus:bg-background h-9 text-sm"
-                            value={item.description}
-                            placeholder="Ej: Repuesto pantalla original"
-                            onChange={(e) => handleItemChange(i, "description", e.target.value)}
-                          />
+                          <div className="space-y-1">
+                            <Input
+                              className={cn(
+                                "bg-muted/30 border-transparent focus:bg-background h-9 text-sm",
+                                errors.items?.[i]?.description && "border-destructive ring-destructive focus:border-destructive"
+                              )}
+                              value={item.description}
+                              placeholder="Ej: Repuesto pantalla original"
+                              onChange={(e) => handleItemChange(i, "description", e.target.value)}
+                            />
+                            {errors.items?.[i]?.description && (
+                              <p className="text-[10px] text-destructive font-bold uppercase tracking-wider ml-1">
+                                {errors.items[i].description}
+                              </p>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="py-4">
-                          <Input
-                            type="number"
-                            className="w-20 mx-auto text-center bg-muted/30 border-transparent focus:bg-background h-9 text-sm"
-                            value={item.quantity || ""}
-                            onChange={(e) => handleItemChange(i, "quantity", e.target.value)}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right py-4">
-                          <div className="relative inline-block w-32">
-                            <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <div className="space-y-1">
                             <Input
                               type="number"
-                              className="pl-8 text-right bg-muted/30 border-transparent focus:bg-background h-9 text-sm"
-                              value={item.unit_price || ""}
-                              onChange={(e) => handleItemChange(i, "unit_price", e.target.value)}
+                              className={cn(
+                                "w-20 mx-auto text-center bg-muted/30 border-transparent focus:bg-background h-9 text-sm",
+                                errors.items?.[i]?.quantity && "border-destructive ring-destructive focus:border-destructive"
+                              )}
+                              value={item.quantity || ""}
+                              onChange={(e) => handleItemChange(i, "quantity", e.target.value)}
                             />
+                            {errors.items?.[i]?.quantity && (
+                              <p className="text-[10px] text-destructive font-bold uppercase tracking-wider text-center">
+                                {errors.items[i].quantity}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right py-4">
+                          <div className="space-y-1">
+                            <div className="relative inline-block w-32">
+                              <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                              <Input
+                                type="number"
+                                className={cn(
+                                  "pl-8 text-right bg-muted/30 border-transparent focus:bg-background h-9 text-sm",
+                                  errors.items?.[i]?.unit_price && "border-destructive ring-destructive focus:border-destructive"
+                                )}
+                                value={item.unit_price || ""}
+                                onChange={(e) => handleItemChange(i, "unit_price", e.target.value)}
+                              />
+                            </div>
+                            {errors.items?.[i]?.unit_price && (
+                              <p className="text-[10px] text-destructive font-bold uppercase tracking-wider text-right pr-2">
+                                {errors.items[i].unit_price}
+                              </p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-6 py-4 font-mono font-medium text-primary">
@@ -389,14 +481,25 @@ export default function BudgetFormPage() {
 
               <div className="space-y-2 pt-4 border-t border-primary/10">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 block">
-                  Motivo o Observación
+                  Motivo o Observación <span className="text-primary">*</span>
                 </label>
                 <Textarea
-                  className="bg-white/40 border-transparent focus:bg-white min-h-[80px] text-xs resize-none"
+                  className={cn(
+                    "bg-white/40 border-transparent focus:bg-white min-h-[80px] text-xs resize-none",
+                    errors.reason && "border-destructive ring-destructive focus:border-destructive"
+                  )}
                   placeholder="Justifica el cambio de estado o notas de auditoría..."
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={(e) => {
+                    setReason(e.target.value);
+                    validateField("reason", e.target.value);
+                  }}
                 />
+                {errors.reason && (
+                  <p className="text-[10px] text-destructive font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1">
+                    {errors.reason}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

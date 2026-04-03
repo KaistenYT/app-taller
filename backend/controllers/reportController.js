@@ -7,7 +7,9 @@ export const listReports = async (req, res) => {
 
 export const getReport = async (req, res) => {
   const report = await ReportService.getReport(req.params.id, req.user.company_id);
-  if (!report) return res.status(404).json({ error: "Reporte no encontrado" });
+  if (!report) return res.status(404).json({ 
+    error: { code: 404, message: "Reporte no encontrado" } 
+  });
   res.json(report);
 };
 

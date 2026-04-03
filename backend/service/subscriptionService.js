@@ -54,8 +54,80 @@ export class SubscriptionService {
   static async getSubscriptionDetails(company_id) {
     return await db("subscription")
       .join("plan", "subscription.plan_id", "plan.id")
-      .where({ "subscription.company_id": company_id })
-      .select("subscription.*", "plan.name as plan_name", "plan.max_users", "plan.max_receptions", "plan.max_budgets")
+      .where({ "subscription.company_id": company_id, "subscription.status": "ACTIVE" })
+      .select(
+        "subscription.id",
+        "subscription.company_id",
+        "subscription.plan_id",
+        "subscription.start_date",
+        "subscription.status",
+        "plan.name as plan_name",
+        "plan.price",
+        "plan.max_users",
+        "plan.max_receptions",
+        "plan.max_budgets"
+      )
       .first();
+  }
+
+  /**
+   * Lista todos los planes activos disponibles
+   */
+  static async listPlans() {
+    return await db("plan").where({ status: "ACTIVE" }).orderBy("price", "asc");
+  }
+
+  /**
+   * Actualiza el plan de suscripción de una empresa
+   * @param {number} company_id 
+   * @param {number} new_plan_id 
+   */
+  static async updatePlan(company_id, new_plan_id) {
+    return await db.transaction(async (trx) => {
+      // 1. Verificar que el nuevo plan existe y está activo
+      const newPlan = await trx("plan")
+        .where({ id: new_plan_id, status: "ACTIVE" })
+        .first();
+      
+      if (!newPlan) {
+        throw new Error("El plan seleccionado no existe o no está activo.");
+      }
+
+      // 2. Obtener la suscripción actual
+      const currentSub = await trx("subscription")
+        .where({ company_id, status: "ACTIVE" })
+        .first();
+
+      if (currentSub) {
+        // Si es el mismo plan, no hacer nada (o lanzar error opcionalmente)
+        if (currentSub.plan_id === parseInt(new_plan_id, 10)) {
+          throw new Error("Su empresa ya se encuentra en este plan.");
+        }
+
+        // 3. Desactivar la suscripción actual (Set end_date y status)
+        await trx("subscription")
+          .where({ id: currentSub.id })
+          .update({
+            status: "INACTIVE",
+            end_date: trx.fn.now(),
+            updated_at: trx.fn.now()
+          });
+      }
+
+      // 4. Crear la nueva suscripción
+      const [newSubId] = await trx("subscription").insert({
+        company_id,
+        plan_id: new_plan_id,
+        start_date: trx.fn.now(),
+        status: "ACTIVE",
+        notes: currentSub ? `Upgrade/Downgrade desde plan ${currentSub.plan_id}` : "Nueva suscripción"
+      }).returning("id");
+
+      return {
+        id: newSubId,
+        plan_name: newPlan.name,
+        message: `Plan actualizado correctamente a ${newPlan.name}`
+      };
+    });
   }
 }

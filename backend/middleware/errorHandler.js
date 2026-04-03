@@ -16,5 +16,10 @@ export const errorHandler = (err, req, res, _next) => {
   const status = err.statusCode || err.status || 500;
   const message = err.message || "Error interno del servidor";
 
-  res.status(status).json({ error: message });
+  res.status(status).json({
+    error: {
+      code: status,
+      message: message,
+    },
+  });
 };

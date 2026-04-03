@@ -20,7 +20,9 @@ export const listArchivedReceptions = async (req, res) => {
 export const getReception = async (req, res) => {
   const reception = await ReceptionService.getReception(req.params.id, req.user.company_id);
   if (!reception)
-    return res.status(404).json({ error: "Recepción no encontrada" });
+    return res.status(404).json({ 
+      error: { code: 404, message: "Recepción no encontrada" } 
+    });
   res.json(reception);
 };
 

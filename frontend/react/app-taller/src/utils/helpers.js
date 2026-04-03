@@ -93,10 +93,11 @@ export function getFriendlyErrorMessage(err) {
   }
   if (
     msg.includes("usuario ya existe") ||
+    msg.includes("ya existe un usuario con ese nombre") ||
     msg.includes("username exists") ||
     msg.includes("unique")
   ) {
-    return "El nombre de usuario ya está en uso. Intente con otro.";
+    return "Ya existe un usuario con ese nombre en esta empresa. Elija un nombre diferente.";
   }
   if (msg.includes("user not found") || msg.includes("usuario no encontrado")) {
     return "El usuario no existe.";

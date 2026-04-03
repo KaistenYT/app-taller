@@ -60,6 +60,7 @@ export default function ReceptionFormPage() {
     status: "PENDIENTE",
   });
 
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
@@ -100,21 +101,55 @@ export default function ReceptionFormPage() {
     }
   }, [id, isEdit]);
 
+  const validateField = (name, value) => {
+    let error = "";
+    switch (name) {
+      case "client_idNumber":
+        if (!value) error = "La identificación es obligatoria";
+        break;
+      case "client_name":
+        if (!value) error = "El nombre es obligatorio";
+        break;
+      case "client_phone":
+        if (!value) error = "El teléfono es obligatorio";
+        break;
+      case "client_email":
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          error = "Formato de email inválido";
+        }
+        break;
+      case "device_description":
+        if (!value) error = "La descripción del equipo es obligatoria";
+        break;
+      case "defect":
+        if (!value) error = "El reporte de falla es obligatorio";
+        break;
+      default:
+        break;
+    }
+    setErrors((prev) => ({ ...prev, [name]: error }));
+    return error;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (
-      !form.client_name ||
-      !form.client_idNumber ||
-      !form.device_description ||
-      !form.defect
-    ) {
+    
+    // Validar todos los campos antes de enviar
+    const newErrors = {};
+    Object.keys(form).forEach((key) => {
+      const error = validateField(key, form[key]);
+      if (error) newErrors[key] = error;
+    });
+
+    if (Object.values(newErrors).some((error) => error)) {
       setToast({
-        message: "Por favor completa los campos obligatorios",
+        message: "Por favor corrige los errores en el formulario",
         type: "warning",
       });
       return;
@@ -150,12 +185,21 @@ export default function ReceptionFormPage() {
     try {
       const client = await getClient(form.client_idNumber);
       if (client) {
+        const updatedFields = {
+          client_name: client.name || form.client_name,
+          client_phone: client.phone || form.client_phone,
+          client_email: client.email || form.client_email,
+        };
         setForm((prev) => ({
           ...prev,
-          client_name: client.name || prev.client_name,
-          client_phone: client.phone || prev.client_phone,
-          client_email: client.email || prev.client_email,
+          ...updatedFields,
         }));
+        
+        // Validar campos autocompletados
+        Object.entries(updatedFields).forEach(([name, value]) => {
+          validateField(name, value);
+        });
+
         setToast({
           message: "Cliente encontrado y datos cargados",
           type: "success",
@@ -215,7 +259,7 @@ export default function ReceptionFormPage() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {/* Cliente y Equipo */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="border-none shadow-xl glass-card overflow-hidden">
@@ -240,14 +284,19 @@ export default function ReceptionFormPage() {
                     className={cn(
                       "pl-10 bg-muted/20 border-transparent focus:bg-background transition-all",
                       searchingClient && "opacity-50",
+                      errors.client_idNumber && "border-destructive ring-destructive focus:border-destructive"
                     )}
                     placeholder="Ej: V-12345678"
-                    required
                   />
                   {searchingClient && (
                     <RotateCw className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin" />
                   )}
                 </div>
+                {errors.client_idNumber && (
+                  <p className="text-[10px] text-destructive font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1">
+                    {errors.client_idNumber}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -260,11 +309,18 @@ export default function ReceptionFormPage() {
                     name="client_name"
                     value={form.client_name}
                     onChange={handleChange}
-                    className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                    className={cn(
+                      "pl-10 bg-muted/20 border-transparent focus:bg-background transition-all",
+                      errors.client_name && "border-destructive ring-destructive focus:border-destructive"
+                    )}
                     placeholder="Ej: Juan Pérez"
-                    required
                   />
                 </div>
+                {errors.client_name && (
+                  <p className="text-[10px] text-destructive font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1">
+                    {errors.client_name}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -278,11 +334,18 @@ export default function ReceptionFormPage() {
                       name="client_phone"
                       value={form.client_phone}
                       onChange={handleChange}
-                      className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                      className={cn(
+                        "pl-10 bg-muted/20 border-transparent focus:bg-background transition-all",
+                        errors.client_phone && "border-destructive ring-destructive focus:border-destructive"
+                      )}
                       placeholder="0412..."
-                      required
                     />
                   </div>
+                  {errors.client_phone && (
+                    <p className="text-[10px] text-destructive font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1">
+                      {errors.client_phone}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
@@ -295,10 +358,18 @@ export default function ReceptionFormPage() {
                       type="email"
                       value={form.client_email}
                       onChange={handleChange}
-                      className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                      className={cn(
+                        "pl-10 bg-muted/20 border-transparent focus:bg-background transition-all",
+                        errors.client_email && "border-destructive ring-destructive focus:border-destructive"
+                      )}
                       placeholder="email@ejemplo.com"
                     />
                   </div>
+                  {errors.client_email && (
+                    <p className="text-[10px] text-destructive font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1">
+                      {errors.client_email}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -322,11 +393,18 @@ export default function ReceptionFormPage() {
                     name="device_description"
                     value={form.device_description}
                     onChange={handleChange}
-                    className="pl-10 bg-muted/20 border-transparent focus:bg-background transition-all"
+                    className={cn(
+                      "pl-10 bg-muted/20 border-transparent focus:bg-background transition-all",
+                      errors.device_description && "border-destructive ring-destructive focus:border-destructive"
+                    )}
                     placeholder="Ej: iPhone 13 Pro Max Azul"
-                    required
                   />
                 </div>
+                {errors.device_description && (
+                  <p className="text-[10px] text-destructive font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1">
+                    {errors.device_description}
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
@@ -384,11 +462,18 @@ export default function ReceptionFormPage() {
                   name="defect"
                   value={form.defect}
                   onChange={handleChange}
-                  className="pl-10 min-h-[120px] bg-muted/20 border-transparent focus:bg-background transition-all resize-none"
+                  className={cn(
+                    "pl-10 min-h-[120px] bg-muted/20 border-transparent focus:bg-background transition-all resize-none",
+                    errors.defect && "border-destructive ring-destructive focus:border-destructive"
+                  )}
                   placeholder="Describe detalladamente el problema que reporta el cliente..."
-                  required
                 />
               </div>
+              {errors.defect && (
+                <p className="text-[10px] text-destructive font-bold uppercase tracking-wider animate-in fade-in slide-in-from-top-1">
+                  {errors.defect}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

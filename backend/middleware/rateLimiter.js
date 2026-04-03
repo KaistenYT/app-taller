@@ -7,7 +7,10 @@ export const apiRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    error: "Demasiadas peticiones desde esta IP, por favor inténtelo de nuevo más tarde.",
+    error: {
+      code: 429,
+      message: "Demasiadas peticiones desde esta IP, por favor inténtelo de nuevo más tarde.",
+    }
   },
   handler: (req, res, next, options) => {
     logger.warn(`Límite de peticiones alcanzado por IP: ${req.ip}`);

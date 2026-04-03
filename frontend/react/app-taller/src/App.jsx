@@ -19,6 +19,7 @@ import BudgetListPage from "./pages/BudgetListPage";
 import BudgetLogPage from "./pages/BudgetLogPage";
 import SettingsPage from "./pages/SettingsPage";
 import BudgetDashboardPage from "./pages/BudgetDashboardPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
   return (
@@ -58,8 +59,8 @@ export default function App() {
                 </Route>
               </Route>
 
-              {/* Ruta por defecto → landing */}
-              <Route path="*" element={<LandingPage />} />
+              {/* Ruta por defecto → 404 */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </HashRouter>
         </SocketProvider>

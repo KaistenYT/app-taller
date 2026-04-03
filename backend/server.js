@@ -27,9 +27,10 @@ const httpServer = createServer(app);
 const PORT = config.port;
 
 // 1. CORS DEBE IR PRIMERO PARA EVITAR BLOQUEOS EN PREFLIGHT
+const allowedOrigins = config.corsOrigin.split(",").map(o => o.trim());
 app.use(
   cors({
-    origin: config.corsOrigin,
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -64,7 +65,12 @@ const limiter = rateLimit({
   limit: 500, // Aumentado para evitar bloqueos durante pruebas intensas
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  message: { error: "Demasiadas peticiones, intente de nuevo más tarde." },
+  message: {
+    error: {
+      code: 429,
+      message: "Demasiadas peticiones, intente de nuevo más tarde.",
+    },
+  },
   skipSuccessfulRequests: false,
 });
 app.use("/api/", limiter);

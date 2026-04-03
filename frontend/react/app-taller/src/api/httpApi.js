@@ -61,9 +61,13 @@ const request = async (promise) => {
     const response = await promise;
     return response.data;
   } catch (error) {
-    throw new Error(
-      error.response?.data?.error || error.message || "Error de red",
-    );
+    // El backend devuelve { error: { code, message } } — extraemos el mensaje anidado
+    const serverError = error.response?.data?.error;
+    const message =
+      (typeof serverError === "object" ? serverError?.message : serverError) ||
+      error.message ||
+      "Error de red";
+    throw new Error(message);
   }
 };
 
@@ -173,14 +177,18 @@ export const updateBudgetPayment = ({ id, data }) =>
   request(api.put(`/budgets/${id}/payment`, data));
 
 // --- Ventanas / Compatibilidad (Opcional, ahora la app manejará rutas web) ---
+const getBaseUrl = () => {
+  const base = window.location.origin + window.location.pathname;
+  return base.endsWith('/') ? base : base + '/';
+};
+
 export const openReport = (reportId) => {
-  // En vez de ipcRenderer, abrimos una nueva pestaña (o el router lo manejará vía link)
-  window.open(`/#/report/${reportId}`, "_blank");
+  window.open(`${getBaseUrl()}#/report/${reportId}`, "_blank");
   return Promise.resolve({ ok: true });
 };
 
 export const openBudgetWindow = (budgetId) => {
-  window.open(`/#/budget/${budgetId}`, "_blank");
+  window.open(`${getBaseUrl()}#/budget/${budgetId}`, "_blank");
   return Promise.resolve({ ok: true });
 };
 
@@ -190,3 +198,7 @@ export const registerCompany = (data) =>
 export const getMyCompany = () => request(api.get("/companies/me"));
 export const updateMyCompany = (data) =>
   request(api.put("/companies/me", data));
+export const getSubscription = () => request(api.get("/companies/subscription"));
+export const listPlans = () => request(api.get("/companies/plans"));
+export const updatePlan = (planId) =>
+  request(api.patch("/companies/subscription", { planId }));

@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { getMyCompany, updateMyCompany } from "../api/httpApi";
+import { 
+  getMyCompany, 
+  updateMyCompany, 
+  getSubscription, 
+  listPlans, 
+  updatePlan 
+} from "../api/httpApi";
 import { getFriendlyErrorMessage } from "../utils/helpers";
 import { useAuth } from "../context/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -14,7 +20,12 @@ import {
   Save, 
   RotateCw, 
   Fingerprint,
-  MessageSquareQuote
+  MessageSquareQuote,
+  Zap,
+  CheckCircle2,
+  Users,
+  Wrench,
+  Calculator
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -22,12 +33,16 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import Toast from "../components/shared/Toast";
+import { Badge } from "../components/ui/badge";
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const [company, setCompany] = useState(null);
+  const [subscription, setSubscription] = useState(null);
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updatingPlan, setUpdatingPlan] = useState(false);
   const [toast, setToast] = useState({ message: "", type: "success" });
 
   // Redirigir si no es admin
@@ -46,19 +61,27 @@ export default function SettingsPage() {
     currencySymbol: "$",
   });
 
-  const loadCompany = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getMyCompany();
-      setCompany(data);
+      const [companyData, subData, plansData] = await Promise.all([
+        getMyCompany(),
+        getSubscription(),
+        listPlans()
+      ]);
+      
+      setCompany(companyData);
+      setSubscription(subData);
+      setPlans(plansData);
+
       setForm({
-        name: data.name || "",
-        rif: data.rif || "",
-        phone: data.phone || "",
-        address: data.address || "",
-        email: data.email || "",
-        terms: data.terms || "",
-        currencySymbol: data.currency_symbol || "$",
+        name: companyData.name || "",
+        rif: companyData.rif || "",
+        phone: companyData.phone || "",
+        address: companyData.address || "",
+        email: companyData.email || "",
+        terms: companyData.terms || "",
+        currencySymbol: companyData.currency_symbol || "$",
       });
     } catch (err) {
       setToast({ message: getFriendlyErrorMessage(err), type: "danger" });
@@ -68,8 +91,8 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    loadCompany();
-  }, [loadCompany]);
+    loadData();
+  }, [loadData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,7 +100,7 @@ export default function SettingsPage() {
   };
 
   async function handleSubmit(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!form.name.trim()) {
       setToast({ message: "El nombre del taller es obligatorio", type: "warning" });
       return;
@@ -100,6 +123,23 @@ export default function SettingsPage() {
       setToast({ message: getFriendlyErrorMessage(err), type: "danger" });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleUpdatePlan(planId) {
+    if (subscription?.plan_id === planId) return;
+    
+    setUpdatingPlan(true);
+    try {
+      const result = await updatePlan(planId);
+      setToast({ message: result.message, type: "success" });
+      // Recargar suscripción
+      const newSub = await getSubscription();
+      setSubscription(newSub);
+    } catch (err) {
+      setToast({ message: getFriendlyErrorMessage(err), type: "danger" });
+    } finally {
+      setUpdatingPlan(false);
     }
   }
 
@@ -296,6 +336,105 @@ export default function SettingsPage() {
           </Card>
         </div>
       </form>
+
+      {/* Subscription Management */}
+      <div className="space-y-6 pt-4">
+        <div className="space-y-1">
+          <h3 className="text-2xl font-black tracking-tight flex items-center gap-3">
+            <Zap className="h-7 w-7 text-amber-500 fill-amber-500/20" />
+            Plan de Suscripción
+          </h3>
+          <p className="text-muted-foreground font-medium pl-10">
+            Gestiona los límites de tu cuenta y expande las capacidades de tu negocio.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {plans.map((plan) => {
+            const isCurrent = subscription?.plan_id === plan.id;
+            return (
+              <Card 
+                key={plan.id} 
+                className={`relative border-2 overflow-hidden transition-all duration-300 ${
+                  isCurrent 
+                    ? "border-primary shadow-xl shadow-primary/10 bg-primary/5 scale-[1.02]" 
+                    : "border-border/50 hover:border-primary/40 hover:shadow-lg bg-card"
+                }`}
+              >
+                {isCurrent && (
+                  <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 uppercase tracking-wider">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Plan Actual
+                  </div>
+                )}
+                
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex flex-col gap-1">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{plan.name}</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black">{plan.price === 0 ? "Gratis" : `${form.currencySymbol}${plan.price}`}</span>
+                      {plan.price > 0 && <span className="text-xs font-medium text-muted-foreground">/mes</span>}
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 text-sm font-medium">
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground">Usuarios</span>
+                        <span>{plan.max_users === -1 ? "Ilimitados" : `${plan.max_users} usuario(s)`}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 text-sm font-medium">
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Wrench className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground">Recepciones</span>
+                        <span>{plan.max_receptions === -1 ? "Ilimitadas" : `${plan.max_receptions} activas`}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 text-sm font-medium">
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Calculator className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground">Presupuestos</span>
+                        <span>{plan.max_budgets === -1 ? "Ilimitados" : `${plan.max_budgets} por mes`}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => handleUpdatePlan(plan.id)}
+                    disabled={isCurrent || updatingPlan}
+                    variant={isCurrent ? "outline" : "default"}
+                    className={`w-full rounded-xl font-bold transition-all ${
+                      isCurrent 
+                        ? "border-primary/20 text-primary hover:bg-transparent cursor-default" 
+                        : "shadow-md hover:shadow-lg active:scale-[0.97]"
+                    }`}
+                  >
+                    {updatingPlan && !isCurrent ? (
+                      <RotateCw className="h-4 w-4 animate-spin" />
+                    ) : isCurrent ? (
+                      "Activo"
+                    ) : (
+                      "Cambiar a este Plan"
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
 
       <Toast
         message={toast.message}

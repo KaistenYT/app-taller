@@ -2,7 +2,9 @@ import Joi from "joi";
 import logger from "../utils/logger.js";
 
 const envSchema = Joi.object({
-  NODE_ENV: Joi.string().valid("development", "production", "test").default("development"),
+  NODE_ENV: Joi.string()
+    .valid("development", "production", "test")
+    .default("development"),
   PORT: Joi.number().default(3001),
   DB_HOST: Joi.string().required(),
   DB_PORT: Joi.number().default(5432),
@@ -10,7 +12,9 @@ const envSchema = Joi.object({
   DB_PASSWORD: Joi.string().allow("").required(),
   DB_NAME: Joi.string().required(),
   ACCESS_TOKEN_SECRET: Joi.string().min(32).required(),
-  CORS_ORIGIN: Joi.string().uri().default("http://localhost:5173"),
+  CORS_ORIGIN: Joi.string().default(
+    "http://localhost:5173,http://localhost:8080,http://localhost:3000,http://localhost:3001",
+  ),
   REDIS_HOST: Joi.string().default("127.0.0.1"),
   REDIS_PORT: Joi.number().default(6379),
   REDIS_PASSWORD: Joi.string().allow("").default(""),
