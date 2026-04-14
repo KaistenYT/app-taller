@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as budgetController from "../controllers/budgetController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
-import { checkSubscriptionQuota } from "../middleware/subscriptionMiddleware.js";
 
 const router = Router();
 
@@ -14,7 +13,7 @@ router.get("/financial", budgetController.listBudgetsFinancial);
 
 // Rutas existentes
 router.get("/", budgetController.listBudgets);
-router.post("/", checkSubscriptionQuota("max_budgets"), budgetController.createBudget);
+router.post("/", budgetController.createBudget);
 router.get("/logs/all", budgetController.getAllBudgetLogs);
 
 router.get("/reception/:receptionId", budgetController.getBudgetByReception);

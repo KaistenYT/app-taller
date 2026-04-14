@@ -2,14 +2,9 @@ import db from "../db/dbConfig.js";
 import { User } from "../model/user.js";
 import { userSchema } from "../validation/schemas.js";
 import logger from "../utils/logger.js";
-import { SubscriptionService } from "./subscriptionService.js";
 
 export class UserService {
-  static async registerUser(userData, company_id) {
-    if (!company_id) {
-      throw new Error("company_id es requerido para registrar un usuario");
-    }
-
+  static async registerUser(userData) {
     const { error, value } = userSchema.register.validate(userData);
     if (error) {
       throw new Error(`Validación fallida: ${error.details[0].message}`);
@@ -23,12 +18,8 @@ export class UserService {
 
     const trx = await db.transaction();
     try {
-      // 1. Verificar límites del plan SaaS
-      await SubscriptionService.checkQuota(company_id, "max_users", trx);
-
-      // 2. Crear usuario si pasa la validación
       const user = await User.create(
-        { username, password, role, company_id },
+        { username, password, role },
         trx,
       );
       await trx.commit();
@@ -51,12 +42,10 @@ export class UserService {
     if (!isValid) {
       throw new Error("Credenciales inválidas");
     }
-    // Retornamos info segura (sin password)
     return {
       id: user.id,
       username: user.username,
       role: user.role,
-      company_id: user.company_id,
     };
   }
 
@@ -67,7 +56,6 @@ export class UserService {
       id: user.id,
       username: user.username,
       role: user.role,
-      company_id: user.company_id,
     };
   }
 
@@ -101,11 +89,11 @@ export class UserService {
     }
   }
 
-  static async listUsers(requestingRole, company_id) {
+  static async listUsers(requestingRole) {
     if (requestingRole !== "admin") {
       throw new Error("Solo administradores pueden listar usuarios");
     }
-    return await User.getAll(company_id);
+    return await User.getAll();
   }
 
   // Permite cambiar username y/o role (no contraseña — usar resetPassword)

@@ -18,8 +18,7 @@ export const createBudget = async (req, res) => {
     const budget = await BudgetService.createBudget(
       req.body,
       req.user.id,
-      req.body.reason,
-      req.user.company_id
+      req.body.reason
     );
     res.status(201).json(budget);
   } catch (err) {
@@ -29,7 +28,7 @@ export const createBudget = async (req, res) => {
 
 export const listBudgets = async (req, res) => {
   try {
-    const budgets = await BudgetService.listBudgets(req.user.company_id);
+    const budgets = await BudgetService.listBudgets();
     res.json(budgets);
   } catch (err) {
     handleError(res, err);
@@ -38,10 +37,7 @@ export const listBudgets = async (req, res) => {
 
 export const getBudgetByReception = async (req, res) => {
   try {
-    const budget = await BudgetService.getBudgetByReception(
-      req.params.receptionId,
-      req.user.company_id
-    );
+    const budget = await BudgetService.getBudgetByReception(req.params.receptionId);
     if (!budget) return res.json(null);
     res.json(budget);
   } catch (err) {
@@ -51,10 +47,7 @@ export const getBudgetByReception = async (req, res) => {
 
 export const getBudgetDetails = async (req, res) => {
   try {
-    const budget = await BudgetService.getBudgetWithDetails(
-      req.params.id,
-      req.user.company_id
-    );
+    const budget = await BudgetService.getBudgetWithDetails(req.params.id);
     if (!budget) return res.status(404).json({
       error: { code: 404, message: "Presupuesto no encontrado" },
     });
@@ -70,8 +63,7 @@ export const updateBudget = async (req, res) => {
       req.params.id,
       req.body,
       req.user.id,
-      req.body.reason,
-      req.user.company_id
+      req.body.reason
     );
     res.json(budget);
   } catch (err) {
@@ -84,8 +76,7 @@ export const deleteBudget = async (req, res) => {
     await BudgetService.deleteBudget(
       req.params.id,
       req.user.id,
-      req.body.reason,
-      req.user.company_id
+      req.body.reason
     );
     res.json({ ok: true });
   } catch (err) {
@@ -95,10 +86,7 @@ export const deleteBudget = async (req, res) => {
 
 export const getBudgetLog = async (req, res) => {
   try {
-    const log = await BudgetService.getBudgetLog(
-      req.params.id,
-      req.user.company_id
-    );
+    const log = await BudgetService.getBudgetLog(req.params.id);
     res.json(log);
   } catch (err) {
     handleError(res, err);
@@ -108,7 +96,7 @@ export const getBudgetLog = async (req, res) => {
 /** GET /api/budgets/logs — Obtener TODO el historial de auditoría (solo admin) */
 export const getAllBudgetLogs = async (req, res) => {
   try {
-    const logs = await BudgetService.getAllBudgetLogs(req.user.company_id);
+    const logs = await BudgetService.getAllBudgetLogs();
     res.json(logs);
   } catch (err) {
     handleError(res, err);
@@ -121,10 +109,7 @@ export const getBudgetDashboard = async (req, res) => {
   try {
     const { dateFrom, dateTo } = req.query;
     const filters = { dateFrom: dateFrom || null, dateTo: dateTo || null };
-    const dashboard = await BudgetService.getBudgetDashboard(
-      req.user.company_id,
-      filters
-    );
+    const dashboard = await BudgetService.getBudgetDashboard(filters);
     res.json(dashboard);
   } catch (err) {
     handleError(res, err);
@@ -140,10 +125,7 @@ export const listBudgetsFinancial = async (req, res) => {
       limit: Number(req.query.limit) || 20,
       offset: Number(req.query.offset) || 0,
     };
-    const budgets = await BudgetService.listBudgetsWithFinancialDetails(
-      req.user.company_id,
-      filters
-    );
+    const budgets = await BudgetService.listBudgetsWithFinancialDetails(filters);
     res.json(budgets);
   } catch (err) {
     handleError(res, err);
@@ -163,8 +145,7 @@ export const updateBudgetPayment = async (req, res) => {
     const updated = await BudgetService.updateBudgetPayment(
       req.params.id,
       { paid_amount, payment_status, reason },
-      req.user.id,
-      req.user.company_id
+      req.user.id
     );
     res.json(updated);
   } catch (err) {

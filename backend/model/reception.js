@@ -1,17 +1,11 @@
 import db, { localNow } from "../db/dbConfig.js";
 
 export class Reception {
-  static async getAll(company_id = null) {
+  static async getAll() {
     try {
       const query = db("reception as r")
         .whereNull("r.deleted_at")
-        .leftJoin("client as c", function () {
-          this.on("r.client_idNumber", "=", "c.idNumber").andOn(
-            "r.company_id",
-            "=",
-            "c.company_id",
-          );
-        })
+        .leftJoin("client as c", "r.client_idNumber", "=", "c.idNumber")
         .leftJoin("device as d", "r.device_id", "d.id")
         .select(
           "r.id",
@@ -25,24 +19,17 @@ export class Reception {
           "r.created_at",
           "r.archived",
         );
-      if (company_id) query.where("r.company_id", company_id);
       return await query;
     } catch (error) {
       throw new Error("Error al obtener recepciones");
     }
   }
 
-  static async getAllArchived(company_id = null) {
+  static async getAllArchived() {
     try {
       const query = db("reception as r")
         .whereNull("r.deleted_at")
-        .leftJoin("client as c", function () {
-          this.on("r.client_idNumber", "=", "c.idNumber").andOn(
-            "r.company_id",
-            "=",
-            "c.company_id",
-          );
-        })
+        .leftJoin("client as c", "r.client_idNumber", "=", "c.idNumber")
         .leftJoin("device as d", "r.device_id", "d.id")
         .where("r.archived", true)
         .select(
@@ -56,7 +43,6 @@ export class Reception {
           "r.created_at",
           "r.archived",
         );
-      if (company_id) query.where("r.company_id", company_id);
       return await query;
     } catch (error) {
       throw new Error("Error al obtener recepciones archivadas");
@@ -64,17 +50,11 @@ export class Reception {
   }
 
   // Retorna recepción con datos enriquecidos de cliente, equipo y reportes asociados
-  static async getDetailedById(id, company_id = null) {
+  static async getDetailedById(id) {
     try {
       const query = db("reception as r")
         .whereNull("r.deleted_at")
-        .leftJoin("client as c", function () {
-          this.on("r.client_idNumber", "=", "c.idNumber").andOn(
-            "r.company_id",
-            "=",
-            "c.company_id",
-          );
-        })
+        .leftJoin("client as c", "r.client_idNumber", "=", "c.idNumber")
         .leftJoin("device as d", "r.device_id", "d.id")
         .where("r.id", id)
         .select(
@@ -85,7 +65,6 @@ export class Reception {
           "d.features as device_features",
           "d.serial_number as device_serial",
         );
-      if (company_id) query.where("r.company_id", company_id);
       const rec = await query.first();
 
       if (!rec) return null;
@@ -104,11 +83,10 @@ export class Reception {
     }
   }
 
-  static async getById(id, company_id = null, transaction = null) {
+  static async getById(id, transaction = null) {
     try {
       const knexInstance = transaction || db;
       const query = knexInstance("reception").where({ id }).whereNull("deleted_at");
-      if (company_id) query.where({ company_id });
       const rec = await query.first();
       return rec || null;
     } catch (error) {
@@ -137,14 +115,14 @@ export class Reception {
     }
   }
 
-  static async update(id, company_id, data) {
+  static async update(id, data) {
     const trx = await db.transaction();
     try {
       const payload = { ...data };
       payload.updated_at = localNow();
 
-      await trx("reception").where({ id, company_id }).update(payload);
-      const updated = await trx("reception").where({ id, company_id }).first();
+      await trx("reception").where({ id }).update(payload);
+      const updated = await trx("reception").where({ id }).first();
 
       await trx.commit();
       return updated;
@@ -154,30 +132,30 @@ export class Reception {
     }
   }
 
-  static async archive(id, company_id) {
+  static async archive(id) {
     try {
       return await db("reception")
-        .where({ id, company_id })
+        .where({ id })
         .update({ archived: true, updated_at: localNow() });
     } catch (error) {
       throw new Error("Error al archivar recepción");
     }
   }
 
-  static async restore(id, company_id) {
+  static async restore(id) {
     try {
       return await db("reception")
-        .where({ id, company_id })
+        .where({ id })
         .update({ archived: false, updated_at: localNow() });
     } catch (error) {
       throw new Error("Error al restaurar recepción");
     }
   }
 
-  static async delete(id, company_id) {
+  static async delete(id) {
     try {
       return await db("reception")
-        .where({ id, company_id })
+        .where({ id })
         .update({ deleted_at: db.fn.now() });
     } catch (error) {
       throw new Error("Error al eliminar recepción");

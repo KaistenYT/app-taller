@@ -2,19 +2,13 @@ import db from "../db/dbConfig.js";
 import logger from "../utils/logger.js";
 
 export class Reports {
-  static async getAll(company_id = null, trx = null) {
+  static async getAll(trx = null) {
     const q = trx || db;
     try {
       const query = q("report")
         .whereNull("report.deleted_at")
         .leftJoin("reception", "report.reception_id", "reception.id")
-        .leftJoin("client", function () {
-          this.on("reception.client_idNumber", "=", "client.idNumber").andOn(
-            "reception.company_id",
-            "=",
-            "client.company_id",
-          );
-        })
+        .leftJoin("client", "reception.client_idNumber", "=", "client.idNumber")
         .leftJoin("device", "reception.device_id", "device.id")
         .select(
           "report.*",
@@ -26,26 +20,19 @@ export class Reports {
           "reception.status as reception_status",
         )
         .orderBy("report.created_at", "desc");
-      if (company_id) query.where("report.company_id", company_id);
       return await query;
     } catch (err) {
       throw new Error("Failed to fetch reports");
     }
   }
 
-  static async getById(id, company_id = null, trx = null) {
+  static async getById(id, trx = null) {
     const q = trx || db;
     try {
       const query = q("report")
         .whereNull("report.deleted_at")
         .leftJoin("reception", "report.reception_id", "reception.id")
-        .leftJoin("client", function () {
-          this.on("reception.client_idNumber", "=", "client.idNumber").andOn(
-            "reception.company_id",
-            "=",
-            "client.company_id",
-          );
-        })
+        .leftJoin("client", "reception.client_idNumber", "=", "client.idNumber")
         .leftJoin("device", "reception.device_id", "device.id")
         .select(
           "report.*",
@@ -60,7 +47,6 @@ export class Reports {
           "reception.repair as reception_repair",
         )
         .where({ "report.id": id });
-      if (company_id) query.where("report.company_id", company_id);
       return await query.first();
     } catch (err) {
       throw new Error("Failed to fetch report");
@@ -79,11 +65,10 @@ export class Reports {
     }
   }
 
-  static async create({ reception_id, description, company_id }, trx = null) {
+  static async create({ reception_id, description }, trx = null) {
     const q = trx || db;
     try {
       const payload = { reception_id, description, created_at: q.fn.now() };
-      if (company_id) payload.company_id = company_id;
       const [row] = await q("report").insert(payload).returning("*");
       return row;
     } catch (err) {
@@ -92,11 +77,11 @@ export class Reports {
     }
   }
 
-  static async update(id, company_id, { description }, trx = null) {
+  static async update(id, { description }, trx = null) {
     const q = trx || db;
     try {
       const [row] = await q("report")
-        .where({ id, company_id })
+        .where({ id })
         .whereNull("deleted_at")
         .update({
           description,
@@ -109,11 +94,11 @@ export class Reports {
     }
   }
 
-  static async delete(id, company_id, trx = null) {
+  static async delete(id, trx = null) {
     const q = trx || db;
     try {
       await q("report")
-        .where({ id, company_id })
+        .where({ id })
         .update({ deleted_at: q.fn.now() });
     } catch (err) {
       throw new Error("Failed to delete report");

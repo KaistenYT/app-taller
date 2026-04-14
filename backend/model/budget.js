@@ -12,36 +12,28 @@ export class Budget {
     if (payload.items !== undefined) payload.items = toJsonb(payload.items);
     const [row] = await q("budget").insert(payload).returning("id");
     const id = row.id ?? row;
-    return await this.getById(id, data.company_id, trx);
+    return await this.getById(id, trx);
   }
 
-  static async getById(id, company_id = null, trx = null) {
+  static async getById(id, trx = null) {
     const q = trx || db;
     const query = q("budget").where({ id }).whereNull("deleted_at");
-    if (company_id) query.where({ company_id });
     return parseItems(await query.first());
   }
 
-  static async getByReceptionId(reception_id, company_id = null, trx = null) {
+  static async getByReceptionId(reception_id, trx = null) {
     const q = trx || db;
     const query = q("budget").where({ reception_id }).whereNull("deleted_at");
-    if (company_id) query.where({ company_id });
     return parseItems(await query.first());
   }
 
   // ── OPTIMIZACIÓN: Obtener presupuesto por recepción con detalles (evita N+1) ─────────────────────────────────
-  static async getByReceptionIdWithDetails(reception_id, company_id = null, trx = null) {
+  static async getByReceptionIdWithDetails(reception_id, trx = null) {
     const q = trx || db;
     const query = q("budget as b")
       .whereNull("b.deleted_at")
       .leftJoin("reception as r", "b.reception_id", "r.id")
-      .leftJoin("client as c", function () {
-        this.on("r.client_idNumber", "=", "c.idNumber").andOn(
-          "r.company_id",
-          "=",
-          "c.company_id",
-        );
-      })
+      .leftJoin("client as c", "r.client_idNumber", "=", "c.idNumber")
       .where({ "b.reception_id": reception_id })
       .select(
         "b.*",
@@ -49,23 +41,21 @@ export class Budget {
         "c.name as client_name",
         "c.phone as client_phone",
       );
-    if (company_id) query.where({ "b.company_id": company_id });
     return parseItems(await query.first());
   }
 
   // ── DASHBOARD: Estadísticas financieras de presupuestos ─────────────────────────────────────────────────────
-  static async getFinancialDashboard(company_id, filters = {}) {
+  static async getFinancialDashboard(filters = {}) {
     const q = db;
-    
+
     // Filtros por fecha
     const dateFrom = filters.dateFrom || null;
     const dateTo = filters.dateTo || null;
-    
-    // Query base para presupuestos de la empresa
+
+    // Query base para presupuestos
     const baseQuery = q("budget as b")
-      .where({ "b.company_id": company_id })
       .whereNull("b.deleted_at");
-    
+
     if (dateFrom) baseQuery.where("b.created_at", ">=", dateFrom);
     if (dateTo) baseQuery.where("b.created_at", "<=", dateTo);
 
@@ -81,7 +71,7 @@ export class Budget {
     ] = await Promise.all([
       // Total de presupuestos
       baseQuery.clone().count("* as count").first(),
-      
+
       // Presupuestos aprobados
       baseQuery.clone()
         .where({ status: "APROBADO" })
@@ -89,14 +79,14 @@ export class Budget {
         .sum("total_amount as total")
         .sum("paid_amount as paid")
         .first(),
-      
+
       // Presupuestos pendientes de pago
       baseQuery.clone()
         .where({ payment_status: "PENDIENTE" })
         .count("* as count")
         .sum("total_amount as total")
         .first(),
-      
+
       // Presupuestos con pago parcial
       baseQuery.clone()
         .where({ payment_status: "PARCIAL" })
@@ -104,7 +94,7 @@ export class Budget {
         .sum("total_amount as total")
         .sum("paid_amount as paid")
         .first(),
-      
+
       // Presupuestos pagados
       baseQuery.clone()
         .where({ payment_status: "PAGADO" })
@@ -112,7 +102,7 @@ export class Budget {
         .sum("total_amount as total")
         .sum("paid_amount as paid")
         .first(),
-      
+
       // Presupuestos rechazados
       baseQuery.clone()
         .where({ status: "RECHAZADO" })
@@ -128,9 +118,9 @@ export class Budget {
     // Calcular métricas clave
     const totalApproved = parseFloat(approvedBudgets?.total || 0);
     const totalPaidGlobal = parseFloat(paidBudgetsGlobal?.total_paid || 0);
-    const totalPending = parseFloat(pendingPayment?.total || 0) + 
+    const totalPending = parseFloat(pendingPayment?.total || 0) +
                          (parseFloat(partialPayment?.total || 0) - parseFloat(partialPayment?.paid || 0));
-    
+
     // Lo que falta por cobrar de lo que ya fue aprobado
     const pendingToCollect = Math.max(0, totalApproved - parseFloat(approvedBudgets?.paid || 0));
 
@@ -173,17 +163,11 @@ export class Budget {
   }
 
   // ── DASHBOARD: Listar presupuestos con estado financiero para tabla ────────────────────────────────────────
-  static async listWithFinancialDetails(company_id = null, filters = {}) {
+  static async listWithFinancialDetails(filters = {}) {
     const query = db("budget as b")
       .whereNull("b.deleted_at")
       .leftJoin("reception as r", "b.reception_id", "r.id")
-      .leftJoin("client as c", function () {
-        this.on("r.client_idNumber", "=", "c.idNumber").andOn(
-          "r.company_id",
-          "=",
-          "c.company_id",
-        );
-      })
+      .leftJoin("client as c", "r.client_idNumber", "=", "c.idNumber")
       .select(
         "b.id",
         "b.reception_id",
@@ -201,9 +185,7 @@ export class Budget {
         "c.idNumber as client_idNumber",
       )
       .orderBy("b.created_at", "desc");
-    
-    if (company_id) query.where({ "b.company_id": company_id });
-    
+
     // Filtros adicionales
     if (filters.payment_status) {
       query.where("b.payment_status", filters.payment_status);
@@ -217,12 +199,12 @@ export class Budget {
     if (filters.dateTo) {
       query.where("b.created_at", "<=", filters.dateTo);
     }
-    
+
     // Paginación
     const limit = Number(filters.limit) || 20;
     const offset = Number(filters.offset) || 0;
     query.limit(limit).offset(offset);
-    
+
     const rows = await query;
     return rows.map(row => ({
       ...row,
@@ -232,25 +214,18 @@ export class Budget {
     }));
   }
 
-  static async list(company_id = null) {
+  static async list() {
     const query = db("budget").whereNull("deleted_at").orderBy("created_at", "desc");
-    if (company_id) query.where({ company_id });
     const rows = await query;
     return rows.map(parseItems);
   }
 
   // ── OPTIMIZACIÓN: Listar presupuestos con detalles de recepción y cliente (evita N+1) ────────────────────────
-  static async listWithDetails(company_id = null) {
+  static async listWithDetails() {
     const query = db("budget as b")
       .whereNull("b.deleted_at")
       .leftJoin("reception as r", "b.reception_id", "r.id")
-      .leftJoin("client as c", function () {
-        this.on("r.client_idNumber", "=", "c.idNumber").andOn(
-          "r.company_id",
-          "=",
-          "c.company_id",
-        );
-      })
+      .leftJoin("client as c", "r.client_idNumber", "=", "c.idNumber")
       .select(
         "b.*",
         "r.status as reception_status",
@@ -260,30 +235,27 @@ export class Budget {
         "c.idNumber as client_idNumber",
       )
       .orderBy("b.created_at", "desc");
-    if (company_id) query.where({ "b.company_id": company_id });
     const rows = await query;
     return rows.map(parseItems);
   }
 
-  static async update(id, company_id = null, data, trx = null) {
+  static async update(id, data, trx = null) {
     const q = trx || db;
     const toSave = { ...data, updated_at: q.fn.now() };
     if (toSave.items !== undefined) toSave.items = toJsonb(toSave.items);
     const query = q("budget").where({ id }).whereNull("deleted_at");
-    if (company_id) query.where({ company_id });
     await query.update(toSave);
-    return await this.getById(id, company_id, trx);
+    return await this.getById(id, trx);
   }
 
-  static async delete(id, company_id = null, trx = null) {
+  static async delete(id, trx = null) {
     const q = trx || db;
     const query = q("budget").where({ id });
-    if (company_id) query.where({ company_id });
     return await query.update({ deleted_at: q.fn.now() });
   }
 
   // ── Auditoría ────────────────────────────────────────────
-  static async log({ budget_id, user_id, action, previous_status = null, snapshot = null, reason = null, company_id = null }, trx = null) {
+  static async log({ budget_id, user_id, action, previous_status = null, snapshot = null, reason = null }, trx = null) {
     const q = trx || db;
     const payload = {
       budget_id,
@@ -294,26 +266,23 @@ export class Budget {
       reason,
       event_timestamp: q.fn.now(),
     };
-    if (company_id) payload.company_id = company_id;
     await q("budget_log").insert(payload);
   }
 
-  static async getLogs(budget_id, company_id = null) {
+  static async getLogs(budget_id) {
     const query = db("budget_log as bl")
       .leftJoin("user", "bl.user_id", "user.id")
       .select("bl.*", "user.username as performed_by")
       .where("bl.budget_id", budget_id)
       .orderBy("bl.event_timestamp", "desc");
-    if (company_id) query.where("bl.company_id", company_id);
     return await query;
   }
 
-  static async getAllLogs(company_id = null) {
+  static async getAllLogs() {
     const query = db("budget_log as bl")
       .leftJoin("user", "bl.user_id", "user.id")
       .select("bl.*", "user.username as performed_by")
       .orderBy("bl.event_timestamp", "desc");
-    if (company_id) query.where("bl.company_id", company_id);
     return await query;
   }
 }

@@ -6,12 +6,11 @@ const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || (ACCESS_SECRET + "_re
 
 /**
  * Middleware que verifica el token JWT en cookies o header Authorization.
- * Añade req.user = { id, username, role, company_id } si es válido.
+ * Añade req.user = { id, username, role } si es válido.
  */
 export const authenticate = (req, res, next) => {
-  // Intentar leer de cookies (HttpOnly) primero, luego de Authorization header
   let token = req.cookies?.access_token;
-  
+
   if (!token) {
     const authHeader = req.headers["authorization"];
     token = authHeader && authHeader.split(" ")[1];
@@ -23,7 +22,7 @@ export const authenticate = (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, ACCESS_SECRET);
-    req.user = payload; 
+    req.user = payload;
     next();
   } catch (err) {
     return res.status(403).json({ error: { code: 403, message: "Sesión expirada o inválida" } });
@@ -45,7 +44,7 @@ export const requireAdmin = (req, res, next) => {
  */
 export const signAccessToken = (user) => {
   return jwt.sign(
-    { id: user.id, username: user.username, role: user.role, company_id: user.company_id },
+    { id: user.id, username: user.username, role: user.role },
     ACCESS_SECRET,
     { expiresIn: "15m" }
   );
@@ -56,7 +55,7 @@ export const signAccessToken = (user) => {
  */
 export const signRefreshToken = (user) => {
   return jwt.sign(
-    { id: user.id, company_id: user.company_id },
+    { id: user.id },
     REFRESH_SECRET,
     { expiresIn: "7d" }
   );

@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as userController from "../controllers/userController.js";
 import { authenticate, requireAdmin } from "../middleware/authMiddleware.js";
-import { checkSubscriptionQuota } from "../middleware/subscriptionMiddleware.js";
 
 const router = Router();
 
@@ -17,7 +16,7 @@ router.get("/me", userController.getCurrentUser);
 // Rutas que requieren permisos de administrador
 router.use(requireAdmin);
 router.get("/", userController.listUsers);
-router.post("/register", checkSubscriptionQuota("max_users"), userController.registerUser);
+router.post("/register", userController.registerUser);
 router.post("/reset-password", userController.resetUserPassword);
 router.put("/:id", userController.updateUser);
 router.delete("/:id", userController.deleteUser);

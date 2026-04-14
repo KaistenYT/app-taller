@@ -1,48 +1,48 @@
 import { Reports } from "../model/reports.js";
 import { ReceptionService } from "./receptionService.js";
-import { emitToCompany } from "../socket.js";
+import { emitToAll } from "../socket.js";
 
 export class ReportService {
-  static async listReports(company_id) {
+  static async listReports() {
     try {
-      return await Reports.getAll(company_id);
+      return await Reports.getAll();
     } catch (err) {
       throw err;
     }
   }
 
-  static async getReport(id, company_id) {
+  static async getReport(id) {
     try {
-      return await Reports.getById(id, company_id);
+      return await Reports.getById(id);
     } catch (err) {
       throw err;
     }
   }
 
-  static async createReport(reportData, company_id) {
+  static async createReport(reportData) {
     try {
-      const result = await Reports.create({ ...reportData, company_id });
-      emitToCompany(company_id, "reportCreated", result);
+      const result = await Reports.create(reportData);
+      emitToAll("reportCreated", result);
       return result;
     } catch (err) {
       throw err;
     }
   }
 
-  static async updateReport(id, company_id, reportData) {
+  static async updateReport(id, reportData) {
     try {
-      const result = await Reports.update(id, company_id, reportData);
-      emitToCompany(company_id, "reportUpdated", result);
+      const result = await Reports.update(id, reportData);
+      emitToAll("reportUpdated", result);
       return result;
     } catch (err) {
       throw err;
     }
   }
 
-  static async deleteReport(id, company_id) {
+  static async deleteReport(id) {
     try {
-      await Reports.delete(id, company_id);
-      emitToCompany(company_id, "reportDeleted", { id });
+      await Reports.delete(id);
+      emitToAll("reportDeleted", { id });
       return true;
     } catch (err) {
       throw err;
@@ -58,7 +58,7 @@ export class ReportService {
   }
 
   // Genera reporte HTML pre-poblado a partir de los datos de una recepción existente
-  static async createReportFromReception(receptionId, company_id) {
+  static async createReportFromReception(receptionId) {
     try {
       if (!receptionId) throw new Error("receptionId is required");
       const rec = await ReceptionService.getReceptionDetails(receptionId);
@@ -97,9 +97,8 @@ export class ReportService {
       const result = await Reports.create({
         reception_id: receptionId,
         description,
-        company_id,
       });
-      emitToCompany(company_id, "reportCreated", result);
+      emitToAll("reportCreated", result);
       return result;
     } catch (err) {
       throw err;

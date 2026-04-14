@@ -2,7 +2,7 @@ import { ReceptionHistoryService } from "../service/receptionHistoryService.js";
 
 export const listHistory = async (req, res) => {
   try {
-    const filters = { ...req.query, company_id: req.user.company_id };
+    const filters = { ...req.query };
     const history = await ReceptionHistoryService.listHistory(filters);
     res.json(history);
   } catch (err) {
@@ -12,7 +12,7 @@ export const listHistory = async (req, res) => {
 
 export const countHistory = async (req, res) => {
   try {
-    const filters = { ...req.query, company_id: req.user.company_id };
+    const filters = { ...req.query };
     const count = await ReceptionHistoryService.countHistory(filters);
     res.json({ count });
   } catch (err) {

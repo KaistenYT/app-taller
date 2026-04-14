@@ -52,20 +52,17 @@ export const refreshToken = async (req, res) => {
 export const registerUser = async (req, res) => {
   // Solo admin puede registrar nuevos usuarios
   if (req.user.role !== "admin") {
-    return res.status(403).json({ 
-      error: { code: 403, message: "No autorizado" } 
+    return res.status(403).json({
+      error: { code: 403, message: "No autorizado" }
     });
   }
 
-  // Asignar la misma empresa del admin que está registrando
   const userData = req.body;
-  const company_id = req.user.company_id;
 
   try {
-    const user = await UserService.registerUser(userData, company_id);
+    const user = await UserService.registerUser(userData);
     res.status(201).json({ id: user.id, username: user.username, role: user.role });
   } catch (err) {
-    // Errores de validación o duplicados → 400 con mensaje legible
     res.status(400).json({ error: { code: 400, message: err.message } });
   }
 };
@@ -84,7 +81,7 @@ export const resetUserPassword = async (req, res) => {
 };
 
 export const listUsers = async (req, res) => {
-  const users = await UserService.listUsers(req.user.role, req.user.company_id);
+  const users = await UserService.listUsers(req.user.role);
   res.json(users);
 };
 

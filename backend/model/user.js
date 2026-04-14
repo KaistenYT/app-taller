@@ -51,13 +51,11 @@ export class User {
     }
   }
 
-  static async getAll(company_id) {
+  static async getAll() {
     try {
-      const query = db("user")
-        .select("id", "username", "role", "company_id")
+      return await db("user")
+        .select("id", "username", "role")
         .whereNull("deleted_at");
-      if (company_id) query.where({ company_id });
-      return await query;
     } catch (error) {
       throw new Error("Error al obtener usuarios");
     }

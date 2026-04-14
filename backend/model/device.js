@@ -2,33 +2,29 @@ import db from "../db/dbConfig.js";
 import logger from "../utils/logger.js";
 
 export class Device {
-  static async getAll(company_id = null, trx = null) {
+  static async getAll(trx = null) {
     const q = trx || db;
     try {
-      const query = q("device").whereNull("deleted_at").select("*");
-      if (company_id) query.where({ company_id });
-      return await query;
+      return await q("device").whereNull("deleted_at").select("*");
     } catch (err) {
       throw new Error("Error al obtener dispositivos");
     }
   }
 
-  static async getById(id, company_id = null, trx = null) {
+  static async getById(id, trx = null) {
     const q = trx || db;
     try {
       const query = q("device").where({ id }).whereNull("deleted_at");
-      if (company_id) query.where({ company_id });
       return await query.first();
     } catch (err) {
       throw new Error("Error al obtener dispositivo");
     }
   }
 
-  static async getBySerial(serial, company_id = null, trx = null) {
+  static async getBySerial(serial, trx = null) {
     const q = trx || db;
     try {
       const query = q("device").where({ serial_number: serial }).whereNull("deleted_at");
-      if (company_id) query.where({ company_id });
       return await query.first();
     } catch (err) {
       throw new Error("Error al obtener dispositivo por serial");
@@ -46,16 +42,15 @@ export class Device {
     }
   }
 
-  // Inserta o actualiza un equipo según su serial_number e isolación por empresa
-  static async upsertBySerial(deviceData, company_id, trx = null) {
+  // Inserta o actualiza un equipo según su serial_number
+  static async upsertBySerial(deviceData, trx = null) {
     const q = trx || db;
     try {
-      if (!deviceData.serial_number || !company_id) 
-        throw new Error("serial_number y company_id son requeridos para upsert");
-        
-      // Lookup por serial Y empresa (aislamiento completo)
+      if (!deviceData.serial_number)
+        throw new Error("serial_number es requerido para upsert");
+
       const existing = await q("device")
-        .where({ serial_number: deviceData.serial_number, company_id: company_id })
+        .where({ serial_number: deviceData.serial_number })
         .whereNull("deleted_at")
         .first();
 
@@ -63,7 +58,7 @@ export class Device {
         await q("device").where({ id: existing.id }).update(deviceData);
         return await q("device").where({ id: existing.id }).first();
       } else {
-        const [row] = await q("device").insert({ ...deviceData, company_id }).returning("id");
+        const [row] = await q("device").insert(deviceData).returning("id");
         const id = row.id ?? row;
         return await q("device").where({ id }).first();
       }
@@ -73,24 +68,24 @@ export class Device {
     }
   }
 
-  static async update(id, company_id, deviceData, trx = null) {
+  static async update(id, deviceData, trx = null) {
     const q = trx || db;
     try {
       await q("device")
-        .where({ id, company_id })
+        .where({ id })
         .whereNull("deleted_at")
         .update(deviceData);
-      return await q("device").where({ id, company_id }).first();
+      return await q("device").where({ id }).first();
     } catch (err) {
       throw new Error("Error al actualizar dispositivo");
     }
   }
 
-  static async delete(id, company_id, trx = null) {
+  static async delete(id, trx = null) {
     const q = trx || db;
     try {
       return await q("device")
-        .where({ id, company_id })
+        .where({ id })
         .update({ deleted_at: q.fn.now() });
     } catch (err) {
       throw new Error("Error al eliminar dispositivo");
@@ -98,20 +93,18 @@ export class Device {
   }
 
   // ── OPTIMIZACIÓN: Obtener dispositivos con conteo de recepciones (evita N+1) ─────────────────────────────────
-  static async getAllWithReceptionCount(company_id) {
-    const q = trx || db;
+  static async getAllWithReceptionCount() {
     try {
-      const query = q("device as d")
+      const query = db("device as d")
         .whereNull("d.deleted_at")
         .leftJoin("reception as r", "d.id", "r.device_id")
-        .groupBy("d.id", "d.serial_number", "d.description", "d.features", "d.company_id", "d.created_at", "d.updated_at")
+        .groupBy("d.id", "d.serial_number", "d.description", "d.features", "d.created_at", "d.updated_at")
         .select(
           "d.*",
           db.raw("COUNT(r.id) as reception_count"),
           db.raw("MAX(r.created_at) as last_reception_date"),
         )
         .orderBy("d.serial_number", "asc");
-      if (company_id) query.where({ "d.company_id": company_id });
       return await query;
     } catch (err) {
       throw new Error("Error al obtener dispositivos con conteo de recepciones");
@@ -119,19 +112,12 @@ export class Device {
   }
 
   // ── OPTIMIZACIÓN: Obtener dispositivo con historial completo de recepciones ──────────────────────────────────
-  static async getWithReceptionHistory(id, company_id) {
-    const q = trx || db;
+  static async getWithReceptionHistory(id) {
     try {
-      const query = q("device as d")
+      const query = db("device as d")
         .whereNull("d.deleted_at")
         .leftJoin("reception as r", "d.id", "r.device_id")
-        .leftJoin("client as c", function () {
-          this.on("r.client_idNumber", "=", "c.idNumber").andOn(
-            "r.company_id",
-            "=",
-            "c.company_id",
-          );
-        })
+        .leftJoin("client as c", "r.client_idNumber", "=", "c.idNumber")
         .where({ "d.id": id })
         .select(
           "d.*",
@@ -146,7 +132,6 @@ export class Device {
           "c.idNumber as client_idNumber",
         )
         .orderBy("r.created_at", "desc");
-      if (company_id) query.where({ "d.company_id": company_id });
       return await query;
     } catch (err) {
       throw new Error("Error al obtener dispositivo con historial de recepciones");

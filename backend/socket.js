@@ -13,18 +13,10 @@ export const initSocket = (httpServer, corsOrigin) => {
     }
   });
 
-  logger.info("[socket] Socket.io inicializado en modo memoria local (In-Memory).");
+  logger.info("[socket] Socket.io inicializado (Single Tenant).");
 
   io.on("connection", (socket) => {
     logger.info(`[socket] Nuevo cliente conectado: ${socket.id}`);
-
-    socket.on("joinCompany", (companyId) => {
-      if (companyId) {
-        const roomName = `company_${companyId}`;
-        socket.join(roomName);
-        logger.info(`[socket] Cliente ${socket.id} unido a sala: ${roomName}`);
-      }
-    });
 
     socket.on("disconnect", () => {
       logger.info(`[socket] Cliente desconectado: ${socket.id}`);
@@ -41,8 +33,14 @@ export const getIO = () => {
   return io;
 };
 
-export const emitToCompany = (companyId, event, data) => {
+// Emitir a todos los clientes conectados (single tenant - sin rooms por empresa)
+export const emitToAll = (event, data) => {
   if (io) {
-    io.to(`company_${companyId}`).emit(event, data);
+    io.emit(event, data);
   }
+};
+
+// Mantener compatibilidad con código antiguo
+export const emitToCompany = (_companyId, event, data) => {
+  emitToAll(event, data);
 };
