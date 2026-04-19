@@ -1,6 +1,6 @@
-# NanoLogic - Sistema de Gestión de Taller Técnico (Escritorio)
+# TallerGestion - Sistema de Gestión de Taller Técnico (Escritorio)
 
-NanoLogic es una solución integral diseñada para la gestión eficiente de talleres de servicio técnico. Tras su migración, ha evolucionado de una arquitectura SaaS a una **aplicación de escritorio nativa (Electron)** totalmente autónoma, centrada en la privacidad de los datos y la facilidad de uso local.
+TallerGestion es una solución integral diseñada para la gestión eficiente de talleres de servicio técnico. Tras su migración, ha evolucionado de una arquitectura SaaS a una **aplicación de escritorio nativa (Electron)** totalmente autónoma, centrada en la privacidad de los datos y la facilidad de uso local.
 
 ## 🚀 Funcionalidades Principales
 
@@ -25,10 +25,12 @@ NanoLogic es una solución integral diseñada para la gestión eficiente de tall
 ## 🛠️ Desarrollo e Instalación
 
 ### Requisitos Previos
+
 - [Node.js](https://nodejs.org/) (v20 o superior recomendado).
 - Herramientas de compilación de C++ (necesarias para módulos nativos como `better-sqlite3`).
 
 ### Configuración del Entorno
+
 1. Instalar dependencias en la raíz:
    ```bash
    npm install
@@ -39,6 +41,7 @@ NanoLogic es una solución integral diseñada para la gestión eficiente de tall
    ```
 
 ### Comandos de Ejecución
+
 - **Modo Desarrollo:** Inicia el backend, el frontend y la ventana de Electron con Hot-Reload.
   ```bash
   npm run dev
@@ -49,15 +52,20 @@ NanoLogic es una solución integral diseñada para la gestión eficiente de tall
   ```
 
 ## 🔐 Configuración Inicial (Setup)
+
 Al iniciar la aplicación por primera vez en un equipo limpio, se activará automáticamente el **Asistente de Configuración**. Aquí podrás:
+
 1. Definir los datos de identidad de tu taller (Nombre, RIF, Logo, Dirección).
 2. Crear tu cuenta maestra de administrador local.
 
 ## 🧪 Pruebas
+
 Ejecuta la suite de pruebas unitarias e integración para el backend:
+
 ```bash
 npm test
 ```
 
 ---
+
 **Desarrollado con ❤️ para servicios técnicos modernos.**
