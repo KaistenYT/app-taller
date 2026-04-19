@@ -239,34 +239,10 @@ export default function LoginPage() {
           </form>
         </CardContent>
 
-        <CardFooter className="flex flex-col space-y-6 pt-4 pb-12 px-8">
-          <div className="relative w-full">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border/40" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-card/0 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 backdrop-blur-sm">
-                Nuevas empresas
-              </span>
-            </div>
-          </div>
-
-          <Link to="/register-company" className="w-full">
-            <Button
-              variant="outline"
-              className="w-full h-12 border-border/50 bg-muted/10 hover:bg-muted/20 transition-all font-bold text-sm tracking-tight rounded-2xl"
-            >
-              Crear una cuenta nueva
-            </Button>
-          </Link>
-          <Link to="/" className="w-full">
-            <Button
-              variant="outline"
-              className="w-full h-12 border-border/50 bg-muted/10 hover:bg-muted/20 transition-all font-bold text-sm tracking-tight rounded-2xl"
-            >
-              Volver a la landing page
-            </Button>
-          </Link>
+        <CardFooter className="flex flex-col space-y-4 pt-4 pb-12 px-8">
+          <p className="text-center text-xs text-muted-foreground/50">
+            Acceso restringido al personal autorizado del taller.
+          </p>
         </CardFooter>
       </Card>
 

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import {
   listReceptions,
   countReceptions,
+  getReceptionStats,
   archiveReception as apiArchive,
   restoreReception as apiRestore,
   deleteReception as apiDelete,
@@ -10,6 +11,12 @@ import {
 const useReceptions = create((set, get) => ({
   receptions: [],
   totalCount: 0,
+  stats: {
+    PENDIENTE: 0,
+    EN_TALLER: 0,
+    COMPLETADO: 0,
+    TOTAL: 0
+  },
   loading: false,
   filters: {
     general: "",
@@ -73,14 +80,16 @@ const useReceptions = create((set, get) => ({
       if (!queryParams.dateTo) delete queryParams.dateTo;
       if (queryParams.archived === null) delete queryParams.archived;
 
-      const [receptions, total] = await Promise.all([
+      const [receptions, total, stats] = await Promise.all([
         listReceptions(queryParams),
         countReceptions(queryParams),
+        getReceptionStats()
       ]);
 
       set({
         receptions: receptions || [],
         totalCount: total || 0,
+        stats: stats || get().stats,
         loading: false,
       });
     } catch (error) {

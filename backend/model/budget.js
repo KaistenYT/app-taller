@@ -10,9 +10,9 @@ export class Budget {
     const q = trx || db;
     const payload = { ...data };
     if (payload.items !== undefined) payload.items = toJsonb(payload.items);
-    const [row] = await q("budget").insert(payload).returning("id");
-    const id = row.id ?? row;
-    return await this.getById(id, trx);
+    
+    const [newId] = await q("budget").insert(payload);
+    return await this.getById(newId, trx);
   }
 
   static async getById(id, trx = null) {

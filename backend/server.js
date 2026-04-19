@@ -15,6 +15,8 @@ import reportRoutes from "./routes/reportRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import historyRoutes from "./routes/historyRoutes.js";
 import budgetRoutes from "./routes/budgetRoutes.js";
+import companyRoutes from "./routes/companyRoutes.js";
+import setupRoutes from "./routes/setupRoutes.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
 import logger from "./utils/logger.js";
@@ -85,6 +87,8 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reception-history", historyRoutes);
 app.use("/api/budgets", budgetRoutes);
+app.use("/api/companies", companyRoutes);
+app.use("/api/setup", setupRoutes);
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get("/", (_req, res) => res.json({ status: "API online", version: "1.0.0" }));

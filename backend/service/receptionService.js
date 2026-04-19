@@ -19,10 +19,10 @@ export class ReceptionService {
     if (filters.general) {
       const searchTerm = `%${filters.general}%`;
       query.andWhere(function () {
-        this.where("c.name", "ilike", searchTerm)
-          .orWhere("d.serial_number", "ilike", searchTerm)
-          .orWhere("d.description", "ilike", searchTerm)
-          .orWhere("r.defect", "ilike", searchTerm);
+        this.where("c.name", "like", searchTerm)
+          .orWhere("d.serial_number", "like", searchTerm)
+          .orWhere("d.description", "like", searchTerm)
+          .orWhere("r.defect", "like", searchTerm);
       });
     }
 
@@ -100,6 +100,37 @@ export class ReceptionService {
 
     await cache.set(cacheKey, count, 300);
     return count;
+  }
+
+  // Obtiene el conteo de recepciones agrupado por estado
+  static async getStatusStats() {
+    try {
+      const stats = await db("reception")
+        .whereNull("deleted_at")
+        .andWhere("archived", false)
+        .select("status")
+        .count("* as count")
+        .groupBy("status");
+      
+      const result = {
+        PENDIENTE: 0,
+        EN_TALLER: 0,
+        COMPLETADO: 0,
+        TOTAL: 0
+      };
+
+      stats.forEach(s => {
+        const count = Number(s.count);
+        result.TOTAL += count;
+        if (s.status === "PENDIENTE") result.PENDIENTE = count;
+        if (["EN_PROCESO", "EN_REPARACION", "EN_REVISION"].includes(s.status)) result.EN_TALLER += count;
+        if (["REPARADO", "LISTO", "FINALIZADO", "RETIRADO"].includes(s.status)) result.COMPLETADO += count;
+      });
+
+      return result;
+    } catch (error) {
+      return { PENDIENTE: 0, EN_TALLER: 0, COMPLETADO: 0, TOTAL: 0 };
+    }
   }
 
   static async listArchivedReceptions() {

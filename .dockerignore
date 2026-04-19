@@ -1,9 +1,0 @@
-node_modules
-npm-debug.log
-.git
-.gitignore
-backend/__tests__
-logs
-dist
-frontend/react/app-taller/node_modules
-frontend/react/app-taller/dist

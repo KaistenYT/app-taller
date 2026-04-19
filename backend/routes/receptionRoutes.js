@@ -9,6 +9,7 @@ router.use(authenticate);
 router.get("/", receptionController.listReceptions);
 router.post("/", receptionController.createReception);
 router.get("/count", receptionController.countReceptions);
+router.get("/stats", receptionController.getReceptionStats);
 router.get("/archived", receptionController.listArchivedReceptions);
 
 // Rutas de ID específico (importante que vayan después de /count y /archived)

@@ -94,6 +94,8 @@ export const deleteClient = (id) => request(api.delete(`/clients/${id}`));
 // --- Receptions ---
 export const listReceptions = (filters) =>
   request(api.get("/receptions", { params: filters }));
+export const getReceptionStats = () =>
+  request(api.get("/receptions/stats"));
 export const countReceptions = (filters) =>
   request(api.get("/receptions/count", { params: filters })).then(
     (r) => r.count,
@@ -193,12 +195,10 @@ export const openBudgetWindow = (budgetId) => {
 };
 
 // --- Companies ---
-export const registerCompany = (data) =>
-  request(api.post("/companies/register", data));
 export const getMyCompany = () => request(api.get("/companies/me"));
 export const updateMyCompany = (data) =>
   request(api.put("/companies/me", data));
-export const getSubscription = () => request(api.get("/companies/subscription"));
-export const listPlans = () => request(api.get("/companies/plans"));
-export const updatePlan = (planId) =>
-  request(api.patch("/companies/subscription", { planId }));
+
+// --- Setup ---
+export const getSetupStatus = () => request(api.get("/setup/status"));
+export const initializeSystem = (data) => request(api.post("/setup/initialize", data));

@@ -2,53 +2,55 @@ import "dotenv/config";
 import knexLib from "knex";
 import path from "path";
 import { fileURLToPath } from "url";
-import bcrypt from "bcrypt";
 import { ReceptionHistory } from "../model/receptionHistory.js";
 import logger from "../utils/logger.js";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Determinar ruta de la DB
+const isProd = process.env.NODE_ENV === "production";
+let dbFilePath;
+
+if (isProd) {
+  const appData = process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + "/.local/share");
+  const dbDir = path.join(appData, "NanoLogic");
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  dbFilePath = path.join(dbDir, "database.sqlite");
+} else {
+  dbFilePath = path.resolve(__dirname, "../db/database.sqlite");
+}
+
 const db = knexLib({
-  client: "pg",
+  client: "better-sqlite3",
   connection: {
-    host: process.env.DB_HOST || "127.0.0.1",
-    port: Number(process.env.DB_PORT) || 5432,
-    user: process.env.DB_USER || "postgres",
-    password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME || "nanologic_dev",
+    filename: dbFilePath,
   },
-  migrations: {
-    directory: path.join(__dirname, "migrations", "pg"),
-  },
+  useNullAsDefault: true,
+  pool: {
+    afterCreate: (conn, cb) => {
+      conn.pragma('foreign_keys = ON');
+      cb();
+    }
+  }
 });
 
 /**
- * Retorna la expresión SQL para la hora actual en PostgreSQL.
- * Equivalente al antiguo datetime('now','localtime') de SQLite.
- * Usar en INSERT/UPDATE cuando se necesite estampar la hora actual.
+ * Retorna la expresión SQL para la hora actual en SQLite.
  */
 export function localNow() {
-  return db.fn.now();
+  return db.raw("datetime('now','localtime')");
 }
 
 try {
-  await db.migrate.latest();
-  logger.info("[dbConfig] Migraciones completadas");
-
-  // Seed default admin si no existen usuarios
-  const hasUsers = await db('user').first();
-  if (!hasUsers) {
-    const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
-    const hashedPassword = await bcrypt.hash(defaultAdminPassword, 10);
-    await db('user').insert({
-      username: 'admin',
-      password: hashedPassword,
-      role: 'admin',
-      company_id: 1,
-    });
-    logger.info("[dbConfig] Usuario administrador por defecto creado (admin)");
-  }
+  // En SQLite, las migraciones se ejecutan de la misma forma que en PG
+  await db.migrate.latest({
+    directory: path.join(__dirname, "migrations", "pg")
+  });
+  logger.info("[dbConfig] Migraciones SQLite completadas");
 } catch (err) {
   logger.error("[dbConfig] Error en inicialización de DB:", { error: err.message, stack: err.stack });
 }

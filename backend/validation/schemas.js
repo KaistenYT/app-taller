@@ -69,7 +69,6 @@ export const receptionSchema = {
     device_snapshot: Joi.object().optional(),
     created_at: Joi.string().isoDate().optional(),
     archived: Joi.boolean().default(false),
-    company_id: Joi.number().integer().required(),
   }),
 
   update: Joi.object({
@@ -105,7 +104,6 @@ export const deviceSchema = {
       "any.required": "La descripción del equipo es requerida",
     }),
     features: Joi.string().allow("", null),
-    company_id: Joi.number().integer().required(),
   }),
   
   update: Joi.object({

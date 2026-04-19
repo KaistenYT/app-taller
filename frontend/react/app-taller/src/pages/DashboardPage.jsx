@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const {
     receptions,
     totalCount,
+    globalStats,
     loading,
     loadReceptions,
     clearFilters,
@@ -55,6 +56,7 @@ export default function DashboardPage() {
   } = useReceptions((s) => ({
     receptions: s.receptions,
     totalCount: s.totalCount,
+    globalStats: s.stats,
     loading: s.loading,
     loadReceptions: s.loadReceptions,
     clearFilters: s.clearFilters,
@@ -305,7 +307,7 @@ export default function DashboardPage() {
   const stats = [
     {
       label: "Carga Total",
-      value: totalCount,
+      value: globalStats.TOTAL,
       icon: TrendingUp,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
@@ -313,7 +315,7 @@ export default function DashboardPage() {
     },
     {
       label: "Pendientes",
-      value: receptions.filter((r) => r.status === "PENDIENTE").length,
+      value: globalStats.PENDIENTE,
       icon: Clock,
       color: "text-amber-500",
       bg: "bg-amber-500/10",
@@ -321,9 +323,7 @@ export default function DashboardPage() {
     },
     {
       label: "En Taller",
-      value: receptions.filter(
-        (r) => r.status === "EN_PROCESO" || r.status === "EN_REPARACION",
-      ).length,
+      value: globalStats.EN_TALLER,
       icon: Wrench,
       color: "text-indigo-500",
       bg: "bg-indigo-500/10",
@@ -331,9 +331,7 @@ export default function DashboardPage() {
     },
     {
       label: "Completados",
-      value: receptions.filter(
-        (r) => r.status === "REPARADO" || r.status === "LISTO",
-      ).length,
+      value: globalStats.COMPLETADO,
       icon: CheckCircle2,
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",

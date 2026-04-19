@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet, Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import TitleBar from "./TitleBar";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { Menu, Sun, Moon, LogOut, Bell, Search } from "lucide-react";
@@ -24,6 +25,7 @@ export default function Layout() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <TitleBar />
         <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b px-4 md:px-8 glass transition-all duration-300">
           <div className="flex items-center gap-4">
             <Button

@@ -5,7 +5,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días (coincide con refresh token)
+  maxAge: 365 * 24 * 60 * 60 * 1000, // 365 días (1 año) para persistencia total en escritorio
 };
 
 export const loginUser = async (req, res) => {
@@ -15,7 +15,7 @@ export const loginUser = async (req, res) => {
   const accessToken = signAccessToken(user);
   const refreshToken = signRefreshToken(user);
 
-  res.cookie("access_token", accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
+  res.cookie("access_token", accessToken, { ...COOKIE_OPTIONS });
   res.cookie("refresh_token", refreshToken, COOKIE_OPTIONS);
 
   res.json({ user, accessToken }); // Se devuelve token también por si el cliente no puede usar cookies (Legacy)

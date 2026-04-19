@@ -14,7 +14,7 @@ export class ReceptionHistoryService {
         "d.serial_number as device_serial",
         "u.username as username",
       )
-      .orderBy("rh.event_timestamp", "desc");
+      .orderBy("rh.created_at", "desc");
 
     if (filters.reception_id) q.where("rh.reception_id", filters.reception_id);
     if (filters.client_id) q.where("rh.client_id", filters.client_id);

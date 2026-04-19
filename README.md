@@ -1,75 +1,63 @@
-# Sistema de Gestión de Taller Técnico (SaaS)
+# NanoLogic - Sistema de Gestión de Taller Técnico (Escritorio)
 
-Sistema integral para la gestión de talleres de servicio técnico, diseñado con una arquitectura multitenant (SaaS) que permite a múltiples empresas gestionar sus operaciones de forma aislada, segura y eficiente.
+NanoLogic es una solución integral diseñada para la gestión eficiente de talleres de servicio técnico. Tras su migración, ha evolucionado de una arquitectura SaaS a una **aplicación de escritorio nativa (Electron)** totalmente autónoma, centrada en la privacidad de los datos y la facilidad de uso local.
 
 ## 🚀 Funcionalidades Principales
 
-- **Gestión Multi-empresa (SaaS):** Aislamiento total de datos por empresa (tenants).
-- **Control de Recepciones:** Registro detallado de equipos, fallas y estados de reparación.
-- **Auditoría y Trazabilidad:** Historial completo de cambios en recepciones y presupuestos (logs de auditoría).
-- **Gestión de Clientes y Equipos:** Catálogo centralizado con historial por serial de equipo.
-- **Presupuestos Dinámicos:** Creación, edición y seguimiento de estados de presupuestos.
-- **Reportes Técnicos:** Generación automática de informes de servicio en formato web/imprimible.
-- **Panel de Control (Dashboard):** Estadísticas y métricas en tiempo real.
+- **Arquitectura de Escritorio (Offline-First):** Ejecución 100% local sin dependencia de servidores externos.
+- **Control de Recepciones:** Registro detallado de equipos, fallas y estados de reparación con snapshots del estado de entrada.
+- **Auditoría y Trazabilidad:** Historial completo de cambios en recepciones y presupuestos para un control total.
+- **Gestión de Clientes y Equipos:** Catálogo centralizado con búsqueda rápida por serial e historial de servicios.
+- **Presupuestos y Finanzas:** Creación dinámica de presupuestos, seguimiento de abonos y estados de pago.
+- **Reportes e Impresión:** Generación de informes de servicio listos para impresión local.
+- **Dashboard en Tiempo Real:** Métricas y estadísticas actualizadas al instante mediante WebSockets internos.
+- **Backup Nativo:** Sistema integrado para respaldar y restaurar la base de datos localmente.
 
-## ⚡ Tecnologías de Alto Rendimiento (Novedades)
+## 🏗️ Arquitectura y Tecnologías
 
-Para garantizar la escalabilidad y una experiencia de usuario fluida, el sistema integra:
-
-- **WebSockets (Socket.io):** Actualizaciones instantáneas en el dashboard. Cuando un técnico cambia un estado o crea un reporte, todos los usuarios de la empresa ven el cambio sin recargar la página.
-- **Caché Distribuida/Local:** Implementación de caché para consultas pesadas (conteos y listados), reduciendo la carga en PostgreSQL. Configurable para usar **Redis** (producción/escalabilidad) o **Memoria Local** (desarrollo rápido).
-- **Arquitectura Multitenant:** Filtro automático por `company_id` en todas las capas del sistema (Caché, Base de Datos y WebSockets).
-
-## 🛠️ Stack Tecnológico
-
-- **Backend:** Node.js, Express, Knex.js (Query Builder).
-- **Base de Datos:** PostgreSQL.
-- **Caché:** Redis / Node-Cache (In-memory).
+- **Motor de Escritorio:** [Electron](https://www.electronjs.org/).
+- **Backend:** Node.js, Express, Knex.js.
+- **Base de Datos:** [SQLite](https://www.sqlite.org/) (embebida, rápida y portable).
 - **Frontend:** React 18, Vite, Tailwind CSS, Zustand (Estado), Lucide React (Iconos).
-- **Tiempo Real:** Socket.io.
-- **Contenedores:** Docker & Docker Compose.
+- **Tiempo Real:** Socket.io (adaptador local).
+- **Distribución:** Electron Builder (generación de instaladores .exe, .dmg, .appimage).
 
-## 📦 Instalación y Despliegue
+## 🛠️ Desarrollo e Instalación
 
 ### Requisitos Previos
+- [Node.js](https://nodejs.org/) (v20 o superior recomendado).
+- Herramientas de compilación de C++ (necesarias para módulos nativos como `better-sqlite3`).
 
-- Node.js (v20+)
-- PostgreSQL
-- Redis (Opcional para modo local, recomendado para Docker)
-
-### Opción A: Despliegue con Docker (Recomendado)
-
-Levanta todo el ecosistema (Postgres, Redis, Backend y Frontend) con un solo comando:
-
-```bash
-docker-compose up --build
-```
-
-El sistema estará disponible en:
-
-- Frontend: `http://localhost:8080`
-- Backend API: `http://localhost:3001`
-
-### Opción B: Desarrollo Local
-
-1. Instalar dependencias:
+### Configuración del Entorno
+1. Instalar dependencias en la raíz:
    ```bash
    npm install
+   ```
+2. Instalar dependencias del frontend:
+   ```bash
    npm install --prefix frontend/react/app-taller
    ```
-2. Configurar variables de entorno (`.env` en la raíz).
-3. Iniciar entorno de desarrollo (Backend + Frontend):
-   ```bash
-   npm run dev
-   ```
-   _Este comando limpia automáticamente puertos bloqueados y habilita hot-reload._
 
-## 🧪 Pruebas Automáticas
+### Comandos de Ejecución
+- **Modo Desarrollo:** Inicia el backend, el frontend y la ventana de Electron con Hot-Reload.
+  ```bash
+  npm run dev
+  ```
+- **Generar Instalador (Producción):** Compila el frontend y genera el ejecutable distribuible en la carpeta `/release`.
+  ```bash
+  npm run electron:build
+  ```
 
-El proyecto cuenta con una suite de tests exhaustiva que cubre la lógica de negocio, validaciones, caché y WebSockets:
+## 🔐 Configuración Inicial (Setup)
+Al iniciar la aplicación por primera vez en un equipo limpio, se activará automáticamente el **Asistente de Configuración**. Aquí podrás:
+1. Definir los datos de identidad de tu taller (Nombre, RIF, Logo, Dirección).
+2. Crear tu cuenta maestra de administrador local.
 
+## 🧪 Pruebas
+Ejecuta la suite de pruebas unitarias e integración para el backend:
 ```bash
 npm test
 ```
 
 ---
+**Desarrollado con ❤️ para servicios técnicos modernos.**

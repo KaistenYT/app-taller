@@ -34,14 +34,22 @@ export class UserService {
     if (!username || !password) {
       throw new Error("Usuario y contraseña requeridos");
     }
+    
+    logger.info(`[UserService] Intentando login para usuario: ${username}`);
     const user = await User.getByUsername(username);
+    
     if (!user) {
+      logger.warn(`[UserService] Login fallido: Usuario '${username}' no encontrado en la DB`);
       throw new Error("Credenciales inválidas");
     }
+
     const isValid = await User.validatePassword(username, password);
     if (!isValid) {
+      logger.warn(`[UserService] Login fallido: Contraseña incorrecta para usuario '${username}'`);
       throw new Error("Credenciales inválidas");
     }
+
+    logger.info(`[UserService] Login exitoso para: ${username}`);
     return {
       id: user.id,
       username: user.username,

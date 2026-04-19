@@ -40,24 +40,24 @@ export const requireAdmin = (req, res, next) => {
 };
 
 /**
- * Genera un Access Token (vida corta: 15m)
+ * Genera un Access Token (vida larga para escritorio: 365d)
  */
 export const signAccessToken = (user) => {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
     ACCESS_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: "365d" }
   );
 };
 
 /**
- * Genera un Refresh Token (vida larga: 7d)
+ * Genera un Refresh Token (vida larga para escritorio: 365d)
  */
 export const signRefreshToken = (user) => {
   return jwt.sign(
     { id: user.id },
     REFRESH_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "365d" }
   );
 };
 

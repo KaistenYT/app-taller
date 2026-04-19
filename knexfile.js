@@ -1,30 +1,54 @@
-import "dotenv/config";
+import path from "path";
+import { fileURLToPath } from "url";
+import os from "os";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Determinar la ruta de la base de datos según el entorno
+const isProd = process.env.NODE_ENV === "production";
+let dbPath;
+
+if (isProd) {
+  // En producción (Electron), guardamos en la carpeta de datos del usuario
+  const appData = process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + "/.local/share");
+  dbPath = path.join(appData, "NanoLogic", "database.sqlite");
+} else {
+  // En desarrollo, guardamos en la raíz del backend
+  dbPath = path.resolve(__dirname, "./backend/db/database.sqlite");
+}
 
 export default {
   development: {
-    client: "pg",
+    client: "better-sqlite3",
     connection: {
-      host: process.env.DB_HOST || "127.0.0.1",
-      port: Number(process.env.DB_PORT) || 5432,
-      user: process.env.DB_USER || "postgres",
-      password: process.env.DB_PASSWORD || "",
-      database: process.env.DB_NAME || "TALLER_DB",
+      filename: "./backend/db/database.sqlite",
     },
+    useNullAsDefault: true,
     migrations: {
-      directory: "./backend/db/migrations/pg",
+      directory: "./backend/db/migrations/pg", // Reutilizaremos las migraciones pero con dialecto SQLite
     },
+    pool: {
+      afterCreate: (conn, cb) => {
+        conn.pragma('foreign_keys = ON');
+        cb();
+      }
+    }
   },
   production: {
-    client: "pg",
+    client: "better-sqlite3",
     connection: {
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT) || 5432,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
+      filename: dbPath,
     },
+    useNullAsDefault: true,
     migrations: {
       directory: "./backend/db/migrations/pg",
     },
+    pool: {
+      afterCreate: (conn, cb) => {
+        conn.pragma('foreign_keys = ON');
+        cb();
+      }
+    }
   },
 };

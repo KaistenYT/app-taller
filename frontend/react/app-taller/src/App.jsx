@@ -1,12 +1,12 @@
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthInitializer } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import Layout from "./components/layout/Layout";
-import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
-import RegisterCompanyPage from "./pages/RegisterCompanyPage";
+import SetupPage from "./pages/SetupPage";
 import DashboardPage from "./pages/DashboardPage";
 import ReceptionFormPage from "./pages/ReceptionFormPage";
 import HistoryPage from "./pages/HistoryPage";
@@ -19,9 +19,33 @@ import BudgetListPage from "./pages/BudgetListPage";
 import BudgetLogPage from "./pages/BudgetLogPage";
 import SettingsPage from "./pages/SettingsPage";
 import BudgetDashboardPage from "./pages/BudgetDashboardPage";
+import ClientListPage from "./pages/ClientListPage";
+import ClientFormPage from "./pages/ClientFormPage";
+import ClientDetailPage from "./pages/ClientDetailPage";
+import DeviceListPage from "./pages/DeviceListPage";
+import DeviceFormPage from "./pages/DeviceFormPage";
+import DeviceDetailPage from "./pages/DeviceDetailPage";
+import DeviceSearchPage from "./pages/DeviceSearchPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import { getSetupStatus } from "./api/httpApi";
 
 export default function App() {
+  const [isInitialized, setIsInitialized] = useState(null);
+
+  useEffect(() => {
+    async function checkSetup() {
+      try {
+        const { isInitialized } = await getSetupStatus();
+        setIsInitialized(isInitialized);
+      } catch (error) {
+        setIsInitialized(true); 
+      }
+    }
+    checkSetup();
+  }, []);
+
+  if (isInitialized === null) return null;
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="taller-ui-theme">
       <AuthInitializer>
@@ -29,10 +53,9 @@ export default function App() {
           <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
               {/* Rutas públicas */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/" element={!isInitialized ? <Navigate to="/setup" replace /> : <Navigate to="/login" replace />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/register-company" element={<RegisterCompanyPage />} />
+              <Route path="/setup" element={isInitialized ? <Navigate to="/login" replace /> : <SetupPage />} />
               <Route path="/report/:id" element={<ReportViewPage />} />
               <Route path="/budget/:id" element={<BudgetViewPage />} />
 
@@ -56,6 +79,19 @@ export default function App() {
                   <Route path="/receptions/:receptionId/budgets/new" element={<BudgetFormPage />} />
                   <Route path="/budgets/:budgetId/edit" element={<BudgetFormPage />} />
                   <Route path="/budgets/dashboard" element={<BudgetDashboardPage />} />
+                  
+                  {/* Client Routes */}
+                  <Route path="/clients" element={<ClientListPage />} />
+                  <Route path="/clients/new" element={<ClientFormPage />} />
+                  <Route path="/clients/:id" element={<ClientDetailPage />} />
+                  <Route path="/clients/:id/edit" element={<ClientFormPage />} />
+                  
+                  {/* Device Routes */}
+                  <Route path="/devices" element={<DeviceListPage />} />
+                  <Route path="/devices/new" element={<DeviceFormPage />} />
+                  <Route path="/devices/:id" element={<DeviceDetailPage />} />
+                  <Route path="/devices/:id/edit" element={<DeviceFormPage />} />
+                  <Route path="/devices/search" element={<DeviceSearchPage />} />
                 </Route>
               </Route>
 

@@ -6,6 +6,11 @@ export const listReceptions = async (req, res) => {
   res.json(receptions);
 };
 
+export const getReceptionStats = async (req, res) => {
+  const stats = await ReceptionService.getStatusStats();
+  res.json(stats);
+};
+
 export const countReceptions = async (req, res) => {
   const filters = { ...req.query };
   const count = await ReceptionService.countReceptions(filters);

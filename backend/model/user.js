@@ -7,11 +7,19 @@ export class User {
   static async create(userData, trx = null) {
     const q = trx || db;
     try {
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
-      const role = userData.role || "user";
-      const payload = { ...userData, password: hashedPassword, role };
-      const [row] = await q("user").insert(payload).returning("id");
-      const newUserId = row.id ?? row;
+      const { username, password, role } = userData;
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const payload = { 
+        username, 
+        password: hashedPassword, 
+        role: role || "tecnico",
+        status: "ACTIVE",
+        created_at: db.fn.now(),
+        updated_at: db.fn.now()
+      };
+
+      const [newUserId] = await q("user").insert(payload);
       return await q("user").where({ id: newUserId }).first();
     } catch (error) {
       logger.error("Error creating user:", {
@@ -24,11 +32,21 @@ export class User {
 
   static async getByUsername(username) {
     try {
-      return await db("user")
+      logger.info(`[UserModel] Buscando usuario: ${username}`);
+      const user = await db("user")
         .where({ username })
         .whereNull("deleted_at")
         .first();
+      
+      if (user) {
+        logger.info(`[UserModel] Usuario '${username}' ENCONTRADO (id: ${user.id})`);
+      } else {
+        const allUsers = await db("user").select("username");
+        logger.warn(`[UserModel] Usuario '${username}' NO encontrado. Usuarios existentes: ${allUsers.map(u => u.username).join(', ')}`);
+      }
+      return user;
     } catch (error) {
+      logger.error(`[UserModel] Error en getByUsername: ${error.message}`);
       return null;
     }
   }

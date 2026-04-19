@@ -7,6 +7,8 @@ import {
   createReception,
   updateReception,
 } from "../api/httpApi";
+import { useClientStore } from "../stores/clientStore";
+import { useDeviceStore } from "../stores/deviceStore";
 import { getFriendlyErrorMessage } from "../utils/helpers";
 import Toast from "../components/shared/Toast";
 import {
@@ -46,6 +48,8 @@ export default function ReceptionFormPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isEdit = !!id;
+  const { clients, loadClients } = useClientStore();
+  const { devices, loadDevices } = useDeviceStore();
 
   const [form, setForm] = useState({
     client_name: "",
@@ -59,6 +63,12 @@ export default function ReceptionFormPage() {
     observations: "",
     status: "PENDIENTE",
   });
+
+  // Load clients and devices for autocomplete
+  useEffect(() => {
+    loadClients().catch(() => {});
+    loadDevices().catch(() => {});
+  }, []);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
