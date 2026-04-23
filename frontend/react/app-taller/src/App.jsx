@@ -31,20 +31,42 @@ import { getSetupStatus } from "./api/httpApi";
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(null);
+  const [retryDisplay, setRetryDisplay] = useState(0);
+  const MAX_RETRIES = 10;
 
   useEffect(() => {
+    let retryCount = 0;
     async function checkSetup() {
       try {
         const { isInitialized } = await getSetupStatus();
         setIsInitialized(isInitialized);
       } catch (error) {
-        setIsInitialized(true); 
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          setRetryDisplay(retryCount);
+          setTimeout(checkSetup, 2000); // Reintentar cada 2 segundos
+        } else {
+          // Tras 20 segundos sin respuesta, asumir que el sistema necesita configuración
+          setIsInitialized(false);
+        }
       }
     }
     checkSetup();
   }, []);
 
-  if (isInitialized === null) return null;
+  if (isInitialized === null) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white font-sans">
+        <div className="h-12 w-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-slate-300 text-lg font-medium mb-1">Iniciando sistema...</p>
+        {retryDisplay > 0 && (
+          <p className="text-slate-500 text-sm">
+            Conectando con el servidor ({retryDisplay}/{MAX_RETRIES})...
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="taller-ui-theme">

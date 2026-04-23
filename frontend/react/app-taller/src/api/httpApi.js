@@ -6,7 +6,16 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // para enviar cookies
+  withCredentials: true,
+});
+
+// Interceptor para añadir el token a todas las peticiones
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("apptaller_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Interceptor de respuesta para manejar errores de autenticación y refresco de token
@@ -120,12 +129,18 @@ export const restoreReception = ({ id }) =>
 
 // --- Users (Auth) ---
 export const loginUser = async (username, password) => {
-  const { user } = await request(
+  const { user, accessToken } = await request(
     api.post("/users/login", { username, password }),
   );
-  return user; // Ya no devolvemos el token, se maneja en cookie
+  if (accessToken) {
+    localStorage.setItem("apptaller_token", accessToken);
+  }
+  return user;
 };
-export const logoutUser = () => request(api.post("/users/logout"));
+export const logoutUser = () => {
+  localStorage.removeItem("apptaller_token");
+  return request(api.post("/users/logout"));
+};
 export const registerUser = (userData) =>
   request(api.post("/users/register", userData));
 export const resetUserPassword = ({ username, newPassword }) =>

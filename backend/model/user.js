@@ -1,5 +1,5 @@
 import db from "../db/dbConfig.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import logger from "../utils/logger.js";
 
 export class User {

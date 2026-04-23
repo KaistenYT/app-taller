@@ -7,9 +7,9 @@ const { createSystemTray } = require('./systemTray.cjs');
 const UpdateManager = require('./updateManager.cjs');
 
 let mainWindow;
-let backendProcess;
 let systemTray;
 let updateManager;
+let serverInstance; // Nueva variable para guardar la instancia del servidor
 
 // Bandera para controlar el cierre real de la aplicación
 app.isQuitting = false;
@@ -53,65 +53,42 @@ function createWindow() {
     systemTray = createSystemTray(mainWindow);
   });
 
+  // Quitamos el evento 'close' que escondía la ventana. 
+  // Al no prevenir el cierre, se disparará 'window-all-closed' automáticamente.
   mainWindow.on('closed', () => {
     mainWindow = null;
-  });
-
-  // Minimizar a la bandeja en lugar de cerrar (Solo en producción)
-  mainWindow.on('close', (event) => {
-    if (!isDev && process.platform !== 'darwin' && !app.isQuitting) {
-      event.preventDefault();
-      mainWindow.hide();
-    }
-    // En desarrollo (isDev), no prevenimos el cierre, 
-    // por lo que window-all-closed se disparará y llamará a app.quit()
   });
 }
 
 async function startBackendServer() {
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-  const appPath = app.getAppPath();
-  const backendPath = path.join(appPath, 'backend/server.js');
-  const port = process.env.BACKEND_PORT || 3001;
+  
+  log.info(`[Main] Iniciando servidor backend integrado (Modo: ${isDev ? 'Desarrollo' : 'Producción'})`);
 
-  log.info(`[Main] Starting backend from: ${backendPath}`);
-
-  backendProcess = spawn('node', [backendPath], {
-    env: {
-      ...process.env,
-      PORT: port,
-      NODE_ENV: 'production',
-    },
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-
-  backendProcess.stdout.on('data', (data) => {
-    log.info(`[Backend] ${data.toString()}`);
-    if (mainWindow) {
-      mainWindow.webContents.send('backend-log', data.toString());
+  try {
+    // Aseguramos que las variables de entorno estén listas para el backend
+    process.env.PORT = process.env.BACKEND_PORT || 3001;
+    if (!process.env.NODE_ENV) {
+      process.env.NODE_ENV = isDev ? 'development' : 'production';
     }
-  });
 
-  backendProcess.stderr.on('data', (data) => {
-    log.error(`[Backend Error] ${data.toString()}`);
-    if (mainWindow) {
-      mainWindow.webContents.send('backend-error', data.toString());
-    }
-  });
-
-  backendProcess.on('error', (error) => {
-    log.error('[Backend] Failed to start:', error);
-  });
-
-  backendProcess.on('exit', (code, signal) => {
-    log.info(`[Backend] Process exited with code ${code}, signal ${signal}`);
-  });
-
-  // Wait for backend to be ready
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Al ser el proceso principal, podemos importar directamente
+    const serverModule = await import(serverPath);
+    serverInstance = serverModule.httpServer; // Guardamos la instancia para cerrarla después
+    
+    log.info('[Main] Servidor backend cargado exitosamente en el proceso principal');
+  } catch (err) {
+    log.error(`[Main] Error fatal al cargar el backend integrado: ${err.message}`);
+    log.error(err.stack);
+  }
 }
 
 app.whenReady().then(async () => {
+  // En producción, forzar NODE_ENV a production si no está definido
+  if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = app.isPackaged ? 'production' : 'development';
+  }
+
   // Setup IPC handlers
   setupApiHandlers();
 
@@ -146,8 +123,9 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
-  if (backendProcess) {
-    backendProcess.kill();
+  if (serverInstance) {
+    log.info('[Main] Cerrando servidor HTTP...');
+    serverInstance.close();
   }
 });
 

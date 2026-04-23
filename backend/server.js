@@ -28,10 +28,10 @@ const httpServer = createServer(app);
 const PORT = config.port;
 
 // 1. CORS DEBE IR PRIMERO PARA EVITAR BLOQUEOS EN PREFLIGHT
-const allowedOrigins = config.corsOrigin.split(",").map(o => o.trim());
+const isProd = process.env.NODE_ENV === "production";
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: isProd ? true : config.corsOrigin.split(",").map(o => o.trim()),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

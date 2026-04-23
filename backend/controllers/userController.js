@@ -3,9 +3,11 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../middle
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
-  maxAge: 365 * 24 * 60 * 60 * 1000, // 365 días (1 año) para persistencia total en escritorio
+  // En Electron local, no usamos HTTPS para el backend, por lo que secure debe ser false
+  // incluso en producción, de lo contrario el navegador descarta la cookie.
+  secure: false,
+  sameSite: "lax", 
+  maxAge: 365 * 24 * 60 * 60 * 1000, 
 };
 
 export const loginUser = async (req, res) => {

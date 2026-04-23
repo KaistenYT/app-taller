@@ -33,11 +33,10 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  // Acción para verificar si hay una sesión activa (usando las cookies)
+  // Acción para verificar si hay una sesión activa
   checkAuth: async () => {
-    // Si no hay rastro de una sesión previa ("hint"), evitamos el hit 401
-    const authHint = localStorage.getItem("apptaller_auth_hint");
-    if (authHint !== "true") {
+    const token = localStorage.getItem("apptaller_token");
+    if (!token) {
       set({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
@@ -46,7 +45,7 @@ export const useAuthStore = create((set) => ({
       const userData = await getCurrentUser();
       set({ user: userData, isAuthenticated: true, isLoading: false });
     } catch (error) {
-      localStorage.setItem("apptaller_auth_hint", "false");
+      localStorage.removeItem("apptaller_token");
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
